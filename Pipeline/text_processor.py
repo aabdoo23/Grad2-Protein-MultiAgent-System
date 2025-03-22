@@ -1,6 +1,8 @@
 from typing import Dict, Any, List, Optional
 from enum import Enum
 from groq import Groq
+import json
+from StructurePrediction.predict_3d_structure import StructurePredictor
 
 class PipelineFunction(Enum):
     GENERATE_PROTEIN = "generate_protein"
@@ -13,6 +15,7 @@ class TextProcessor:
         """Initialize the text processor with Groq API key."""
         self.api_key = api_key
         self.client = Groq(api_key=api_key)
+        self.structure_predictor = StructurePredictor()
 
     def process_input(self, text: str) -> Dict[str, Any]:
         """Process natural language input and structure it for the protein pipeline.
@@ -28,15 +31,21 @@ class TextProcessor:
         """
         # Construct the prompt for the LLM
         system_prompt = """
-        You are a protein engineering assistant that interprets natural language requests 
-        into structured commands. You should identify which of these functions to call:
-        1. generate_protein: For creating new protein sequences
-        2. predict_structure: For 3D structure prediction
-        3. evaluate_sequence: For evaluating generated sequences
-        4. search_similarity: For sequence similarity search using FoldSeek
+You are a protein engineering assistant that interprets natural language requests into structured commands.
+Your task is to parse the input and return a JSON object with exactly this structure:
+{
+    "function": "predict_structure",
+    "parameters": {
+        "sequence": "<protein sequence>"
+    }
+}
 
-        Output should be in JSON format with 'function' and 'parameters' fields.
-        """
+Rules:
+1. For structure prediction requests, extract the protein sequence and set it as the sequence parameter
+2. The function must be one of: "generate_protein", "predict_structure", "evaluate_sequence", "search_similarity"
+3. Return ONLY the JSON object, no other text
+4. Ensure the JSON is properly formatted with double quotes
+"""
 
         try:
             response = self.client.chat.completions.create(
@@ -49,9 +58,21 @@ class TextProcessor:
                 max_tokens=500
             )
 
-            # Extract the structured output from the LLM response
-            structured_output = response.choices[0].message.content
-            # TODO: Parse the JSON response and validate the function and parameters
+            # Extract and parse the structured output from the LLM response
+            structured_output = json.loads(response.choices[0].message.content)
+            
+            if not self.validate_output(structured_output):
+                raise ValueError("Invalid output format from LLM")
+            
+            # Handle structure prediction if requested
+            if structured_output['function'] == PipelineFunction.PREDICT_STRUCTURE.value:
+                if 'sequence' in structured_output['parameters']:
+                    prediction_result = self.structure_predictor.predict_structure(
+                        structured_output['parameters']['sequence']
+                    )
+                    structured_output['prediction_result'] = prediction_result
+                else:
+                    raise ValueError("Missing sequence parameter for structure prediction")
             
             return structured_output
 

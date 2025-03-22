@@ -1,0 +1,7 @@
+groq>=0.3.2
+requests>=2.31.0
+matplotlib>=3.8.0
+py3Dmol>=2.0.0
+biopython>=1.83
+typing>=3.7.4
+enum34>=1.1.10

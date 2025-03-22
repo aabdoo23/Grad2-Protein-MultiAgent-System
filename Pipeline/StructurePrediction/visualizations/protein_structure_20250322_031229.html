@@ -1,0 +1,500 @@
+
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta charset="utf-8">
+                <title>Protein Structure Visualization</title>
+                <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+                <script src="https://3dmol.org/build/3Dmol-min.js"></script>
+                <style>
+                  #viewer { height: 600px; width: 800px; position: relative; }
+                </style>
+              </head>
+              <body>
+                <h2>3D Structure Viewer</h2>
+                <div id="viewer"></div>
+                <script>
+                  $(document).ready(function() {
+                    let element = document.getElementById("viewer");
+                    let viewer = $3Dmol.createViewer(element, {backgroundColor: "white"});
+                    let pdbData = `HEADER                                            18-OCT-22                     
+TITLE     ESMFOLD V1 PREDICTION FOR INPUT
+REMARK   1                                                                      
+REMARK   1 REFERENCE 1                                                          
+REMARK   1  AUTH   ZEMING LIN, HALIL AKIN, ROSHAN RAO, BRIAN HIE, ZHONGKAI ZHU,
+REMARK   1  AUTH 2 WENTING LU, NIKITA SMETANIN, ROBERT VERKUIL, ORI KABELI,
+REMARK   1  AUTH 3 YANIV SHMUELI, ALLAN DOS SANTOS COSTA,
+REMARK   1  AUTH 4 MARYAM FAZEL-ZARANDI, TOM SERCU, SALVATORE CANDIDO,
+REMARK   1  AUTH 5 ALEXANDER RIVES
+REMARK   1  TITL   EVOLUTIONARY-SCALE PREDICTION OF ATOMIC LEVEL PROTEIN
+REMARK   1  TITL 2 STRUCTURE WITH A LANGUAGE MODEL
+REMARK   1  REF                                                                 
+REMARK   1  REFN                                                                
+REMARK   1  PMID                                                                
+REMARK   1  DOI    10.1101/2022.07.20.500902                                    
+REMARK   1                                                                      
+REMARK   1 LICENSE AND DISCLAIMERS                
+REMARK   1 ESM METAGENOMIC ATLAS DATA IS AVAILABLE UNDER
+REMARK   1 A CC-BY-4.0 LICENSE FOR ACADEMIC AND COMMERCIAL USE.
+REMARK   1 COPYRIGHT (C) META PLATFORMS, INC. ALL RIGHTS RESERVED.
+REMARK   1 USE OF THE ESM METAGENOMIC ATLAS DATA IS SUBJECT
+REMARK   1 TO THE META OPEN SOURCE TERMS OF USE AND PRIVACY POLICY.
+ATOM      1  N   PRO A   1       4.180  -4.027 -14.505  1.00  0.94           N  
+ATOM      2  CA  PRO A   1       4.102  -2.828 -13.668  1.00  0.95           C  
+ATOM      3  C   PRO A   1       4.508  -3.092 -12.220  1.00  0.95           C  
+ATOM      4  CB  PRO A   1       2.626  -2.431 -13.758  1.00  0.94           C  
+ATOM      5  O   PRO A   1       4.251  -4.176 -11.691  1.00  0.95           O  
+ATOM      6  CG  PRO A   1       2.097  -3.189 -14.932  1.00  0.92           C  
+ATOM      7  CD  PRO A   1       2.881  -4.462 -15.070  1.00  0.92           C  
+ATOM      8  N   ILE A   2       5.261  -2.213 -11.637  1.00  0.96           N  
+ATOM      9  CA  ILE A   2       5.614  -2.234 -10.221  1.00  0.96           C  
+ATOM     10  C   ILE A   2       5.082  -0.975  -9.539  1.00  0.96           C  
+ATOM     11  CB  ILE A   2       7.142  -2.348 -10.021  1.00  0.95           C  
+ATOM     12  O   ILE A   2       5.309   0.139 -10.015  1.00  0.95           O  
+ATOM     13  CG1 ILE A   2       7.674  -3.620 -10.689  1.00  0.82           C  
+ATOM     14  CG2 ILE A   2       7.494  -2.323  -8.531  1.00  0.82           C  
+ATOM     15  CD1 ILE A   2       9.193  -3.720 -10.708  1.00  0.77           C  
+ATOM     16  N   ALA A   3       4.272  -1.240  -8.511  1.00  0.96           N  
+ATOM     17  CA  ALA A   3       3.783  -0.135  -7.691  1.00  0.96           C  
+ATOM     18  C   ALA A   3       4.446  -0.137  -6.317  1.00  0.96           C  
+ATOM     19  CB  ALA A   3       2.265  -0.209  -7.547  1.00  0.95           C  
+ATOM     20  O   ALA A   3       4.492  -1.170  -5.645  1.00  0.96           O  
+ATOM     21  N   GLN A   4       5.086   0.894  -5.947  1.00  0.96           N  
+ATOM     22  CA  GLN A   4       5.614   1.078  -4.599  1.00  0.96           C  
+ATOM     23  C   GLN A   4       4.733   2.024  -3.788  1.00  0.96           C  
+ATOM     24  CB  GLN A   4       7.047   1.610  -4.651  1.00  0.95           C  
+ATOM     25  O   GLN A   4       4.480   3.156  -4.206  1.00  0.95           O  
+ATOM     26  CG  GLN A   4       8.026   0.672  -5.344  1.00  0.87           C  
+ATOM     27  CD  GLN A   4       9.452   1.190  -5.321  1.00  0.82           C  
+ATOM     28  NE2 GLN A   4      10.291   0.656  -6.201  1.00  0.75           N  
+ATOM     29  OE1 GLN A   4       9.795   2.064  -4.519  1.00  0.80           O  
+ATOM     30  N   ILE A   5       4.277   1.493  -2.671  1.00  0.96           N  
+ATOM     31  CA  ILE A   5       3.356   2.252  -1.833  1.00  0.96           C  
+ATOM     32  C   ILE A   5       4.021   2.576  -0.497  1.00  0.96           C  
+ATOM     33  CB  ILE A   5       2.036   1.482  -1.601  1.00  0.96           C  
+ATOM     34  O   ILE A   5       4.478   1.676   0.211  1.00  0.96           O  
+ATOM     35  CG1 ILE A   5       1.395   1.106  -2.942  1.00  0.94           C  
+ATOM     36  CG2 ILE A   5       1.071   2.309  -0.746  1.00  0.94           C  
+ATOM     37  CD1 ILE A   5       0.171   0.210  -2.813  1.00  0.91           C  
+ATOM     38  N   HIS A   6       4.163   3.839  -0.221  1.00  0.95           N  
+ATOM     39  CA  HIS A   6       4.668   4.304   1.066  1.00  0.95           C  
+ATOM     40  C   HIS A   6       3.534   4.805   1.955  1.00  0.95           C  
+ATOM     41  CB  HIS A   6       5.706   5.409   0.867  1.00  0.95           C  
+ATOM     42  O   HIS A   6       2.765   5.681   1.552  1.00  0.94           O  
+ATOM     43  CG  HIS A   6       6.884   4.985   0.049  1.00  0.91           C  
+ATOM     44  CD2 HIS A   6       7.122   5.075  -1.281  1.00  0.84           C  
+ATOM     45  ND1 HIS A   6       7.995   4.383   0.600  1.00  0.82           N  
+ATOM     46  CE1 HIS A   6       8.867   4.121  -0.359  1.00  0.85           C  
+ATOM     47  NE2 HIS A   6       8.361   4.531  -1.510  1.00  0.86           N  
+ATOM     48  N   ILE A   7       3.454   4.173   3.092  1.00  0.95           N  
+ATOM     49  CA  ILE A   7       2.370   4.533   3.999  1.00  0.95           C  
+ATOM     50  C   ILE A   7       2.894   4.589   5.433  1.00  0.95           C  
+ATOM     51  CB  ILE A   7       1.193   3.538   3.897  1.00  0.95           C  
+ATOM     52  O   ILE A   7       3.947   4.023   5.737  1.00  0.94           O  
+ATOM     53  CG1 ILE A   7       1.656   2.124   4.267  1.00  0.93           C  
+ATOM     54  CG2 ILE A   7       0.583   3.565   2.492  1.00  0.92           C  
+ATOM     55  CD1 ILE A   7       0.534   1.096   4.306  1.00  0.91           C  
+ATOM     56  N   LEU A   8       2.218   5.342   6.304  1.00  0.94           N  
+ATOM     57  CA  LEU A   8       2.546   5.338   7.725  1.00  0.94           C  
+ATOM     58  C   LEU A   8       2.207   3.992   8.358  1.00  0.94           C  
+ATOM     59  CB  LEU A   8       1.799   6.459   8.452  1.00  0.93           C  
+ATOM     60  O   LEU A   8       1.253   3.330   7.944  1.00  0.94           O  
+ATOM     61  CG  LEU A   8       2.227   7.888   8.115  1.00  0.89           C  
+ATOM     62  CD1 LEU A   8       1.309   8.893   8.805  1.00  0.83           C  
+ATOM     63  CD2 LEU A   8       3.680   8.120   8.516  1.00  0.83           C  
+ATOM     64  N   GLU A   9       2.974   3.641   9.352  1.00  0.94           N  
+ATOM     65  CA  GLU A   9       2.675   2.448  10.138  1.00  0.94           C  
+ATOM     66  C   GLU A   9       1.322   2.570  10.834  1.00  0.94           C  
+ATOM     67  CB  GLU A   9       3.776   2.193  11.170  1.00  0.93           C  
+ATOM     68  O   GLU A   9       0.816   3.677  11.027  1.00  0.94           O  
+ATOM     69  CG  GLU A   9       5.107   1.777  10.560  1.00  0.87           C  
+ATOM     70  CD  GLU A   9       6.230   1.680  11.580  1.00  0.84           C  
+ATOM     71  OE1 GLU A   9       6.029   2.089  12.746  1.00  0.82           O  
+ATOM     72  OE2 GLU A   9       7.321   1.191  11.210  1.00  0.81           O  
+ATOM     73  N   GLY A  10       0.728   1.395  11.098  1.00  0.94           N  
+ATOM     74  CA  GLY A  10      -0.477   1.402  11.913  1.00  0.94           C  
+ATOM     75  C   GLY A  10      -1.658   0.732  11.237  1.00  0.94           C  
+ATOM     76  O   GLY A  10      -2.650   0.403  11.892  1.00  0.93           O  
+ATOM     77  N   ARG A  11      -1.625   0.446  10.013  1.00  0.95           N  
+ATOM     78  CA  ARG A  11      -2.710  -0.235   9.315  1.00  0.95           C  
+ATOM     79  C   ARG A  11      -2.700  -1.730   9.614  1.00  0.95           C  
+ATOM     80  CB  ARG A  11      -2.609  -0.002   7.806  1.00  0.93           C  
+ATOM     81  O   ARG A  11      -1.642  -2.312   9.863  1.00  0.95           O  
+ATOM     82  CG  ARG A  11      -3.248   1.297   7.340  1.00  0.86           C  
+ATOM     83  CD  ARG A  11      -2.521   2.514   7.895  1.00  0.82           C  
+ATOM     84  NE  ARG A  11      -3.015   3.753   7.302  1.00  0.79           N  
+ATOM     85  NH1 ARG A  11      -1.730   5.142   8.627  1.00  0.65           N  
+ATOM     86  NH2 ARG A  11      -3.141   6.033   7.056  1.00  0.60           N  
+ATOM     87  CZ  ARG A  11      -2.627   4.973   7.663  1.00  0.75           C  
+ATOM     88  N   SER A  12      -3.783  -2.296   9.693  1.00  0.96           N  
+ATOM     89  CA  SER A  12      -3.886  -3.729   9.949  1.00  0.96           C  
+ATOM     90  C   SER A  12      -3.419  -4.540   8.745  1.00  0.96           C  
+ATOM     91  CB  SER A  12      -5.323  -4.109  10.305  1.00  0.95           C  
+ATOM     92  O   SER A  12      -3.367  -4.026   7.626  1.00  0.96           O  
+ATOM     93  OG  SER A  12      -6.159  -4.042   9.162  1.00  0.90           O  
+ATOM     94  N   ASP A  13      -3.122  -5.663   8.980  1.00  0.96           N  
+ATOM     95  CA  ASP A  13      -2.726  -6.566   7.905  1.00  0.96           C  
+ATOM     96  C   ASP A  13      -3.840  -6.711   6.870  1.00  0.96           C  
+ATOM     97  CB  ASP A  13      -2.349  -7.938   8.467  1.00  0.95           C  
+ATOM     98  O   ASP A  13      -3.571  -6.817   5.672  1.00  0.96           O  
+ATOM     99  CG  ASP A  13      -1.013  -7.937   9.188  1.00  0.90           C  
+ATOM    100  OD1 ASP A  13      -0.227  -6.981   9.014  1.00  0.86           O  
+ATOM    101  OD2 ASP A  13      -0.742  -8.902   9.935  1.00  0.88           O  
+ATOM    102  N   GLU A  14      -5.097  -6.692   7.399  1.00  0.96           N  
+ATOM    103  CA  GLU A  14      -6.236  -6.769   6.490  1.00  0.96           C  
+ATOM    104  C   GLU A  14      -6.291  -5.554   5.569  1.00  0.96           C  
+ATOM    105  CB  GLU A  14      -7.544  -6.892   7.277  1.00  0.95           C  
+ATOM    106  O   GLU A  14      -6.560  -5.686   4.373  1.00  0.96           O  
+ATOM    107  CG  GLU A  14      -7.710  -8.226   7.989  1.00  0.83           C  
+ATOM    108  CD  GLU A  14      -7.048  -8.263   9.357  1.00  0.74           C  
+ATOM    109  OE1 GLU A  14      -6.560  -7.209   9.823  1.00  0.72           O  
+ATOM    110  OE2 GLU A  14      -7.017  -9.355   9.967  1.00  0.68           O  
+ATOM    111  N   GLN A  15      -6.021  -4.394   6.158  1.00  0.96           N  
+ATOM    112  CA  GLN A  15      -6.011  -3.182   5.346  1.00  0.96           C  
+ATOM    113  C   GLN A  15      -4.906  -3.232   4.295  1.00  0.96           C  
+ATOM    114  CB  GLN A  15      -5.840  -1.945   6.229  1.00  0.96           C  
+ATOM    115  O   GLN A  15      -5.116  -2.838   3.146  1.00  0.96           O  
+ATOM    116  CG  GLN A  15      -7.083  -1.585   7.032  1.00  0.92           C  
+ATOM    117  CD  GLN A  15      -6.865  -0.399   7.952  1.00  0.89           C  
+ATOM    118  NE2 GLN A  15      -7.740   0.596   7.855  1.00  0.87           N  
+ATOM    119  OE1 GLN A  15      -5.918  -0.378   8.745  1.00  0.88           O  
+ATOM    120  N   LYS A  16      -3.763  -3.712   4.611  1.00  0.97           N  
+ATOM    121  CA  LYS A  16      -2.642  -3.792   3.679  1.00  0.97           C  
+ATOM    122  C   LYS A  16      -2.919  -4.805   2.572  1.00  0.96           C  
+ATOM    123  CB  LYS A  16      -1.355  -4.162   4.417  1.00  0.96           C  
+ATOM    124  O   LYS A  16      -2.594  -4.564   1.407  1.00  0.96           O  
+ATOM    125  CG  LYS A  16      -0.846  -3.078   5.357  1.00  0.94           C  
+ATOM    126  CD  LYS A  16       0.482  -3.468   5.993  1.00  0.92           C  
+ATOM    127  CE  LYS A  16       0.278  -4.344   7.222  1.00  0.90           C  
+ATOM    128  NZ  LYS A  16       1.578  -4.728   7.850  1.00  0.84           N  
+ATOM    129  N   GLU A  17      -3.546  -5.853   2.950  1.00  0.96           N  
+ATOM    130  CA  GLU A  17      -3.927  -6.861   1.966  1.00  0.96           C  
+ATOM    131  C   GLU A  17      -4.929  -6.300   0.960  1.00  0.96           C  
+ATOM    132  CB  GLU A  17      -4.512  -8.095   2.658  1.00  0.96           C  
+ATOM    133  O   GLU A  17      -4.797  -6.522  -0.245  1.00  0.96           O  
+ATOM    134  CG  GLU A  17      -4.871  -9.224   1.703  1.00  0.90           C  
+ATOM    135  CD  GLU A  17      -5.446 -10.444   2.406  1.00  0.84           C  
+ATOM    136  OE1 GLU A  17      -5.343 -10.532   3.650  1.00  0.82           O  
+ATOM    137  OE2 GLU A  17      -6.002 -11.319   1.706  1.00  0.81           O  
+ATOM    138  N   THR A  18      -5.920  -5.581   1.480  1.00  0.96           N  
+ATOM    139  CA  THR A  18      -6.898  -4.938   0.610  1.00  0.96           C  
+ATOM    140  C   THR A  18      -6.220  -3.933  -0.317  1.00  0.96           C  
+ATOM    141  CB  THR A  18      -7.992  -4.228   1.429  1.00  0.96           C  
+ATOM    142  O   THR A  18      -6.536  -3.867  -1.507  1.00  0.96           O  
+ATOM    143  CG2 THR A  18      -8.948  -3.461   0.521  1.00  0.87           C  
+ATOM    144  OG1 THR A  18      -8.734  -5.203   2.171  1.00  0.86           O  
+ATOM    145  N   LEU A  19      -5.343  -3.181   0.196  1.00  0.97           N  
+ATOM    146  CA  LEU A  19      -4.600  -2.200  -0.587  1.00  0.97           C  
+ATOM    147  C   LEU A  19      -3.830  -2.876  -1.716  1.00  0.97           C  
+ATOM    148  CB  LEU A  19      -3.635  -1.419   0.309  1.00  0.96           C  
+ATOM    149  O   LEU A  19      -3.921  -2.458  -2.873  1.00  0.97           O  
+ATOM    150  CG  LEU A  19      -2.807  -0.329  -0.374  1.00  0.95           C  
+ATOM    151  CD1 LEU A  19      -3.722   0.677  -1.063  1.00  0.91           C  
+ATOM    152  CD2 LEU A  19      -1.902   0.367   0.636  1.00  0.91           C  
+ATOM    153  N   ILE A  20      -3.064  -3.915  -1.422  1.00  0.97           N  
+ATOM    154  CA  ILE A  20      -2.294  -4.633  -2.432  1.00  0.97           C  
+ATOM    155  C   ILE A  20      -3.232  -5.166  -3.513  1.00  0.97           C  
+ATOM    156  CB  ILE A  20      -1.484  -5.792  -1.808  1.00  0.96           C  
+ATOM    157  O   ILE A  20      -2.960  -5.019  -4.707  1.00  0.96           O  
+ATOM    158  CG1 ILE A  20      -0.309  -5.242  -0.991  1.00  0.95           C  
+ATOM    159  CG2 ILE A  20      -0.994  -6.754  -2.893  1.00  0.95           C  
+ATOM    160  CD1 ILE A  20       0.422  -6.296  -0.171  1.00  0.93           C  
+ATOM    161  N   ARG A  21      -4.398  -5.785  -3.104  1.00  0.96           N  
+ATOM    162  CA  ARG A  21      -5.352  -6.367  -4.043  1.00  0.96           C  
+ATOM    163  C   ARG A  21      -5.962  -5.295  -4.939  1.00  0.96           C  
+ATOM    164  CB  ARG A  21      -6.457  -7.114  -3.293  1.00  0.95           C  
+ATOM    165  O   ARG A  21      -5.985  -5.440  -6.163  1.00  0.96           O  
+ATOM    166  CG  ARG A  21      -7.461  -7.804  -4.203  1.00  0.87           C  
+ATOM    167  CD  ARG A  21      -8.520  -8.554  -3.407  1.00  0.81           C  
+ATOM    168  NE  ARG A  21      -9.285  -7.655  -2.547  1.00  0.78           N  
+ATOM    169  NH1 ARG A  21      -8.573  -8.608  -0.567  1.00  0.59           N  
+ATOM    170  NH2 ARG A  21     -10.025  -6.835  -0.534  1.00  0.52           N  
+ATOM    171  CZ  ARG A  21      -9.293  -7.701  -1.218  1.00  0.71           C  
+ATOM    172  N   GLU A  22      -6.446  -4.203  -4.337  1.00  0.96           N  
+ATOM    173  CA  GLU A  22      -7.149  -3.172  -5.095  1.00  0.96           C  
+ATOM    174  C   GLU A  22      -6.197  -2.424  -6.024  1.00  0.97           C  
+ATOM    175  CB  GLU A  22      -7.843  -2.188  -4.150  1.00  0.96           C  
+ATOM    176  O   GLU A  22      -6.550  -2.109  -7.162  1.00  0.96           O  
+ATOM    177  CG  GLU A  22      -9.028  -2.785  -3.403  1.00  0.92           C  
+ATOM    178  CD  GLU A  22     -10.245  -3.006  -4.287  1.00  0.87           C  
+ATOM    179  OE1 GLU A  22     -10.458  -2.216  -5.235  1.00  0.85           O  
+ATOM    180  OE2 GLU A  22     -10.991  -3.976  -4.030  1.00  0.84           O  
+ATOM    181  N   VAL A  23      -4.959  -2.126  -5.582  1.00  0.97           N  
+ATOM    182  CA  VAL A  23      -3.972  -1.445  -6.414  1.00  0.97           C  
+ATOM    183  C   VAL A  23      -3.558  -2.350  -7.571  1.00  0.97           C  
+ATOM    184  CB  VAL A  23      -2.731  -1.026  -5.594  1.00  0.96           C  
+ATOM    185  O   VAL A  23      -3.446  -1.897  -8.713  1.00  0.97           O  
+ATOM    186  CG1 VAL A  23      -1.592  -0.600  -6.518  1.00  0.94           C  
+ATOM    187  CG2 VAL A  23      -3.088   0.101  -4.626  1.00  0.94           C  
+ATOM    188  N   SER A  24      -3.325  -3.669  -7.311  1.00  0.97           N  
+ATOM    189  CA  SER A  24      -2.970  -4.612  -8.366  1.00  0.97           C  
+ATOM    190  C   SER A  24      -4.046  -4.665  -9.445  1.00  0.96           C  
+ATOM    191  CB  SER A  24      -2.751  -6.010  -7.785  1.00  0.96           C  
+ATOM    192  O   SER A  24      -3.741  -4.592 -10.638  1.00  0.96           O  
+ATOM    193  OG  SER A  24      -1.664  -6.011  -6.876  1.00  0.94           O  
+ATOM    194  N   GLU A  25      -5.263  -4.751  -9.012  1.00  0.97           N  
+ATOM    195  CA  GLU A  25      -6.378  -4.828  -9.951  1.00  0.97           C  
+ATOM    196  C   GLU A  25      -6.535  -3.524 -10.729  1.00  0.97           C  
+ATOM    197  CB  GLU A  25      -7.679  -5.161  -9.216  1.00  0.96           C  
+ATOM    198  O   GLU A  25      -6.819  -3.541 -11.929  1.00  0.96           O  
+ATOM    199  CG  GLU A  25      -7.756  -6.600  -8.725  1.00  0.91           C  
+ATOM    200  CD  GLU A  25      -9.025  -6.900  -7.943  1.00  0.85           C  
+ATOM    201  OE1 GLU A  25      -9.860  -5.984  -7.767  1.00  0.84           O  
+ATOM    202  OE2 GLU A  25      -9.184  -8.060  -7.501  1.00  0.83           O  
+ATOM    203  N   ALA A  26      -6.427  -2.401 -10.046  1.00  0.96           N  
+ATOM    204  CA  ALA A  26      -6.529  -1.105 -10.711  1.00  0.96           C  
+ATOM    205  C   ALA A  26      -5.469  -0.962 -11.800  1.00  0.96           C  
+ATOM    206  CB  ALA A  26      -6.399   0.027  -9.695  1.00  0.96           C  
+ATOM    207  O   ALA A  26      -5.760  -0.489 -12.901  1.00  0.96           O  
+ATOM    208  N   ILE A  27      -4.203  -1.353 -11.518  1.00  0.97           N  
+ATOM    209  CA  ILE A  27      -3.097  -1.228 -12.460  1.00  0.97           C  
+ATOM    210  C   ILE A  27      -3.313  -2.173 -13.640  1.00  0.97           C  
+ATOM    211  CB  ILE A  27      -1.740  -1.520 -11.781  1.00  0.97           C  
+ATOM    212  O   ILE A  27      -3.139  -1.783 -14.796  1.00  0.96           O  
+ATOM    213  CG1 ILE A  27      -1.355  -0.373 -10.840  1.00  0.95           C  
+ATOM    214  CG2 ILE A  27      -0.650  -1.757 -12.831  1.00  0.95           C  
+ATOM    215  CD1 ILE A  27      -0.149  -0.671  -9.960  1.00  0.93           C  
+ATOM    216  N   SER A  28      -3.716  -3.399 -13.314  1.00  0.97           N  
+ATOM    217  CA  SER A  28      -3.986  -4.380 -14.359  1.00  0.96           C  
+ATOM    218  C   SER A  28      -5.064  -3.884 -15.317  1.00  0.96           C  
+ATOM    219  CB  SER A  28      -4.413  -5.714 -13.746  1.00  0.96           C  
+ATOM    220  O   SER A  28      -4.889  -3.935 -16.537  1.00  0.96           O  
+ATOM    221  OG  SER A  28      -4.710  -6.661 -14.757  1.00  0.90           O  
+ATOM    222  N   ARG A  29      -6.163  -3.322 -14.809  1.00  0.97           N  
+ATOM    223  CA  ARG A  29      -7.277  -2.834 -15.616  1.00  0.96           C  
+ATOM    224  C   ARG A  29      -6.876  -1.597 -16.412  1.00  0.97           C  
+ATOM    225  CB  ARG A  29      -8.484  -2.519 -14.730  1.00  0.96           C  
+ATOM    226  O   ARG A  29      -7.195  -1.484 -17.597  1.00  0.96           O  
+ATOM    227  CG  ARG A  29      -9.176  -3.752 -14.170  1.00  0.86           C  
+ATOM    228  CD  ARG A  29     -10.519  -3.408 -13.541  1.00  0.79           C  
+ATOM    229  NE  ARG A  29     -10.378  -2.418 -12.477  1.00  0.77           N  
+ATOM    230  NH1 ARG A  29     -10.233  -3.969 -10.771  1.00  0.62           N  
+ATOM    231  NH2 ARG A  29     -10.124  -1.728 -10.301  1.00  0.54           N  
+ATOM    232  CZ  ARG A  29     -10.245  -2.707 -11.186  1.00  0.70           C  
+ATOM    233  N   SER A  30      -6.133  -0.700 -15.795  1.00  0.97           N  
+ATOM    234  CA  SER A  30      -5.834   0.605 -16.377  1.00  0.96           C  
+ATOM    235  C   SER A  30      -4.775   0.494 -17.468  1.00  0.97           C  
+ATOM    236  CB  SER A  30      -5.364   1.579 -15.295  1.00  0.96           C  
+ATOM    237  O   SER A  30      -4.791   1.259 -18.435  1.00  0.96           O  
+ATOM    238  OG  SER A  30      -6.388   1.804 -14.342  1.00  0.82           O  
+ATOM    239  N   LEU A  31      -3.814  -0.446 -17.372  1.00  0.97           N  
+ATOM    240  CA  LEU A  31      -2.716  -0.584 -18.322  1.00  0.97           C  
+ATOM    241  C   LEU A  31      -2.923  -1.801 -19.217  1.00  0.97           C  
+ATOM    242  CB  LEU A  31      -1.380  -0.700 -17.584  1.00  0.96           C  
+ATOM    243  O   LEU A  31      -2.048  -2.145 -20.016  1.00  0.96           O  
+ATOM    244  CG  LEU A  31      -0.962   0.509 -16.746  1.00  0.94           C  
+ATOM    245  CD1 LEU A  31       0.406   0.270 -16.116  1.00  0.91           C  
+ATOM    246  CD2 LEU A  31      -0.950   1.774 -17.598  1.00  0.91           C  
+ATOM    247  N   ASP A  32      -4.077  -2.484 -19.004  1.00  0.96           N  
+ATOM    248  CA  ASP A  32      -4.335  -3.720 -19.737  1.00  0.96           C  
+ATOM    249  C   ASP A  32      -3.175  -4.701 -19.587  1.00  0.96           C  
+ATOM    250  CB  ASP A  32      -4.585  -3.423 -21.217  1.00  0.95           C  
+ATOM    251  O   ASP A  32      -2.734  -5.304 -20.567  1.00  0.95           O  
+ATOM    252  CG  ASP A  32      -5.304  -4.551 -21.935  1.00  0.88           C  
+ATOM    253  OD1 ASP A  32      -6.005  -5.347 -21.273  1.00  0.79           O  
+ATOM    254  OD2 ASP A  32      -5.166  -4.648 -23.174  1.00  0.83           O  
+ATOM    255  N   ALA A  33      -2.666  -4.834 -18.418  1.00  0.96           N  
+ATOM    256  CA  ALA A  33      -1.591  -5.769 -18.096  1.00  0.96           C  
+ATOM    257  C   ALA A  33      -2.127  -6.984 -17.345  1.00  0.96           C  
+ATOM    258  CB  ALA A  33      -0.510  -5.073 -17.272  1.00  0.95           C  
+ATOM    259  O   ALA A  33      -3.103  -6.880 -16.599  1.00  0.95           O  
+ATOM    260  N   PRO A  34      -1.506  -8.149 -17.595  1.00  0.96           N  
+ATOM    261  CA  PRO A  34      -1.889  -9.304 -16.779  1.00  0.96           C  
+ATOM    262  C   PRO A  34      -1.614  -9.092 -15.292  1.00  0.96           C  
+ATOM    263  CB  PRO A  34      -1.023 -10.434 -17.339  1.00  0.95           C  
+ATOM    264  O   PRO A  34      -0.589  -8.512 -14.926  1.00  0.95           O  
+ATOM    265  CG  PRO A  34       0.134  -9.744 -17.987  1.00  0.92           C  
+ATOM    266  CD  PRO A  34      -0.325  -8.402 -18.479  1.00  0.90           C  
+ATOM    267  N   LEU A  35      -2.557  -9.496 -14.566  1.00  0.96           N  
+ATOM    268  CA  LEU A  35      -2.461  -9.347 -13.118  1.00  0.96           C  
+ATOM    269  C   LEU A  35      -1.176  -9.978 -12.591  1.00  0.96           C  
+ATOM    270  CB  LEU A  35      -3.674  -9.981 -12.432  1.00  0.95           C  
+ATOM    271  O   LEU A  35      -0.558  -9.453 -11.662  1.00  0.95           O  
+ATOM    272  CG  LEU A  35      -3.769  -9.795 -10.917  1.00  0.93           C  
+ATOM    273  CD1 LEU A  35      -3.745  -8.312 -10.562  1.00  0.89           C  
+ATOM    274  CD2 LEU A  35      -5.031 -10.459 -10.375  1.00  0.88           C  
+ATOM    275  N   THR A  36      -0.752 -11.131 -13.216  1.00  0.96           N  
+ATOM    276  CA  THR A  36       0.428 -11.865 -12.773  1.00  0.95           C  
+ATOM    277  C   THR A  36       1.691 -11.037 -12.987  1.00  0.95           C  
+ATOM    278  CB  THR A  36       0.561 -13.209 -13.514  1.00  0.95           C  
+ATOM    279  O   THR A  36       2.749 -11.355 -12.439  1.00  0.94           O  
+ATOM    280  CG2 THR A  36      -0.641 -14.108 -13.243  1.00  0.86           C  
+ATOM    281  OG1 THR A  36       0.652 -12.964 -14.923  1.00  0.88           O  
+ATOM    282  N   SER A  37       1.604  -9.990 -13.732  1.00  0.95           N  
+ATOM    283  CA  SER A  37       2.781  -9.173 -14.007  1.00  0.95           C  
+ATOM    284  C   SER A  37       2.855  -7.976 -13.064  1.00  0.95           C  
+ATOM    285  CB  SER A  37       2.771  -8.689 -15.457  1.00  0.94           C  
+ATOM    286  O   SER A  37       3.825  -7.216 -13.093  1.00  0.94           O  
+ATOM    287  OG  SER A  37       1.713  -7.772 -15.675  1.00  0.85           O  
+ATOM    288  N   VAL A  38       1.800  -7.708 -12.320  1.00  0.96           N  
+ATOM    289  CA  VAL A  38       1.749  -6.555 -11.427  1.00  0.96           C  
+ATOM    290  C   VAL A  38       2.410  -6.903 -10.095  1.00  0.96           C  
+ATOM    291  CB  VAL A  38       0.297  -6.081 -11.195  1.00  0.96           C  
+ATOM    292  O   VAL A  38       2.078  -7.917  -9.477  1.00  0.95           O  
+ATOM    293  CG1 VAL A  38       0.264  -4.894 -10.234  1.00  0.95           C  
+ATOM    294  CG2 VAL A  38      -0.364  -5.717 -12.523  1.00  0.95           C  
+ATOM    295  N   ARG A  39       3.315  -6.191  -9.606  1.00  0.96           N  
+ATOM    296  CA  ARG A  39       3.968  -6.300  -8.306  1.00  0.96           C  
+ATOM    297  C   ARG A  39       3.734  -5.047  -7.468  1.00  0.96           C  
+ATOM    298  CB  ARG A  39       5.470  -6.542  -8.477  1.00  0.95           C  
+ATOM    299  O   ARG A  39       3.891  -3.927  -7.959  1.00  0.96           O  
+ATOM    300  CG  ARG A  39       5.806  -7.838  -9.198  1.00  0.87           C  
+ATOM    301  CD  ARG A  39       7.212  -7.810  -9.781  1.00  0.83           C  
+ATOM    302  NE  ARG A  39       7.418  -8.888 -10.744  1.00  0.80           N  
+ATOM    303  NH1 ARG A  39       8.706  -7.630 -12.191  1.00  0.65           N  
+ATOM    304  NH2 ARG A  39       8.246  -9.824 -12.671  1.00  0.60           N  
+ATOM    305  CZ  ARG A  39       8.123  -8.778 -11.866  1.00  0.73           C  
+ATOM    306  N   VAL A  40       3.336  -5.220  -6.303  1.00  0.96           N  
+ATOM    307  CA  VAL A  40       3.061  -4.142  -5.359  1.00  0.96           C  
+ATOM    308  C   VAL A  40       3.951  -4.294  -4.128  1.00  0.96           C  
+ATOM    309  CB  VAL A  40       1.573  -4.119  -4.942  1.00  0.96           C  
+ATOM    310  O   VAL A  40       4.008  -5.367  -3.524  1.00  0.96           O  
+ATOM    311  CG1 VAL A  40       1.309  -2.990  -3.947  1.00  0.95           C  
+ATOM    312  CG2 VAL A  40       0.677  -3.973  -6.170  1.00  0.95           C  
+ATOM    313  N   ILE A  41       4.683  -3.280  -3.716  1.00  0.96           N  
+ATOM    314  CA  ILE A  41       5.528  -3.235  -2.528  1.00  0.96           C  
+ATOM    315  C   ILE A  41       5.013  -2.165  -1.568  1.00  0.96           C  
+ATOM    316  CB  ILE A  41       7.004  -2.960  -2.894  1.00  0.96           C  
+ATOM    317  O   ILE A  41       4.844  -1.006  -1.953  1.00  0.96           O  
+ATOM    318  CG1 ILE A  41       7.522  -4.030  -3.862  1.00  0.91           C  
+ATOM    319  CG2 ILE A  41       7.871  -2.897  -1.633  1.00  0.91           C  
+ATOM    320  CD1 ILE A  41       8.853  -3.682  -4.515  1.00  0.84           C  
+ATOM    321  N   ILE A  42       4.744  -2.537  -0.328  1.00  0.96           N  
+ATOM    322  CA  ILE A  42       4.375  -1.581   0.710  1.00  0.96           C  
+ATOM    323  C   ILE A  42       5.568  -1.331   1.629  1.00  0.96           C  
+ATOM    324  CB  ILE A  42       3.162  -2.077   1.530  1.00  0.96           C  
+ATOM    325  O   ILE A  42       6.165  -2.274   2.153  1.00  0.95           O  
+ATOM    326  CG1 ILE A  42       1.929  -2.213   0.629  1.00  0.95           C  
+ATOM    327  CG2 ILE A  42       2.882  -1.135   2.704  1.00  0.95           C  
+ATOM    328  CD1 ILE A  42       0.731  -2.856   1.314  1.00  0.93           C  
+ATOM    329  N   THR A  43       5.922  -0.036   1.790  1.00  0.96           N  
+ATOM    330  CA  THR A  43       6.914   0.425   2.755  1.00  0.95           C  
+ATOM    331  C   THR A  43       6.256   1.266   3.846  1.00  0.95           C  
+ATOM    332  CB  THR A  43       8.022   1.245   2.069  1.00  0.95           C  
+ATOM    333  O   THR A  43       5.691   2.325   3.564  1.00  0.95           O  
+ATOM    334  CG2 THR A  43       9.100   1.655   3.067  1.00  0.89           C  
+ATOM    335  OG1 THR A  43       8.620   0.456   1.033  1.00  0.89           O  
+ATOM    336  N   GLU A  44       6.331   0.714   4.946  1.00  0.95           N  
+ATOM    337  CA  GLU A  44       5.717   1.412   6.072  1.00  0.95           C  
+ATOM    338  C   GLU A  44       6.708   2.362   6.739  1.00  0.95           C  
+ATOM    339  CB  GLU A  44       5.177   0.411   7.096  1.00  0.94           C  
+ATOM    340  O   GLU A  44       7.826   1.966   7.074  1.00  0.94           O  
+ATOM    341  CG  GLU A  44       4.063  -0.476   6.561  1.00  0.92           C  
+ATOM    342  CD  GLU A  44       3.544  -1.473   7.585  1.00  0.91           C  
+ATOM    343  OE1 GLU A  44       4.179  -2.536   7.773  1.00  0.89           O  
+ATOM    344  OE2 GLU A  44       2.495  -1.189   8.204  1.00  0.89           O  
+ATOM    345  N   MET A  45       6.291   3.601   6.948  1.00  0.95           N  
+ATOM    346  CA  MET A  45       7.129   4.607   7.594  1.00  0.95           C  
+ATOM    347  C   MET A  45       6.668   4.863   9.025  1.00  0.94           C  
+ATOM    348  CB  MET A  45       7.113   5.913   6.797  1.00  0.93           C  
+ATOM    349  O   MET A  45       5.469   4.967   9.285  1.00  0.94           O  
+ATOM    350  CG  MET A  45       7.639   5.772   5.378  1.00  0.87           C  
+ATOM    351  SD  MET A  45       7.297   7.254   4.351  1.00  0.78           S  
+ATOM    352  CE  MET A  45       5.499   7.106   4.163  1.00  0.73           C  
+ATOM    353  N   ALA A  46       7.663   4.935   9.940  1.00  0.93           N  
+ATOM    354  CA  ALA A  46       7.345   5.433  11.276  1.00  0.93           C  
+ATOM    355  C   ALA A  46       6.909   6.894  11.228  1.00  0.93           C  
+ATOM    356  CB  ALA A  46       8.546   5.270  12.205  1.00  0.92           C  
+ATOM    357  O   ALA A  46       7.363   7.656  10.372  1.00  0.92           O  
+ATOM    358  N   LYS A  47       5.968   7.232  12.065  1.00  0.92           N  
+ATOM    359  CA  LYS A  47       5.473   8.604  12.116  1.00  0.92           C  
+ATOM    360  C   LYS A  47       6.613   9.592  12.351  1.00  0.92           C  
+ATOM    361  CB  LYS A  47       4.416   8.754  13.211  1.00  0.91           C  
+ATOM    362  O   LYS A  47       6.547  10.740  11.909  1.00  0.91           O  
+ATOM    363  CG  LYS A  47       3.117   8.015  12.923  1.00  0.86           C  
+ATOM    364  CD  LYS A  47       2.086   8.249  14.019  1.00  0.84           C  
+ATOM    365  CE  LYS A  47       0.809   7.460  13.765  1.00  0.78           C  
+ATOM    366  NZ  LYS A  47      -0.192   7.658  14.855  1.00  0.75           N  
+ATOM    367  N   GLY A  48       7.629   9.069  12.966  1.00  0.93           N  
+ATOM    368  CA  GLY A  48       8.774   9.931  13.208  1.00  0.92           C  
+ATOM    369  C   GLY A  48       9.673  10.084  11.995  1.00  0.92           C  
+ATOM    370  O   GLY A  48      10.636  10.853  12.022  1.00  0.91           O  
+ATOM    371  N   HIS A  49       9.422   9.424  10.927  1.00  0.93           N  
+ATOM    372  CA  HIS A  49      10.246   9.465   9.724  1.00  0.93           C  
+ATOM    373  C   HIS A  49       9.486  10.086   8.557  1.00  0.92           C  
+ATOM    374  CB  HIS A  49      10.723   8.060   9.353  1.00  0.92           C  
+ATOM    375  O   HIS A  49       9.919   9.986   7.406  1.00  0.91           O  
+ATOM    376  CG  HIS A  49      11.691   7.477  10.332  1.00  0.87           C  
+ATOM    377  CD2 HIS A  49      12.212   7.981  11.476  1.00  0.81           C  
+ATOM    378  ND1 HIS A  49      12.238   6.221  10.179  1.00  0.82           N  
+ATOM    379  CE1 HIS A  49      13.055   5.977  11.191  1.00  0.83           C  
+ATOM    380  NE2 HIS A  49      13.057   7.029  11.991  1.00  0.82           N  
+ATOM    381  N   PHE A  50       8.332  10.733   8.737  1.00  0.93           N  
+ATOM    382  CA  PHE A  50       7.493  11.332   7.706  1.00  0.93           C  
+ATOM    383  C   PHE A  50       7.172  12.783   8.045  1.00  0.93           C  
+ATOM    384  CB  PHE A  50       6.197  10.534   7.534  1.00  0.92           C  
+ATOM    385  O   PHE A  50       6.662  13.074   9.129  1.00  0.92           O  
+ATOM    386  CG  PHE A  50       5.310  11.045   6.431  1.00  0.91           C  
+ATOM    387  CD1 PHE A  50       5.702  10.944   5.102  1.00  0.88           C  
+ATOM    388  CD2 PHE A  50       4.084  11.628   6.724  1.00  0.88           C  
+ATOM    389  CE1 PHE A  50       4.883  11.417   4.079  1.00  0.89           C  
+ATOM    390  CE2 PHE A  50       3.260  12.103   5.707  1.00  0.89           C  
+ATOM    391  CZ  PHE A  50       3.662  11.997   4.385  1.00  0.88           C  
+ATOM    392  N   GLY A  51       7.631  13.561   7.118  1.00  0.92           N  
+ATOM    393  CA  GLY A  51       7.436  14.991   7.301  1.00  0.92           C  
+ATOM    394  C   GLY A  51       6.384  15.573   6.376  1.00  0.92           C  
+ATOM    395  O   GLY A  51       6.320  15.216   5.198  1.00  0.91           O  
+ATOM    396  N   ILE A  52       5.383  16.367   6.762  1.00  0.91           N  
+ATOM    397  CA  ILE A  52       4.380  17.107   6.004  1.00  0.91           C  
+ATOM    398  C   ILE A  52       4.547  18.604   6.253  1.00  0.92           C  
+ATOM    399  CB  ILE A  52       2.948  16.658   6.373  1.00  0.90           C  
+ATOM    400  O   ILE A  52       4.448  19.066   7.392  1.00  0.92           O  
+ATOM    401  CG1 ILE A  52       2.806  15.140   6.213  1.00  0.81           C  
+ATOM    402  CG2 ILE A  52       1.914  17.398   5.519  1.00  0.80           C  
+ATOM    403  CD1 ILE A  52       1.524  14.573   6.805  1.00  0.77           C  
+ATOM    404  N   GLY A  53       4.871  19.364   5.295  1.00  0.90           N  
+ATOM    405  CA  GLY A  53       5.066  20.800   5.418  1.00  0.90           C  
+ATOM    406  C   GLY A  53       6.146  21.173   6.415  1.00  0.90           C  
+ATOM    407  O   GLY A  53       6.051  22.204   7.084  1.00  0.88           O  
+ATOM    408  N   GLY A  54       7.202  20.352   6.664  1.00  0.92           N  
+ATOM    409  CA  GLY A  54       8.338  20.583   7.541  1.00  0.92           C  
+ATOM    410  C   GLY A  54       8.119  20.067   8.951  1.00  0.91           C  
+ATOM    411  O   GLY A  54       9.006  20.170   9.801  1.00  0.89           O  
+ATOM    412  N   GLU A  55       6.866  19.521   9.285  1.00  0.93           N  
+ATOM    413  CA  GLU A  55       6.560  18.969  10.601  1.00  0.93           C  
+ATOM    414  C   GLU A  55       6.462  17.447  10.552  1.00  0.93           C  
+ATOM    415  CB  GLU A  55       5.258  19.563  11.145  1.00  0.92           C  
+ATOM    416  O   GLU A  55       5.988  16.882   9.564  1.00  0.92           O  
+ATOM    417  CG  GLU A  55       5.314  21.067  11.368  1.00  0.81           C  
+ATOM    418  CD  GLU A  55       6.163  21.465  12.564  1.00  0.76           C  
+ATOM    419  OE1 GLU A  55       6.210  20.703  13.556  1.00  0.74           O  
+ATOM    420  OE2 GLU A  55       6.787  22.548  12.509  1.00  0.73           O  
+ATOM    421  N   LEU A  56       6.990  16.761  11.544  1.00  0.92           N  
+ATOM    422  CA  LEU A  56       6.880  15.309  11.631  1.00  0.92           C  
+ATOM    423  C   LEU A  56       5.421  14.880  11.743  1.00  0.92           C  
+ATOM    424  CB  LEU A  56       7.673  14.783  12.830  1.00  0.91           C  
+ATOM    425  O   LEU A  56       4.622  15.549  12.403  1.00  0.91           O  
+ATOM    426  CG  LEU A  56       9.195  14.904  12.743  1.00  0.87           C  
+ATOM    427  CD1 LEU A  56       9.834  14.516  14.072  1.00  0.83           C  
+ATOM    428  CD2 LEU A  56       9.737  14.039  11.610  1.00  0.82           C  
+ATOM    429  N   ALA A  57       5.221  13.880  11.131  1.00  0.89           N  
+ATOM    430  CA  ALA A  57       3.858  13.365  11.233  1.00  0.89           C  
+ATOM    431  C   ALA A  57       3.530  12.958  12.667  1.00  0.88           C  
+ATOM    432  CB  ALA A  57       3.665  12.180  10.290  1.00  0.88           C  
+ATOM    433  O   ALA A  57       2.359  12.853  13.037  1.00  0.86           O  
+ATOM    434  N   SER A  58       4.608  12.721  13.461  1.00  0.90           N  
+ATOM    435  CA  SER A  58       4.429  12.326  14.854  1.00  0.90           C  
+ATOM    436  C   SER A  58       3.986  13.507  15.711  1.00  0.88           C  
+ATOM    437  CB  SER A  58       5.724  11.737  15.415  1.00  0.88           C  
+ATOM    438  O   SER A  58       3.560  13.326  16.854  1.00  0.85           O  
+ATOM    439  OG  SER A  58       6.780  12.679  15.337  1.00  0.78           O  
+ATOM    440  N   LYS A  59       4.179  14.727  15.050  1.00  0.88           N  
+ATOM    441  CA  LYS A  59       3.800  15.933  15.780  1.00  0.87           C  
+ATOM    442  C   LYS A  59       2.387  16.377  15.412  1.00  0.86           C  
+ATOM    443  CB  LYS A  59       4.793  17.062  15.504  1.00  0.85           C  
+ATOM    444  O   LYS A  59       1.632  16.838  16.271  1.00  0.83           O  
+ATOM    445  CG  LYS A  59       6.174  16.831  16.100  1.00  0.77           C  
+ATOM    446  CD  LYS A  59       7.071  18.049  15.923  1.00  0.73           C  
+ATOM    447  CE  LYS A  59       8.430  17.844  16.577  1.00  0.66           C  
+ATOM    448  NZ  LYS A  59       9.330  19.017  16.364  1.00  0.60           N  `;
+                    viewer.addModel(pdbData, "pdb");
+                    viewer.setStyle({}, {cartoon: {color: "spectrum"}});
+                    viewer.zoomTo();
+                    viewer.render();
+                  });
+                </script>
+                <h2>pLDDT Score Plot</h2>
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAAH0CAYAAACuKActAAAAOnRFWHRTb2Z0d2FyZQBNYXRwbG90bGliIHZlcnNpb24zLjEwLjEsIGh0dHBzOi8vbWF0cGxvdGxpYi5vcmcvc2/+5QAAAAlwSFlzAAAPYQAAD2EBqD+naQAAk9JJREFUeJzt3Qe4FNX5x/FDR1BQRMGCghUrKipiwwL2giWxRYm9kYhYyd+GJmIsWLFhjBo1YInYEEUFbNhAjT0WCDZAVMBG3//zm825d+7eLWdmZ3Znd7+f57lcdnZ27+y0nXfOed/TJJVKpQwAAAAAACirpuX98wAAAAAAQAjQAQAAAABIAAJ0AAAAAAASgAAdAAAAAIAEIEAHAAAAACABCNABAAAAAEgAAnQAAAAAABKAAB0AAAAAgAQgQAcAAAAAIAEI0AEAAAAASAACdAAAAAAAEoAAHQAAAACABCBABwAAAAAgAQjQAQAAAABIAAJ0AAAAAAASgAAdAAAAAIAEIEAHAAAAACABCNABAAAAAEgAAnQAAAAAABKAAB0AAAAAgAQgQAcAAAAAIAEI0AEAAAAASAACdAAAAAAAEoAAHQAAAACABCBABwAAAAAgAQjQAQAAAABIAAJ0AAAAAAASgAAdAAAAAIAEIEAHAAAAACABCNABAAAAAEgAAnQAAAAAABKAAB0AAAAAgAQgQAcAAAAAIAEI0AEAAAAASAACdAAAAAAAEoAAHQAAAACABCBABwAAAAAgAQjQAQCIWJMmTcwll1xScD7No3kBAACEAB0AEJu77rrLC0DtT+vWrc0GG2xgBg4caGbNmhX73+/atWuDv9+2bVuz7bbbmnvuuSf2v11t2/DNN9/MOc/06dMbrOcWLVqYjh07mu2339786U9/MjNmzGj0mokTJzZ4TatWrUynTp3MLrvsYi6//HLz7bffNpjfP2++H71vLosWLTLXX3+92XLLLU27du3MiiuuaDbZZBNz0kknmY8++qjINQUAQPGaR/AeAADkdemll5pu3bqZBQsWmJdeesnccsstZuzYsea9994zbdq0ifVvb7HFFuass87y/v/NN9+YO+64wwwYMMAsXLjQnHjiibH8zV9//dU0b157X7FHHHGE2WeffcyyZcvMDz/8YN544w1z3XXXeUHx3/72N3P44Yc3es0f//hHs80225ilS5d6Qfkrr7xiLr74YjN8+HDzwAMPmN12282b7x//+EeD1+kmy/jx4xtN32ijjXIu3yGHHGKeeuopbzm17RcvXuwF5k888YR3M6F79+6RrQsAAMKovasHAEDJ7b333mbrrbf2/n/CCSeYlVde2QvAHn30US9YKsYvv/ySN8hfY401zO9+97u6x7///e/NOuusY6699trYAnT1FKhFW221VYN1Lf/973/NHnvs4d0UUfDco0ePBs/vtNNO5tBDD20w7Z133vFeo4D6gw8+MKuttlqj93311Ve9AD1zei66WaBA/C9/+YvXqu930003mblz55pS0Y2qli1bmqZN6cgIAGiIbwYAQMnZVtFp06bVTbv33ntNz549zXLLLWc6dOjgtbZ+8cUXDV6n7s+bbrqpmTJlitl55529wDwz2CpklVVW8VpKP/vsswbT1eqr1l51eVaAre7WJ598stcS7Keu3nvuuafXhVvLqp4Bxx13XMEcdPUcUEux3nvdddc1t912W86u4upWninbe3711Vfe39ayqou4lv3OO+90Wg96P6Ua3HfffWbDDTf0lkvr/4UXXjBRWnvttb3Po+7lV155pdNrFMRrWyhoVvAcBbu9d9hhh0bPNWvWzLtplLlujz/+eLP66qt761bb+dRTT/U+h/X555+b3/zmN97+qn1xu+22M08++WTWrvyjRo0yF1xwgXfDSPPOnz/fe/61114ze+21l2nfvr03vU+fPubll1+O5DMDACoPLegAgJKzwZINitSqeeGFF5rf/va3Xgu7ujrfeOONXhD+1ltvebnC1nfffee1yCuAV+upgtMglixZYr788kuz0korNZiuYFyB5LHHHut1u9bNAwWH+vsKmJRXPXv2bK9lV0H++eef7y2Xgup//etfef/mu+++W/c6BdlaBnXjDrrsfsrhV0BoA229t7pvK6hU8Ddo0KCC7zFp0iQzevRo7/MqCL355pu9YPH111/3boREpXfv3t5NCbV4u1Kruj7LM8884+0fUdwoEN2QUJCeLwXh66+/9moV6AaB8tN1Q0cB+0MPPeT12FDrt9a/usXrsdaf9uW7777bHHDAAd58Bx10UIP3vOyyy7zXnX322V56hf7//PPPe/uyboxof1CL+t///nfvBtaLL77oLQMAoMakAACIyd///veUvmqeffbZ1Lfffpv64osvUqNGjUqtvPLKqeWWWy715ZdfpqZPn55q1qxZ6i9/+UuD17777rup5s2bN5jep08f7/1uvfVWp7+/9tprp/bYYw/vb+tH73n00Ud773H66afXzffiiy960+67774Grx83blyD6Y888oj3+I033sj7dzXPxRdfXPe4f//+qdatW6f++9//1k374IMPvM/t/yqeNm2a91jrrdB7Hn/88anVVlstNWfOnAbzHX744an27dunfvnll4LLqJ8333yzbpqWT8t50EEHNdqG+T6zXe6rrroq5zwHHnigN8+8efO8xxMmTPAeP/jggzlf06NHj9RKK62U9TltvyCXMcuWLavbfzp16pQ64ogjUiNGjGiwTaxjjjkm1bRp06yfWe8jgwYN8t5L+471448/prp165bq2rVraunSpQ0+5zrrrNNgm+h91l9//dSee+5Z956iefQe/fr1c/5sAIDqQRd3AEDs+vbt67XwdunSxWv5Xn755c0jjzzidfdV67O6l6v1fM6cOXU/nTt3Nuuvv76ZMGFCg/dSS69auV2pBVZ/Wz+bbbaZV1RMr7/qqqvq5nnwwQe9Lsb9+vVrsAxq2dSy2mWwLfnKZVaBMRcqfvb000+b/v37m7XWWqtuuvKx1VU+DMXXDz/8sNl///29//uXWe85b948M3XqVKeWbX1GS8t34IEHesur5Y6S1qP8+OOPgV4TZP581NNAn+vPf/6z13vin//8pzn99NO9lvXDDjusLgdd++KYMWO8dWvrJmS+j6jIoVq4d9xxxwbLqxZ39apQ7ryfcvCVEmG9/fbb5pNPPjFHHnmk1yvEbr+ff/7Z7L777l6qgZYFAFBb6OIOAIjdiBEjvOHV1K1Y3bqV82wLZClIUZCpYDwbdS33U1Cv7sGWglFVTbf0nHKCrV69enlBmQJOVY3X/5VX7n8PLYPeZ9VVV826DOraLsoPVuGyoUOHekXmlBOvwFtBlm4cZKPu+lq+bJ9P60GBXlB6TwWUt99+u/eTb5nzybZM2k7qtq2/oZskUfnpp5+83yussEKg1wSZvxBto//7v//zflTRX138VWFe1eK1n6kOgj63UgQKdfFX8TvtW5lsFXk9738P5bD7aZ+zgXsu2iczUzEAANWNAB0AEDu1NGZrjRS1EqpVUvnTKtaVq+XV8rdCyhlnnOHl/loKov1jYauYm1rwRa3Lyifeb7/9vMBs8ODBdcug4Fz5ydmo9V20nMovVgXxxx9/3GuRVZG2a665xpuWuaxB2dbZTJmt2bZlVTn4uQK8zTff3CSJbo5oHWv8cRfqofCf//wn0lx4P1WGV28O3XBRcT0F6dmK80Ulc7+121A9OTQUYDbF7k8AgMpDgA4AKCsVD1MLuloY1Xob1LnnnttgqK1CLY777ruvF8RffvnlXmG4tm3besvw7LPPesXDMgOpbFScTT8qXnb//febo446yqvSrQJ32YJ7vadtMfX7+OOPGzy2y5455JdaYzPfUy3LCtztzYcwsi2TgmJVE7c3JaIwefJkrzCg65Boohsh6nkQNg3AlVrOdTND60JdzO1NBN1QyEdd4zO3n2hcdft8PtrnRH+rmG0IAKgu5KADAMrq4IMP9lrO1W08Xbusnh4rPzefjTfe2Atw7I8/pzqX8847z3vfkSNHeo+V/65gV5W2M6niug2Y1TU+cxlt66cqc2ejz6YgU3nNM2bMqJv+4Ycfei3wfgrW1OKfOdSZqqtnvqdafpWHni2QVDdt18DZn6uuYe00Nr0qzmfrzRCGbi5o7HmlFJxzzjlOr9E46KpCrxsWyhOPggJw//q3tG21HvS3dFNCqRdKW1APCQ2pl8lu/3322cerdq/XWsofV8pB165dvf0yH+2nCtKvvvrquu7/YbYhAKC60IIOACgrBSnKCx8yZIhXXEvBkVqHNcyZCsmp6JaGpoqShrZS1+nhw4d7AaBa1NWaPmzYMK94lwJUtawqqFMBOXWH17Bf6kqvYFlDaGm5VcBMQb4CawVsuejmw7hx48xOO+1kTjvtNC/o1zBy6lr973//u8G8aoW/4oorvN9KC1CwrlbtTJpHxeuUB33iiSd6AeH333/vBdzqDaD/F6J1oJsH/mHW7PJm0vjq+gyZlGJg6W8rj1vdtxX4vvHGG95NBHXdV3G+bN3uNZzYggULvBskummiIe0ee+wxr2iftn9UefAK+lUrQNte20F1CjR0mraphlXTuOv2poR6V6i4oPYL7X/KK1fOuvYFjWevYoEaZk+F5vR+Wn96P72X9lt9ZltjIRc9f8cdd3iv136gwoWqr6Bl0nbVPqWbBACAGlPuMvIAgOrlMkSX9fDDD6d23HHHVNu2bb2f7t27e0Npffzxx3XzaJisTTbZxPnva5i1fffdN+tzd911V6MhzW6//fZUz549vSHgVlhhhdRmm22WOvfcc1Nff/219/zUqVO94bnWWmutVKtWrVKrrrpqar/99mswVFm2IdFk0qRJ3nu3bNnSG3JLQ8VpnsyvYg2zpSHUNFSaluG3v/1tavbs2Vnfc9asWd466tKlS6pFixapzp07p3bffXfvcxRih5q79957veG+9Hm23HJLb1iwbNsw14+GzrPDrNkfDY/XoUOHVK9evVJDhgzJOpSZHX7M/mj5V1llldTOO+/sDa2nz5xP0GHWtK6uuOIKbx/S8HRaRg3htttuu6UeeuihRvNrmTXcmpZJ60bbTH9z4cKFdfN89tlnqUMPPTS14ooresPTbbvttqknnngi6+fMNZzcW2+9lTr44IO9oQf1d7TPaps/99xzzp8NAFA9muifct8kAAAApaVWbfUeuOmmm8q9KAAA4H/IQQcAAAAAIAEI0AEAAAAASAACdAAAAAAAEoAAvYxUmXf//fc3q6++upcLqCF4Cpk4caLZaqutvGq76623nrnrrrtKsqwAgOqiEjTknwMAkCwE6GWk8VJ79OhhRowY4TS/hm7Zd999za677uoNA6QxYjUMT+Y4ugAAAACAykMV94RQC7rGe9X4v7mcd9555sknnzTvvfde3bTDDz/cG2s229i0AAAAAIDK0bzcCwB3kydPNn379m0wbc899/Ra0nNZuHCh92MtW7bMfP/992bllVf2bgoAAAAAqE1qq/3xxx+9lNumTelcnQQE6BVk5syZplOnTg2m6fH8+fPNr7/+apZbbrlGrxk2bJgZOnRoCZcSAAAAQCX54osvzJprrlnuxQABevUbMmSIGTx4cN3jefPmmbXWWsvLZ19hhRUi/VuLFy82EyZM8HLkW7RoEel7IznYztWPbVwb2M7Vj21c/djGtSHO7azW827dukUeFyA8AvQK0rlzZzNr1qwG0/S4Xbt2WVvPRdXe9ZOpQ4cO3uuiPnm0adPG6z7Pl0T1YjtXP7ZxbWA7Vz+2cfVjG9eGOLezfT9SX5ODRIMK0rt3b/Pcc881mDZ+/HhvOgAAAACgshGgl9FPP/3kDZemH1G3c/1/xowZdd3TjznmmLr5TznlFPP555+bc88913z00Ufm5ptvNg888IA588wzy/YZAAAAAADRIEAvozfffNNsueWW3o8oV1z/v+iii7zH33zzTV2wLsoP0TBrajXX+OnXXHONueOOO7xK7gAAAACAykYOehntsssu3tAGudx1111ZX/PWW2/FvGQAAAAAgFIjQAeAiCxaZMzNNxvz2WfGrLuuMaedZkzLluVdpp9+Muboo+uX6R//MGb55XPP/+uv6s3T1Lz66nZm3LimZvhwY3LUoAxl6VJjXnxRPYSMWW01Y3bayZhmzaJb/jDbQZ/5nHOM+eQTY9Zf35irror2Mwf9DEHXUZj9Tq+58cam5vnnNzOfftrU/OEP5V1HAADgf1KoKfPmzVOTvfc7aosWLUqNGTPG+43qxXbO7pxzUqlmzdQlpv5HjzW9XLbZpuHy2B9Nz+bAA7PPr+lRePjhVGrNNRu+tx5rehTLH2Y7xP2Zg36GoOsozH6XtHWE+HC+rn5s49oQ53aOMzZAOOSgA0CRzj033aKolk8/PdZ0PV9q225rzBtvZH9O0/W8X//+xjz6aPb5NV3PF+Nf/zLm0EON+fLLhtO/+io9Xc8Xs/xhtkPcnznoZwi6jsLsd0lbRwAAoCECdFQEda8cONAY1cPTbz126VZ60EHGbL55+rceR/k35s0zZscdjVlrrfRvPUZxgm6zuOd32cbqKqxu4Pnoec0X9m8EnV+fK1dgaOl5+/m1r+cKwiw9n+2YcFmnCv7OOCPd7prJThs0qD5oDLr8YbZDMZ85jm0QdB2F2e9KuY6Cnk+TNr/W88SJxvzzn+nfmTc0olCK81efPk3NCSf0835HcW4pZnlKsU4BoCqEbHlHharELu5hulfG3bV33XWzz6/p1S6u7Rx0m8U9v+s2vvba7PNl/mi+sH8j6Pz9+7stk+aT0093m1/zhVmnEya4vb/mC7P8YbZD2M/sug323DPYZwi6jsLsd6VaR0HPp0mbP2iaQRhJOX+FnT/u1A24o4t7baCLe22hBR2JFqZ7Zdxde9dbL12MKRtN1/MIJug2i3v+INs413zZXhf2b8S9TCr85cI/X5B1qmJnLux8YdZpKT5zoW2w9trGXHGFMb16GfP008GWp1rWUdDzadLmD5pmEEaSzl9h5o87dQMAah0BOhIrTPfKuLv2qstfoYtcPU93d3dBt1nc8wfdxl26GCf++YL+jaDzd+vmtkx2vqDzB12n7dq5vb+dL+jyyAorBNsOa6wR7G+4bIMZM4wZMsSY1183ztZZJ9jy2/nWXNNtfv98QV8TdDsEPZ8mbf6gaQZhJO38FXT+uFM3AAAE6CgTl3xADenjwj+fhjJy0b27Mb/7nTE9egT7G/vu6zZ/tvnizjdMIpfP4LrN7Hxxzx90G0+b5ja/f76gfyPo/Cef7Da/nc8GiYXY+YKu09tvd5vfzhd0+T//3JgbbnDfDt9/b8z48cE+s+s2aN/emFtvNebee4N9hqDrKMx+F/Q1QfeLoOfspM2voe0yW3kzA8ovvkjPF/Z7LWnnr6DzB12eUqxTP9VPuO464w0bqN+5an8AQJIxDjpKLrPL4TPPGDNihDEHHmjMmDH108N0r3Ttwqmudffd57rE9X9DLWQuMufL7BL47rvplrBttsne2hZ0/iRy/QxBu93GPX/Qbazg0IV/vqB/I+j8rj047Hy6QHZh5wu6ToMGhkGW/8MPjenb15iff3Z7jebfZZf8QUO2z+y6DdQLQEG3CmG5mDs3/fu999zmnz69dAF60P0i6Dk7yPxqYX3ttfjeP0yaQZjvtSDHjvbpKVPc5w96rtA6dV1H9n2DHvulWKeWRiBQkUN/a/zZZxszeLAxV17pthwAkAS0oKOkguQDrr++23v651t3XbfXbLpp+ot8hx2C/Q1Vt3Xhny/ufMMkCvIZXLeZnS/u+YNu4zD7adC/EXT+1VZzm9/O59pSWqpt4Lr86pGx887GfP21MSut5Paat95K3yxafvlgyxTnNlCA63rDwC5PmP0u6GuCbreg7+86v9aP1tObb8bz/na+oMdNmO8113U6e7YxHTu63yQJup8uXJhO89DfcWHfN65juZh1mtShLgEgtHJXqUPtVHH/5Re3isCaT+bOdZtf81lBXxP3/D/+6Da/5gszfzkU2s5BP0PStlnQ+YPu16VYpoULU6lmzfLPq+c1nzz4YLBt9sMP8R4HS5akKzw3aZJ9Pk1fddVUql279OOePVOpL75w+xv6WWutVOr994Oto7j2i++/z10RO986CrPfBX1N0P0orv3a/iy/fDzvH3Y/DbNOZ88O9pm7dAn2GYK+f5s28by/5guzDUqxn1YbqrjXBqq41xZa0FEyQfMB//53t/n986l1zIWdL+jfUH5poRYEPa/5SpFvWOocd+X//fGPTc0ll2zn/Y4ixzLoNot7/qDbeLnljOnXL//86pKp+aygfyPo/K+8Urjokp7XfMuWpYs4ubjjjvT8xxwTbJ2qtVqpDfnoeduq3ayZMddfn760zkbT1b19/vz0eM3PPZcubKb17NJa+tJLxmy8cbrraz56vmXLcNvgttuMk733Tvcq6dAhfSy6rqOmTeuXzXW/0/8LrSP/a/T+QdZR0POp6/zq6fTss8Zcckk872/nO/98t/n98wX9Xhs61G1+bet33jHm7ruDHWuuqVu9e6dHGvjhh2D7tevy2/l23dVt/t//Pvw6vflmt/Od5gOASkCAjpIJmg/48stu8/tz4koxVNGnn+auSq2LGD2f7XUu7x92yC51GVd+t/Ly1H1Xv/U4V3f4oPOLuhS2aaMCWM3M22938n7rcWZXw7hzFOOeX7QNc120arp/G0u+AF0X2tnyJfPtR9n+hh7nqsKdOX+Qz/zww+ku4q7HpoLzxx93f39LdQdyBenZaiscfHDuIQubNEl30dV6HzeuPnjQes53I0CpLS+8UF/JXXmpushXsOunGwSanpm3qnWcq2p/5jZwPQ6UV62/P2pUOiBzXUf3358ugNWqVfb5c+XpapqKZLq+Jl+Arvn96+jf/zaxnO+23NKY3Xevz7+P+v2LGVYurrx7pWzohs3MmfF8p/Xsacwee6RvrgQ53wX5vMoXd71B6l/uoOs07PcmACQVATpKJkg+4KxZ6YIwLvwXFkHz3YLm04ly2dRyl41a9fy5bnHn6pYqx901H1Atm61bB/sMQbfZKqsEmz9sDqQuSv0tcBtumC7olRk4yy235A4klTeba5xf/1BfutmhlsJcf0P+9Kf6/7dokXt+18+86qrGXHihcabgVi10mQFtLpnLoQDTv6622sqYH3/MXvhQx1Gu9aD9TPuPbhS0bVs/Xes5X56yCkZ17txwmgJMG5Qq5/faa4355ZfcRaX+7//Sv3VzRcF6rm3geizLX/5Sf5NH60LrxH4uvX/mOtLnVw0NufTS9PJ27Zp+rAJ4epwtOLeUt2+tsspP5pRTluZ8jXoy5Nq3H3us4b49dWqyahnEnUMf5jVx58WH+Q4R7b/aj3Vzyt4UybZfuy6/viNVdd2Vf3nirpUAAIlX7j72qJ0cdNdctG+/TaX69HGbNzOvzOau5ppfuavK6dN8YXLXkpKTWcocd9d8wI8/TqUOOMBt3qD5xv5tdttt+d83c379Xmkl9/n9rr66fr4HHsi+37/7brDlsb76quF8AwakCjr22Pr5e/fOPd+sWW7LdPvt6ccdOqRSTZu6bbdWrVKpRx4Jts38Lr64fr577sm+/Dp+Ci1Psce+37hx6Xm23LLwNjjyyPS8+hz5uJwr9HPgganUsmWNX7/RRunnJ07MvbzKyVY9ANH7aJq2aSF77VX/9/v3/0/Oc7bW1QoruK3TJ55w23+KOZ8Gnf+tt4ItT5jzY9w1K4KeH4vNx1555fQ8qtGQjevy259zzol/nVZC7ZY4kYNeG8hBry20oKNkXPMBDznEmEmT0l2ujzvOPf/Rn7uaq8VHNDaqbSUImmMZNNdNnyPOfOlS5Li75gMqp1ctas2bF271cc03ztxmCxYYc9lljZ/PNb99f7WMZpNtfj+XCsqFhu/JNc7v88+bwFyH2FNOdqF1pOW261KtwmedVfh91cr/5JPpHhP2OHPZBn4u3ZR1/CjXPUhOabHjLbvQe9hj2t8KnY3LuUV55/fc03gdFnL11enfJ5xgzIormsBch+LSulLrfaF1qt5Op52Wnrb11u7n06Dn36Dz+88VLvO7Von3zxc0z135/Zts4l4HIO7vtKBc6hhYf/1r+jwTpP5EmHWq2hguss0XdJz1oHSemjgxPeyifhe6fgg6jrtLXZhqE/c2AxKh3HcIUDst6AMHBrvz/q9/pV+nO/CZLQJ6rOm5dOzY+P3UyvDww9nn13tltlBk+xuun0HzqUVj883d5r///vT763eQ+TfbzG1+zRdmftljD/dtplZdtSjLuutmn0fTszn++MLb7Jpr6qf/85+p1BprFN7G//53+jm1yK62mvs+IQcfnL8FXS2fqiYeZJtZajHX9OWWc2tBnz+/4T6arwX96KPT8/Tvn0p16pT9M197bfqxWud+/bVhK2y2H1VMf+mlhn9H75PZal1onfp7x+RqQQ9ynFlBj50wLeiff56er3nzVOrnn1NOcq1TnV8+/DD363K1oL/9dv3+PG1a479TqAVd+6y/Gnq+FvT77nNbp/vsk/699tqp1E8/pc+bmT0gcp2zM3uSFJrf9Tvh9dfT03XM7Lpr9r+hdean/THoPhRmX+3bN/d8mctk6ZjKPNfkO9aOOSbYOnVtQRd9txXq4TJiRMPX5BqpQNMznXZasHUaZhvkOzZzbYOgsp0f9TjfdUiQa524lz+JavEzW7Sg1xYC9BpTzgDdBgQuP0OGNHytuuPZYFdBU77hUhTI2Pd59NH0xdSECdm7tvrdcUf9EExa1mx/w/UzaL4LL3T/vFo+0e8g8ysAc5lf84WZX04/3e01O++cSi1dmn6NLkDydcnMdoHi/zvqkp65zbTL2otHbavMrpAKsrJt4z/8If38IYekn1d3bj0eObLwPuG/qMwWoNsgIMg2s0GSvXDr188tQM/cN3IF6NoGq6xSH9zZGxQKyuw61TFi57EBXb5tpp+rrsr+9/R+nTvXX5QXWqc6vgoF6EGOs1zrx2U7BA3Q77or/7rPVGid5ruRkStAtzdffvvbhtNdA3QN69bwWM8doN97r9s6tZ9x7Nj61z7zTHraiivmPp/KqFHp+bbYIj2fgqh881t6vkWL9Gv/7/8az2+PK90QyrYNNC3zXHTJJcH3oWHDgu2r6mbdsmV6mrrg67ynm6D67R8SL5uXX06/Tsduoe80na8071prLU3ts89nqauvXuI0zJhLgP7XvwYLhC19djts3MYb5+5yfvjhwdapPccHOV/kuxkZRcCX69jPtt9JoVSAzCA97uVPolr8zH4E6LWFAL3GlDNAd83J3H337Bcehx6afv6mm/Ivx2uvpedT0BCEvfjee+/c87jmxj70UP1jBYRB8geD5N5++WW8Oe7FjGEdNBfYXlDrRy3jmezF84YbplKLFzdetmwXt5qmAEHPKwgT24qulshCbOCZK0AfNKi+FTxIPrby9W0+99ChbgG6vShu3Tp/kGhvGqjFW4eiLrT1WBfe1qWXpqetv356XRaTvy3duqXne/XV/J9By+Pfv3MF6P6bbC7HQZhc3TAB+nHHpec777z88/mXJ+w6zRag63hX672mazuHCdBtC7xLgP6Pf+TfBvoMNkhWUOWn5dZ0fY58bGupjqWg2rZNv/azzxpOf/759HStK/8xXGgb+M9BrtvMX6fCZV/VTWNNW2ed7LUH8tHxpdfqeCvE3jg48silgS7qCwXo+uzt2+f/vPn2a9tz6Morsz+/YEH+4yZznWodbr+923eU/Y4IWgcgqLhr4cS9/ElUi585EwF6bSEHHSXjkhunysijR2fPXXX1/vvp34Xy/MJ+hj59Co/nanPnlUc2cqR7rq4dl9pl/GpV2NUwOXHmuIfJywybC/yf/+R+zZw5xlxzTX1eqfLcXWgIMa2ntdcuPFZ5JuX++Yc40n7lzx/U/zU0lgwalP+9MvOxNaazbL99w3GqXfLPVfk8n7Fj07/1eVXpPdN339XnMNt1WYr8bdHf8O/fH36YPSdTw40Vkq/+RNC8+CBV7F3yzyWOdXrjjcYsWWLMTjsVzuvNxaWugsuxr3Wqz7B4cToPXus27nXqp/3G7juvvlr/fy2THe1gv/3yD1Pm3waqjWCPS302l31I2+Kmm4Ltq/b43Hvv4LUHgrBDiq2zTpbiHkXQutJoJfkUc6647bb0cePPSc+3TjWWu74PXYc0DDPOetD856DHftDaNsUsv+tnKCYvPiiX9497mwFJQ4COkspXMEYXKxMmGLPyysX9jQ8+qC9aFgf/0Fh+umg744z0xaKGmNlxx3QgpPGcH3qoceE0jWmt6Xre+uort2X4+GNjdt21/rPGOSZ4KcYd1xdmvsJVV1yRLlaloX9URNCVvTly/PHuQ4NZd97Z8PHQoemhrOywUir4o4t/jVd8ySXpIbwygz891nT/NvYXcdPYzq5sgJ5vrHp56qn6ACBX4Sbtn1tsYcxvfhN+m4Whgmh+w4Y1XKeZQdsGG2Rfp9nGKBd7rGUeo9mOtaA0VryGnNJ+pKHPCol6nWr/v/XW9P9dCvoVWyDOv8/pvKb93E/D1dmg86qrjOnUKfiy6Mbbe++l/6/zpSvtL9pvVDRSjjqqfj/S0Hs6B6ugoesNTG2Dv/0tHTjpmHTdhx55JB3YqwilbtJlBtyZ+6re3x6f++xjYhVXgP7f/8Z3rvjpJ2P+/Of0/3VDNlcxOk3XOtXNPv/Qk67LFGa8e1FxTO1XGt9dhRH1W4/tMKOZf8d1eYKO4x52+YN8Bv9wl3r+zDPTN6P0W4/9w8kWw/X9495mQNIQoKOkdNLNNQa3Ll5si2Qx4mxB94/1a79A1OqvsZN//jn9hau/r2D8gQfqL2B1UecfI1gVvKdNaxwwqHXTxeWXG/P22+4VnIsZEzzoa8L8DQU+2v7ZqCXCtlLpc7sG2rqJoUBP8x97rAlEF/qnntp4um6gHHpo+nlV5RUFuU88kb4Zk9kKogtITfcHoJpHN6Kkb1+35dGNALW4KADo2TP3fN9+Wx9U7bVX9uVXK6wde9uuy7BjxQehdaAbGfnWaWaArhYVjc+t40stH4XGKBcdUwqatI7vvz/9O9uxFpRdJt3YaN++8PxRr1PdMFLLpcZ+3n9/E3uArpZxe846/fT0zRTR/qfzV48e6ZYutXwXGm0jl5deqr+Zusoqbq/RfqL9JbOF0u5Hduxt3VTYaCO391x11fobcieeWL8P6Sao3Q8z9yGdr2xPFFWw17553nnpx5ttln1f1Q1Vrf9WrdLj1cfJBnNRj/39/ffxnSvUA0bnsPXWS3+3aVSQTDoHarr2A/WQUm8v115IdpnCjHevgO7RR7PPp+n+gC/osZ/ruy+T3ZZhlj/oZ7DXOLr5lvm9pseaXmyQHuT9495mQOKUu489SivpOej5xmd1zUFXJWHN98IL0eegq0KxzaFVkRd/VXKbi6icTBXzyaTx3e3nzJV7eMIJbnlW+lGOm/IEg+TdhsmL1f9XX939NWFygR98sD4nOzMH/aST6ovQZa63fDnoZ5+dnr7ffg2nF8pBd1lHel453nr83HPB1ukbb6Sn6/XK/1YuZqEc9Mceqy+sNGZM7hx0W9SrR4/6af4c9JNPTv9/hx0arsti8rddctCD7HdaJ7bK+DvvpErCJQf91FOD5UoXu079OehaJ/a8dsst2ed3zUE/4oj6c22+HPQpU9LPq4aD9hW9rx7r79jCbip2lqsSvUsO+plnpuc55ZSUk0L7kf1RjrSK4blug0ceqT9GlANtHXZYevoNNzRelhdfrD9nzZqVnnbBBfmLpKnQop7XOPRhuOag6zPYz/zFF4sizUE///z8677Qfp0rB/277+pz23UeczkHb7BB+vFFFwU71lxrsei8O2lS/fkh6hx31ZTINnpJoTovYWrJBM3hLvZ6rZCg7x/0M1djzjo56LWFFnSUTNA8qzDURc52wYujBV25sWoV1Z1v2+KjrqfDh9fnPimHSrnFmfyfPdt4qGqxUqu7C/195a+p5SlI3m3QMXXta373O/fXhPkbNv888y65uqup66ltPXfN2VTL3t1317eIBeGSP6jn1U3cdoMNkm9ou7erBc01l76Y7u02n08tX7ffnv6/WkP96zLu/O0gOZnqGaLjWC1om25qSsIei1pHucYqDporHeU6VWuhzmvqSn3MMaYotgVdXbbzsT2dtM9peZVvbadr/HVR9+Lu3cMvS9B1Wmg/stSrRV3yXbeBbT0fMCDduu3C1sTQ9lALvItC6SdRUeu/jqm2bd2XzZ4rbH6u0lGy5QLb3j9RnyvU00A9RDbfPP395nIO1veGjgmlEQX5znEdZ/2AA9I1Z7L1RsrGXgMoj97FhhvWf78FGcc96Djx/mUrxM4X9/Va0Pe3Pb9cP3OxefpAuRGgo2SC5lmFoaJTNj+yQwcTOdvlc/XV63OhZ89O54TqokFBV7au0brA9hf32m23xrm348engz4XF1yQfn2YvNtsNw/yzS/2Qk0XfC6vscuUuQ1yza/u6Dbn2O/ii9Nf0vvu65b36+++pq6S2k5Bcz2D5E4efrgxs2YFe9+48s+1nsaNS//ffmZ1EbRd4m2bgShPt5T520FyMm3QpkJoQesGhKFjUIGZKAhWt+bMY1O50jZ1JkiudBTrNLMrtfInowjQ11rLbZ9TzRDtR+rmbnPxdQNFXM9X2ei1thila4Duuh/5z3GFtkGvXsY8+WR6mr3xUIhuHNqus4UKn1q6kWtv0sUdoPu7t7ve1LS5wOqWb2tVZOYCK4C2N24UhEZ1rtB2veGG+tQb13OqDBlizAor1G/nzBo22ZbJ9RpDNwl1A8r1mLP5z67vr7Q4pWG4ri/7vmGupYLmcMd9vRbk/fXd5nrTI4o8fSAJCNBRMq65cMXkzNmL6LgKxE2ZUv9bAWCmSZPShYOy5UzqwjZf7q3yZV1lfj6bM2lzLnWRkyvv1gZxCtxsDvQpp+TP09XnErXAjh+/xAwe/Kb3O99rNN3mjmt58+UC2xZ0tSj4eyvYPG9bOChocTjlnru2UofJnTzyyGD5hipqZS/SXfPPFaC5BOiquK0aBsqP7t27Pr8v26gAufIH7X7kuo1dBVlHdl8LWtU7DHtsKgDPd2yGyZWOKidef1tBkVp2bZAcllrBbSFK1wBdedPaX+zNHT/1HAqbh2pHrND5PlfhzbD7Ubdu2beBcptt8Gm3gVrctBy68eKas678cq0PVYl37UGgG3PqJaVlcM2nDUs1PcR+3qhygdW7ROtKN1JPOim6Wg8aTUIt97qxopuxrttZree6aWXpb6sImGhb5lom12sM3SDWTX/XGiZ2u7q+v6qK6yaVbka6sO8b5loqaA533NdrQd7/wgvdes5EkacPJAUBOkpGX6SFur3pef8XblC2qnlcBeJsgJ6PqvnaCx39VrGibBe3dprmV+vKmDHpx4VaDbWOsrWCa7oK1tkiRbnWtR3mRxdC6mlgL+Ryza9WE3U7FvUQ6NMnZXbe+Svvd6HtaT+LKjzrtdnm13rI1oL+f/9X30qtwlyudEGm3gi2entQulgq1P3XLquqytv5c7VUaXqXLun5Jk9OB+m6AHUNBnSxraHiFKBpu+Zit6sqV+siWsFTPno+WxdWbaMg29iFPnu+IMyuI/WSsDcw4g7QXY9NzRd2KDBL61D7/xFH5D4OcrE3uYJ0pc5FNwm1b2j4vXxV13U+sjc7cxVZKrQfFRJmnRY61kTPZwt4tM7V0ioqcKfHWhe2i7FrKoxu5thutEGq6fuHV4tbkAJx2nau54rM3j/F7NfW55/X31C1aUz6fnN5r0svNaZ16+zfOTpWci1T0GsR3fB2Yec7+WS3+XUzX+d11/ntfEHnFwW5LnTDSV3pXW9su/Y6ybds+eg8ZQtUFuoNUsw2A5KGAB2JGgc9c2zjJLWg6w6/fX/XfGPX3Fu1Uqi7mwJm13HQw7agaaiRIBeKL7+cXk4F8eoyHjW1+v7wQ/r/66xTH0io26kutnQRlou/xUcX/HpsL7jVQp3ZkubCJYfetp7rcb75LZv/aC9wleJg38tub12oZst/ti2ZuhmQ79jw57eWot5DEPrs6opaKEf0o4/S+4JSKfR54xQkL76Urfp22+h8ILa7r2tXapfu7boZku9GoFJ59PnVG8PlfBRmPwqzTl2ONT3vGihq3HO1AutzqseEi1tuSd9kU8qS8pNdlHJ4taABepBzRZj0HJdWan0vqTXZrk99vxVapmwpUXFdiwTN+bbjrRdi54t7fu1/uoniQiMW6GaVfgfJiw867ni212VjR4jQ8GuqNRDXNitW3GPFo/YQoKOkVAhGRTmCjG2clBb0d98tfLEadkxwmwO53XbB3j8oteCqRVx5ernGo89UbOthIbb1XN0V7bjctgVTw+dovWej7sf+7axCPsodtsFC0OJwfrkuotXybQMb/wWPulC6jINuL3Bt93Z9Bts6oEAwW/6zv1hXLqqDYOfTeihFvYegbPpCZsuMP0fU7mtqSVcrb5xcjyGtI9uDpFTd7rUP+IdDUyuhPbeVMv9cx2Qc+5HynO3+GnSd5jrWxH+subAttyqC6ZJnrMDc9mjQ33LN79aNXd0M0nZ0DepLFaC7brt//zu9D+oz2+HnivXee8bcd1/jlkzXY1PnvbB0rbH11o2nZ7sWCXo+DToOetzzK2D0F/fLRzeeVBzP1rgpJHPduIw7rhvwri36OuZ0zCgtJcj1Yym/A+MeKx61iQAdJaeTaNCxjV2ocJFaQ+JqQXfp3h52THDlW4u+GIO8f1C2FUd3tl1bmeIO0G3+ubqOZl5wab/IHCPbnzts82ktXQSrBVZdWQ88MPwy2ZZVXVCrqrBt6VErsG7S6MLO33qj5Sk0DrpujNjARy1Q9jNoer78Z3+xrlyefjr9W63O2jdKUe8hKKUeSL9+9Z9F69OfIxr3vhbmGNJ+GTRXOqxcY3zrIjXbcRB3gO6ahhF0P1LLnvKxtT6D9nLJdazZyuqu60jnGtt93/Vm3r33pl+nHgiuLe7+7u3qOeM6ZndY2lftseayXVy3nW0RVAAXVQFWFTvVzVitS1vMMsw44mHZlBH9/XzXIkHPp0GXP8751SsrSKVyHUM6LpT+48K/blzGHdd+pBvxmd97uegm4ejR9Tds7fWjLQb4xz9Gs83CinuseNQuAnSUhbohKb9TQ2fodzHd2i11j7U5S5mVXKOs4K7gzyXfWFzykzUckE7mCgSVZ+qaz5xJ72GrKqvVOdsFbNBhfopp6QpaeT+bzFzgQrnDfkGLw/mpa7NoXfu3hS1ap+7tQXOZn38+ffGsojRKFXB5jQIzu9/la0HP3K6lqPcQlL15poDMXuArALTLqc9dygDdtXaAhl4rxTK57Nf+4yDOAN0e8+quGcd+5N/Orq3Qxa4jTVNuvb0hqq6tukmgm0XKSS/EX9dByxCkh0ephlezN/gWLkyf/7T/FuJ6rrDbqZju7QrObE+Qf/wjHbSpR5KKxAWtNZDrezDMNYOC83zXIkHPp4XqmIS5TsicP9+NHju/zrW//W163z/qqGB/I2ieu7qxF6pXoee1rpXCoHo5SukrdPzrNZn1MrSNVGFfDjssmm0Wprt6kPoNQFAE6KgapargrornYcYdzzW/bZVT0Bd27GTbLdYGuyqwltlVWt3K1FVX76MWdBevvprOD9QXu2uXtzDd7qPM688c0qiYAF0Bje3dMHRofe6/LgqC5jKr9c12b3d9jcYi1sW2LkZyVWTWxZdtQbdd80tR76GYAD1XMbyZM9NFk1zTL4rhUmtAx5qt4B53gB4kJ77Y/TpfgK6cdw03p3Wg0QDi2I/C3ogJu47s+dFWNz/vvHTrbZDWcwXZOr8qsAiSPqObpnYfKmWBOH1el5uULucKddm1NQNcR5/I1Q3Y3vyxqUv6vs6shG+PzXw3YsKMte6ngNL2NChUiT/o+VTLpeXLJux1gn9+rZd8ga2eV+utgnONNqMiqxqBJcjfCJrn7tpKb9NKlNqg7u/5trGC/1zDwhYS9jswSHf1pNV6QXUhQEfVBehx5J8rSFK+nOiOa5Cxje34rJnd0jS/xva0y61q5f75Xd8/V7fYzK7Sdng1BT+uQ0WFbekKE7jFlX8Xhg14td1z3bgI+nfshYxaoIK+RtssV1EvdUdWK6+CeI3pXKp6D2G3c64bPTYA0GfIrMwcF3usZeZa22NN+fxx9yCxSrFf+4vE5WI/r3o3qLdQ1PuRWpPsTbmg+dhh1lGu86NuPIrrGNfq+isKzu1oGa6F6PS3lBJTipSSIPnnVqFtrM+sGx8KZlQfIqpuwKLv1WzBj/8cm02h513Gv1ZwqB5sLqMj2HWUeR7OdRz4z8VBrhNcvvd1/Njx6nNRRXx9N+jz6RjQfh7kbwQ91oKMJ650MQ1RWIjSoYqhbZJtiLxc2yxod/Uk1npB9SBAR9WwXefiaEHXRYS6Q6pr7tprBx/bWNNtV2VRd2fNr5ZeXSTookfv65/f5f2DDBVl8yCDVBGOu8uxlstWqY4rXy/MMhXqqufvRuv6d3TDxBZYcn2Nej0U6t7uH14ts8UsrnoPYdjWqlwBeim7t/vpmLr77vT/dQz6j7VicqWDKkXerUsXd5t/7t/notyP1BNJrZe6KeI6hnjYdeTSJV51EAq1guncrf1Cx5drbm45ureHDdD929jesFAvA7uNbXFLtWa63tAophtwKboO2+7t2gddbz5rXdiUF7niitzHge0hoPcPcp2g7307rKgKqWWb/7HH3Ir62bQs/7nL9doi6LHmOp64zj0XXVR/bOaibaLW62JSekQ3Wf1U3DXbNguzzyWx1guqRxFZmkDttKDb4FoFcuyXuR0D1pW/dUKv0/voCzIzp9k/f6H3d+3yqS9hOza464WiWo/DtnQFCRgUAInWR7YLaU33j21s8/UU8LrMH5TWqR3iKhfbjVbbx2V51IqhCztbYMn1M9guyS7557luvNh6D+WkXHrb0pK0AN1/bGrb+I+5UvQgseLer9XVeu7cwi3o2QL0MPuRvbBWMSgVqtJyaz37h1cLuk6DriOXdBj/sZy5/LZo5V13pX+ry7BLXne5hlcT240/V0pMPtrGym1WAKN6KLb7b+boE0EE6QZs968wrwnKpoMFvUnk7xJ9+um50ztsgK7aMkGvE/R9Ya9lsnXjt9cNhWify5bO5nJtEfRYUwuzuqwXomsK9ULQOcE1XSXI+suUOTSu1ke2bRZmn3NJFcyV56730mfT96JuctjzI2DRgo6qoICqFBXc/ZVmo6hervfVSdkOLxaUazc0BRq6QFerVbahZbJ58810YKXu8HaIrLiGWLMXvUHy+nO1iml6MfmJQbv2ueQP2iJUtsCSS/6zhl+zvUJy5WQrZ9vum5ktBUliW26XXz57AUflPOtH60V5z0lRyvHPw9afcGVv9ujiX13Xcx07LsP6FaIutTZlR71A/MMHFnMjJug6Cps2YHPWM4em0igJQShIU4CjVudS3XgK24KeiwIJ9fgKWyAuTDfgUnQdti3oriMVBGUD9M02i/Z9tT/ZnlWFFFM3xrVGhz3WdGOn0MgpCrRVILVUKT3iOjxl0H1O15z+WjRB8tzt+UXnRTXOZBteFSBAR1Wwd8OVS+Y6dm/YFvSo2Irg6prsmhOeybUbmm1VURCXK5c5UylaD+0QawpAg+TdJ62rcb7cvgcfrF///gtc+5r27Ru/RtP1WwGTfudaJpsrrxtHmZVuk8TfvT3bvmSLeunmkYL4JCgmVzqsoPUnou7e/vnn6Z4eKtQXNrCwOd8qTpWtJoYNesMGrEHWUZhjOVfOuigHNchFtH94tVLUVdD5IuoAXYVFNXSl8u5db+76hekGXIquw2Fb0MsdoNtaMi5cu50XOtYyb6rmOh+p10U+qope6qH0bAt6oUKWQfY5HWcnnZTexkFTPlxrBgEE6KgKceafqwu2zeeKqgVdJ/h83dtduQ7PYgvcBcmDLEWXY9uCrgJKQfPuc9FnLmY4Kpchl9RqkFld1i6/7cp63HHp5VcXR1tgaccdG79GObB2W/o/c66uxuXMb42rQFw5u7cX6kESJle6GEHrW8SRf64c2DAV/gvVxNCP1qla8HVcxL2OdIy6DLVkj+Woh7or9fGpmyt2fOl11onmPW33dt2kCjN0ZZjhruIeJlJD5tnvnjha0FUU0N4AiDpAtzd9XGQrkBaUjqk77qgPTqP6Xg46tFzYm6y2eF2hXoAnnOD2nprvhhvS5x01duh85pq3HqRmEECAjqoQRf65vrRF3ceUH2VPkgr+lY+tls6oLnrUIq/WY7WqFOoWVmyXTxWa0Z3ezOHV9PnURVrUwuv/UtAFxssvxx802RZ0++Vpc+NUyEW/s12kxT0c1eOPF55H68oOuean5bVd+LSv6LGqOOcrsGR7NGh+/2fOFaDb7aTiek88Uf4AXcujol+i7vbZLi78Q6zpeVtoSRexepzEAL2U+eeZXI6DUhWIC8Il59veSC32M7msIx2jLnml9liO8tyiQNmeQ6M6Pu1n+emnht9Rlm091zko3zjZQdjzV9jh1cIMd1XMMJH2e1z1A7KtI3ssKLDS6+MYPlRBoYKytm2Dv7+WVz0W7HWNf/nVWGBrybjQcKtRsMeWblZG9b0cd0qP3Q66ltENQduDxX7nZLI3IQo5/3xjzjor/f8DDqjf31yGWSvFUJqoHgToqArFtqCrW5E96Wrca39OkM3x9ReIi6p7u07wufJBo+ryaZdZw77Yrmo2B8pefN16a8McKK0DVZjXTYmoWwBytaC7ijt3zeYmRvX+tgUqaP5mtmBJ20dd62x3ZOXBafu65iRGze5H9kaPiiZly6WzXdxVB0HP2zxn5dmrlUT7gT5HmCGc4pLEmwZJD9Bdj4m4K+KHPVdEeW5RIKWLc/W+iOLz6pg66KD0/5U+kC1vNeru7boxbcdwD5N/boUZqi/Ma7QudA6ygViu3F7buq0u4GF6Bbh2b1eDgWtKmf98qrQCueyyhsuvGz76Xm7Rwu39ggx9Vqwwx06cKT3+60Ltx/Y7569/zb5PuOag33ln+rg+6qjGy52Lfe9S5d2jOhCgw9R6C7rNCbJ3rTNzgpRDHFf+eTHd27N1+bTd9f7yl/puaLZLnG3FccmBssGJumTHVVlUlYJt4aogRehKMcxaVO+vu+s25zbIBa5axxVQKWi1aRV2u333XeO77qouXerctSC5dLYFXcOZZc5vL0YUONrqxeWmfcAGJrUSoKt1ztbaCBugux5zxXRbDSLouSLKc0uU3dvtsWaryuc61qIO0FWDQb1jOncuPn0szFB9QV6T6/yY7XyUxAJxLudTu0+5tsoXm4MeRNhjJ66UHlGQL5nD8WXbJ1yPGR0PSoO7/Xb3kRLse5cq7x7VgQAdNV3B3SUnyFawjbKCu4KSFVeMtvK2AmkV8rEXBnqsLybbSq7caNccKFu9Os7iWPbuvoa2ylbZO5e4c9dUICtMDno2aglRd271kshViT0be7dfF5DaplHnxhYraC6dbUHPRxfWScm9sz1ItO6LyZWupABddSrU7VfnpTBDdLkcm6LnosiNjeNcEdW5Jcrh1YIca1EH6P7eP1H0HrND9d14Y/q3S50Dl9cEPR8lrUCc6/Lbm+2uXdc19Fmp6JjIVzAt37ETR0qP1mmudLVs+4TqGbjs4/pOUGCvzxq0VkLQmhiobQToqHi6G64TriqhB62G7pITZO++FtuCnhl8qLuiSzBYDNslTtXttfyuOVD2pkSxrYc2P0stwpn5gDb/PEj39lLkrtmUhjA56JnszRFddATpSmm7GtugPmm5a0GWRy1emS1/2SivNim5d/YGVZw9SKKk/XHOnPT/lS6Qea7RY7u9cgXo9qaQ9rkg3XJdh2ayNt00uvzoIMsTZAhH1/nz3eDRTVjlIBfbWyDIsVbMGOj5zl/FdG8vhaDnR9uCHiZA9x9ber9sNxWDBuiuy6+baDo299uvcO0aPV+q4yyzgSBTVDnlQWid2tooLvuE1qvLCCKjRtXXIgpaKyFoTQzUNgJ01HT+uWuujwLpYrqL6Y5rZoCvAl9xd0u2rTh2eDXXz6ugXneIi7kpoc+mbol2G2XmA2YWiAtC3d/OPrvxRbQ+o6YX0z3OpciVuKzLqPLPk5a7FmR5NL551O8bt0rKP7d5q7Yg2TXXNM6x1A0yFUvSxXGu7pPF5p9n5pVm3iy1rWvqWlpKQfNc7bkl8yZFkHOLHZ5Px32xN2GDHGtRtqCrXoS9aZP0AD3o+TFsF3cdU/6gXr0jMo813WhUfZAgAXqQ856tJTNmTO4gXdP1fCmpDoqtRWILpZZzuFSbPue67rV8uu7J16vj0ksbp6zYWgmZ1yLZaiUk7XscyUaAjprOP3fN9VErb9hWJZtbllnISy1ecY97mZl/HiS3Sd2sXIvR5PrMtlp3ttyvMAXi/O9/9dWNK6jq7rOmF7NO7TBFhRRalypMY+/OB6mArDv7mcFS0nLXgiyPTT+J8n3jpH3KbrdSjX8edx0A271dQWquFqzMXhvF0IW4Wprsxbp65KjgZLluegTJc7Xnlmy9EFzPLfa1UeSfux4Tqt9gL+yjCNDVi0SfQzem8xUWTIIg5yOl0qjIXtCbw/ZY07GV71iz1yOdOrn36Aty3vPvUwrC1UPplFOWmi22mOX91uNSB+f+m5pbbpk+38SRUx5XLRl95+rGZrZ8db9cN3QUhKs+gj32ctVKSNr3OJKNAB013YLukjNpuyiHUc5xL3UHWRcLurGwxx7uOZa2W1zYC2nXz2wD9KAt6HHnY9ubCsXmoYYtsKRWMBUs1J18m/+ctNy1ILm6Nv9cw9zkO86KHfM2KspP1UV8sT1I4hbk3FIo/1ytfjawKLYF3bL7qwJz/V0Fj7rhpxbAcnDJc4363BJFgO56rNmLetUQUF2PWuneHvR8ZFvPtU8qBSHqY03d0IMWiHNZfvtcZk0DfV/fcMMyc8klr3q/S9mtPVevozhyyoMqtB78+4RuyL75ZuH51V0917FvU9h0gyJXrQR9Pxdq6CEHHRYBOmq6BT1fzqT/yzJsq1I5c4dt9/bttqu/YHPJsbRdMsMG6K6f2W63oC3oca5TdetUNzermDxUWwV8t92CFViyLZn6ok9q7lqQXF3bgl7oQr+U+YmZ7LrVzRk7Hm7v3m5FrMolyHFQKEB/660mXs8BBQlxtN7Yi3cF/+UKIEpxbvH36Fl77fT6LJbLd5SOHXucRVUgLorh1UrFdR1pvjAF4oLsF2EquBc6n+r99aNaMvpeSKKkpQX5h0st9B2lnjGFuB77Otdm1tux9P3sMm46OegQAnRUNHUjsi10YYeBsTmKmUM86eLKBqthW9LKmXOU2b3dJSdTlXLnzk0HJnGPhWzH8A5a0CjOdWrz1tQKVez4rKqIHbR7e65c4CTmrrnm9trAoV+/dA5vtiD85JNL3wXSUtfUAQPS/1e+vC7apGNHk2hB9olCAfobbzSJtPU86RfvuRRznGk/0vnT0r6UbbzlYo41BWi5jrWoK7jr/KXzs2qHVAK7jjJHBMk8H4UpEBdkv7ABuoohRnU+PeCA+u/ysKl2cVK6nr3hnoReUGKXR+f2fN9R6smXq9p7kGP/oovqv78z6+3EUd8G1S+BhzoQvIK7LqYzL16C0Ina5iBpjEvlTakFWnnEavEJOxxLuXKOtNy2QFm2YX5sTqYNHk85JX2jw7ZuqRtq2JauIJ9FAUPQvxPnOrUBurq+RTU+a9AWKFuYyR8sJTV3za4jdeOXESMaryMboOuiI1tur2hM2VKP4+7PK7UV0P1Gjy7PMrkKsk+UO0AvxbCNUQh7nNn9yN/7Jtd4y2HpmHrkkfT/lduceT6KOkAXtdYGGQKz3LQudA6y+cLZztlhCsQF2S/CtKBnnk+32CL9+MIL08tvt20UKRNxsL0ttE6DjqQTd+rjYYel16k9t513XsN9Yvjw9G/XbuW5jn01bBQ69m3tg6B/A7WJAB01m3+eyd6ZVlEj5U1pqBzRl2XYrrflyh3WF6bySlWoxn7ZZ/u7NrBSK7YeR9HS5ZJPZ7vch6ngHuc46P4AXYrNpdN6DVJgafFiY6ZObZxWEffY78XQOrE3WXr2bLyObA+Xu+5KzjjuLvnGWqelXqYgguwThQL0KVPiC9B1TGkf0Pk16bmVYY6zUtYZsceWhoPKPB/FEaBXQvf2XN/jumGf7Zwdpou7636hdC0FYXocJuVOtLy2N5/eQ4GerSWjXkhJZK8bknIDTt+jdpQYrUOtU3ujSTcR7D6hbXXPPen///nP8R/7n3xSeNnJQYdFgI6azT93HQ9bQUdY5codzhxeLdfftcOiaPxcPY4iQHfJB7TvH6aCe5zjoGcG6EFpHfqr9bt0D7U5aRqaR0GsupaqsJZ/WL+4x36Pi24S2dZpDfWVlHHckzi2fFBB9ol8Afq8ea3M9OlNvNcUc67Ltw/YNKEVVjCJFuY4S8p+ZMdALyZA1/lLwU2xxVGTSudWe8MwSAt6vu80S/uFbTDQNrDDCkb1Xa6aGFEU/6uFFBYdC9qPdSMr33f5zTen94mtt07v63Ee+/q/utUXQg46LAJ0VLQoW9Az2ZbMYio5lyt32N49zta93T92sq3Ue+ut6S8yXbzoC0gXA8Ww+XSZFxQ298sK04Luf/9icsTzBehhijvZdWpz/+20fN1b9dywYen/60v8pJPqC0xl3liJ6zPHyY6B7lotuZS5d0nM6w/KZZ9QrQdVpc8VoH/yyUp1LYrt2sW3rEm5eC8k6HGWhP1IY9zbYy1oTY/M85cKZVo6HyU5zSPM96ICJdUYCZoSp+2uGhqZ52V9X2q6ni+me3vQWjJJoWFJ33ormfnnui7M1SKuEVZuuin9f20/zRfnsa8GH9cu7kn+zkHp/G9gAKAyxdWCrlZNG6AX06pUztzhXF3ibM5UZrcs+6Wgi7QoWrr0ZaZc+COPTH9RKjdQX+C6oLnggvAt6P73P/DAdGCrZdc6tO8flr0bHrQFPdc6VVVwTc/25Z7rNfLvf6efz3xNHJ85Tra1SstpW/iSknuX1Lz+oOw+oe6lL79szFlnGfPXv9bvE/amk4JvOxa531dfLR9r/nmlBehBj7Mk7EfqIaEgXUVNlaIVVK5zkXoD5Tp/VSJ/gbggI2vYdaQaGpnrSNcKmq7RUsIMsVZMLZkksJXJ11knmlELStVw849/pHt36Wb4IYfEf+zb+hGu8wME6KhYugOqbsFxtKDrfdWSoAueIF3hcuWg5+vmHlXO0aJFDe+86oIhszK9yzi/s2en54si6LOtDcqFt90l9d42WCsmQPfniLvS39ZFjy3Gpkq7/s8Zpot7oTw0m8usL337t1zHW/a/JuxnLidbIE430BSsl+I4SOKxGTctp606r14p/n2mUP55KhVP/nnmei22V06puR5nNj9ZucLZjmcd/3o+itZFu06VNqChnGzgYPPPFSQFrfId5vxVqcIUiAuyjvQ9V2yArr/1ww/1hSrVA0a1YnLVkim3pHVvz9Zwo3VqexGpBoG6v9uiwNqudgzzOI/9009PT1OvQm3fuM8VqHx0cUfFV3BX8Y9iKrjnyz9XRfcWLZKfg37uuemcN3sxLpMnp6f7FcqZElUijjNfUl0x9QWpmx9BCqgVy3bhVKu2nHhiw6FQbL5Y0AA9TA6qy3ZIcv5z0ABdw/YlaRz3JI4tHxd7Tii0T0cZoOuYOvzwhtPUE6maukuXuj6E1t1BB6X/r66y/qGciikQl5Qc+lIIUyAuyDoqtou7/Y56++2G3dt1QyFoi38tB+j+FnS7Tu3wpepdpBZqpTuoR9EJJ8Rbb0fHvo5PLZOuJfU41415TU9iLRmUBwE6KpY9CesuadRfXlHkn5cqP1FB+FVXNQ42dLLXdH+QnoR8SY07KiqCVqoxXW0XzsyLLP9QKLqr/csv6elBuuqFWadJ2A6l7OLuWjCJHPTo2ZtO+W6GtWyZMptvHu2xlplvGeWQY0kTd30Iu07VuynbOrWFxMIE6LVyHBTTgu762dU7Szeew2yHXN9RouHiknjc6PvSDgualABdN//tNYbOfdnWqW1NVyt5sel89thXXYNcx77t3q6baq71WAACdFQsfyGQJFZwL0V+orq123E8c9Hzmq8UyxOkgF3YAnFBuQ6FYlt71VU4yNjsYdZpErZDKdh16prKUMrP69rrJureOaVWqIu7bLFFyuvlUKxSDjmWNHYMawVT99+ffQzuuNbp+PHp32ECw1o5FylP2gZuQVvQg3x2XY9kdpmu1iEfX3stHRDrxpTSK5JArdVaJt0U1tBp+dLIdHMhinWqY/zSS+t7ImUe+zZAV5qItnMuSd3OKA8CdFQEBZg2sHv++fRjfwt6FOxwV2qV0BdPFC3ocY9frWFCXLrpaj6X5ZEox9O261RDbClnUstiL5KKzT+Punvi00+nHwctdBNmGyd5XPM4AvR9962Nz1tJAbo9NmW11VKRXBTWUnfpbGzu6hFHZB+DO651qnosYQP0WjkX6TjQetKNqG7dol9HdgSEMN3bK/W48XdvT0oXfNtwo322UBqZiiBGtU5tb0CdZ/3Hvv6Grie1flSjoBK3M8qDAB2JZ/OrVdla1NVLjydNiq4FXe+p6seiv2PH7nWpPO2SoxRXzpHNPXSdr9DySFQ5UFqnAwem/6+bKTZn8qWXStuC7to90W7roBXcw+Sgxr1fJIGKLNp8f7WuJG0c98zuwsXOV0kBuo7N22+vf/zoo80a1GMIq5a6S5dKkHUVJkAvVQ59Urq3K7UqaAu3yzqyDQVhAvRKPW7sNVhSureLbbhx7fkU9zp99NH6or22J2OlbWeUBwE6Ei1XfrUez50bTQu6zf2ylVP9VOgoiblfQS/Iwly4RbFObYBmqXeCLaRTqhZ01+6Jtrp70AC9UscoL1XruYo4Ks8vaeuoFrr2qpU8MwfdHpv2JmSUOeK1sE5LLci60k2WMJJ2bCapQFzmOsocxs6uI/tdFyZAr8TjRsGmCtEmLUAPmvoY9zq13dtV4LEStzPKhwAdieWSXy2ZxTmCcB3uKmz3T/v+ceUcnXZa4ZYNPa/5SrE8rjmTst56piRcu3BaYQL0oDmopdgOSQnQ/d1J48rTDaMWuvaqUJtuPOmzKPiKO0e8FtZpqbmkJdkbMCpQFlaSjs0kFYjz07qw72OrrGsdaYzyTz4JH6D36hXtfKXw5pvGLFiQrtlSzDqNqwV9zz3dro3iHEZTjT46jqR/f86PCIYAHYnlkl8tt9wS/m/EnfsV9/srn27w4Pzz6HlbAKoUuW4uQ4j573THzbULp1oQiwnQg+SgVmrOYTY6Rm0OrIor2mPWVnDPbNWLI083jFro2mu7t6vVT0P8xL3fuQ47VMnrtNRc1mlUNzyTcmzGwQbWYVvQLf86sePQq3VevVU0xnWY1s/bbot2vqjZc/qcOfW1ZGz+udZBqfPP/d85GnHHLt+SJfU1bnRjstzDaD75ZHqZ1MtTqRWcHxEEAToSK2h+dRhx536VIrfsyiuNOeecxid1PdZ0PV/K5UliPp1LF84wY6BX0zoKw44xO3Nm+vHpp9ePzWxb0MN2uy2Fau/am5l/Xor9zq5TWzSr2tZpOdh1mplXq3X6m9+UJ42p1rq45+Mf/zxMsFqKa52wdC63Y4Xr79taMg88UJ7u7fY7R8XX5A9/qP/O0fKp56VqFLn2AorzO3bMmPru7ZnHsnoe+HF+RKaApTKA6sqvjjsnqFQ5RwrCNaSIeh3oS0rrRN3aM4dOKsXyJDXPSl98GuZEF7nKFxw50phjj03fyFDLoW1ZLEWAntR1FITNZc7sLm1zmbfZJv04aMXkUrP7hVqNdbGmdW5bxipdZoBeqv1O61TFNocOTT9WN89qWaflonXaubMxO+xgzCqrpAMkrdMBA9LPE6DnpnGvle4RV3FSG6Bvuml11pLJdo6335d9+iRjeTT97LPr888zb7qW+jtWLfxPPdU4QLfHsm4i7L13+tx8992cH9EYAToSSwGmTrj57oRqaAubXx2GzQnSCT5bXqbuhuv5sDlBcb+/n4Jx5Y/mo3wrfQnkW6fF5mUV+szSvn158qz02WyepgJI+4Voc3UlswhQHEqxHeJUKJdZ+/VbbyW/BT2za2+1yQzQS3k+ssMOSTWu23Kw56vll69fp7ZVlQC9cPd23XzVuouzBT2Mk0825swz3eYrFZd6FTpfRDXMbbHLo2WxI1NomUp5rstm/Hhjfvklfe7dcsvcx/JKK3F+RHZ0cS+zESNGmK5du5rWrVubXr16mddffz3v/Nddd53ZcMMNzXLLLWe6dOlizjzzTLNAlTqqkEt+tb6wMluJg8iXE2QVkxOUtDxX5VvFnZflsk5POilZd4tta4DGKS2m0FKStkOcXHKZFy+unAC9WtkA3fYKSdr5CMHYc4Yq8NtcYAL00uWfxxWga5zsKOeLgkstGZ3nS/Ud5fKdM29efQt6uc91tnq7isMlZYx4VBYC9DIaPXq0GTx4sLn44ovN1KlTTY8ePcyee+5pZucYePf+++83559/vjf/hx9+aP72t7957/GnP/3JVKtc+dWiQGrEiOL/hrobqaU+8ySqv6npxeYEJSnPtVS5z/Yzq2iOn13HxxxjEqWU+efVkIMeZLnWXjvOJUHQMdCTdD5CsO69tqusevwoF1jb1XbdJkCPt4J7LkqXsvnQYbu4J/H7IGnLFOTv2Fb9cp3rVBju8cezd28HXBGgl9Hw4cPNiSeeaI499liz8cYbm1tvvdW0adPG3HnnnVnnf+WVV8wOO+xgjjzySK/VfY899jBHHHFEwVb3agjS1VVo880btsipi3IUdyZ14XP11Y27Qakqq6ZHMQ56UoawKWXusz7bTTfV39HWerRd0Uo1xFpSA/RKz0F3XS4Ngdi2bdxLgyABuv98NH78EjN48Jve72oaUqva2NzbzHv3NmhZYYXGRflQmgJx771XfyMy7DZI4vdB0pYpyN/xj4Fejmuvl15K1z1YeWVjdtwxvr+D6kaAXiaLFi0yU6ZMMX379q2b1rRpU+/x5MmTs75m++23915jA/LPP//cjB071uyjQTirnLqxb7BB+v9z5zY+CYcV97jASRvCptTjcNo8VHUdt1VLdSHTurWp6QC90sdDdR2bWUPLoDyU+WQDuswAXXT+6dMnZXbe+SvvN93ak8nlO8plSKlaFmcLerHd25P6fWDrpORTyjopLutIlluuca+tUl972e7tBxxgTHMqfSEkdp0ymTNnjlm6dKnppMjFR48/st8mGdRyrtftuOOOJpVKmSVLlphTTjklbxf3hQsXej/W/Pnzvd+LFy/2fqJk3y/q97WWLdNZtWldgN69+1KzePGyot5z0qQm5ssvmxccF3jChCXeRWw1uOaaJubww5t5X2ipVP23XZMm6c939dVLzbJlKa8HQbHbedEivX9zM3PmMjNmjN6/mdlgg2Vm8eJyXk1qezf53zGQnvLf/6b3rdVXL36fKtV2iJPLNs63/OnAoYlZe+1yb+vaoOBs9uz0Pvzhh0vNggXL/jcOfQvTpk3KrLDCkrp9vVTn7MWLdXcufSX87LNLzI47chMgju8o0dBSub6j4v5eTpolS9LfOalU+tyjG1XTpqXP+euuW3/ODyv9+hb/+/9i88476f18442L++4o5vsgjm38wgtNzNKl+fe79Hjopbs2cvnO2WijZd61dalvWC1dmt4Pli7VtY6WrYnZbz+dd1MF9tOUWbx4idPfiPd8XRvnh0pCgF5BJk6caC6//HJz8803ewXlPv30U3PGGWeYyy67zFx44YVZXzNs2DAz1I514/PMM8943enjMF7lK2Mwc+bWxpj6ZKIff3zNjB37vwS8kF54Qe+n983vqafeNj///JWpBsrdP/fc1cwdd2xmvvtuubrpK6/8qzn++PdMq1bfmLFji9/OkyevZkaM6OGdZj78UIFDevqcObPN2LElrHaTYcGCPY0xrc1LL71kvvoqfcPq3/9WP7SVzbffvmXGjv2qorZDnPJt43zLv/ba882UKZ3NsmWfmbFjPyjR0tYmHWfpbZAOGq69tpm5555Fpl8/DUS/kenQ4Sfz1FPPl/ScrWW64QaVLk5H5P36Nff2ixNOeNf07p3QwgoJFdV3VFzfy0nz1lsahmMb891335uxY18206evYJYt2820abPYTJkytui0uIULFYjt7/3/6aefNi++2Nv77liypLjvjii+D6Lcxkm8Nsq3jjba6Hvz4otrmvbtvzRjx/5vCJESev99jSe6uXnllV/NrFltTevWS8ySJU+ZsWOz37R5++1V1E/BazQbO3ZioL8Vx7H8i/JIkShNUrp9g7J0cVeA/NBDD5n+KvP4PwMGDDBz5841jz76aKPX7LTTTma77bYzV111Vd20e++915x00knmp59+8rrIu7Sgq/q7WuLbRZy0pjtwOnH069fPtGiRvliMku6c/utf9Z/xv/9dXHT+k1ondPFYiHI0q6UF3dId5pdealI39rNrC5fLdn7kkfSdbntXu6GUGT16qTnooPKsz7XXbm6++aaJeeONxaaH7h8YpU80N9OnNzETJy4x22+fqojtEKcgx7KWv1s39ZJoYm64Yak58cRl5tBDm5knn2xqbrppqTnppDJ0AagRuY4zf4tSv37LzJNPLi3ZOTvfMsmoUeU79itRsd9RcX8vJ81DDzUxRx7Z3Oy88zLz7LNL6x736rXMvPji0kjGt27fPr0ev/tusXfumz+/iZkyZXFR3dyL+T6IYxsn+dpI62jddZubr79uYq67bqk5+eRl5ve/b2ZGj25q/vKXpeacc0r/nXPLLU3NGWfUb6iDDlrmXefk8uyzTcw++zQ3m2+eMm++6d6CHtexrNigY8eOZt68eZHHBgiHFvQyadmypenZs6d57rnn6gL0ZcuWeY8HDhyY8w5XZhDe7H9n7lz3WVq1auX9ZNLBHdeXdVzv7f/oKj7VpUuLou+GqxKuy1iZu+7avOxBU9S0iXwlECLbzvryPOus3GOg66L97LObm0MOKe9wTunlTxcD1PYXXWyV+hq22O0QJ5djWU8r70+23baZad26WV1xsnXXbWZatKiyAych8h1n/u6fXbo0NS1aNC3JObvQMul8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QK3wd2Nff326tQMAABSDAD2gG2+80dxyyy3eEGjWAQccYDbZZBNzySWXEKADAAAAAEKhi3tA33zzjdl+++0bTdc0PQcAAAAAQBgE6AGtt9565oEHHmg0ffTo0d4Y6QAAAAAAhEEX94CGDh1qDjvsMPPCCy/U5aC//PLL5rnnnssauAMAAAAA4IIW9IAOOeQQ89prr5mOHTuaMWPGeD/6/+uvv24OOuigci8eAAAAAKBC0YIeQs+ePc29995b7sUAAAAAAFQRWtADGjt2rHn66acbTde0p556qizLBAAAAACofAToAZ1//vlm6dKljaanUinvOQAASsn/lTR/fsPHAACgshCgB/TJJ5+YjTfeuNH07t27m08//bQsywQAqE3/+pcxXbvWP/744/RjTQcAAJWHAD2g9u3bm88//7zRdAXnbdu2LcsyAQBqj4LwQw815ssvG07/6qv0dIJ0AAAqDwF6QAceeKAZNGiQ+eyzzxoE52eddZY54IADyrpsAIDaoG7sZ5yh9KrGz9lpgwbR3R0AgEpDgB7QlVde6bWUq0t7t27dvJ+NNtrIrLzyyubqq68u9+IBAGrAiy82bjnPDNK/+CI9HwAAqBwMsxaii/srr7xixo8fb9555x2z3HLLmc0339zsvPPO5V40AECN+OabaOcDAADJQIAeQpMmTcwee+zh/QAAUGqrrRbtfAAAIBno4u5o8uTJ5oknnmgw7Z577vG6uK+66qrmpJNOMgsXLizb8gEAasdOOxmz5pq6YZz9eU3v0iU9HwAAqBwE6I4uvfRS8/7779c9fvfdd83xxx9v+vbt641//vjjj5thw4aVdRkBoNT8Rcg++YSiZKXSrJkx11+f/n9mkG4fX3ddej4AAFA5CNAdvf3222b33Xevezxq1CjTq1cvM3LkSDN48GBzww03mAceeKCsywgA5RyD+6abGIO7lA4+2JiHHjJmjTUaTlfLuqbreQAAUFnIQXf0ww8/mE6dOtU9njRpktl7773rHm+zzTbmC5XMBYAaGoM7c5gvOwY3AWJpaB0feGC6WrsKwinnXN3aaTkHAKAy0YLuSMH5tGnTvP8vWrTITJ061Wy33XZ1z//444+mRYsWZVxCACgNxuBOFgXju+xizBFHpH8TnAMAULkI0B3ts88+Xq75iy++aIYMGWLatGljdvJV3/n3v/9t1l133bIuIwCUAmNwAwAAxIMu7o4uu+wyc/DBB5s+ffqY5Zdf3tx9992mZcuWdc/feeedDLsGoCYwBjcAAEA8CNAddezY0bzwwgtm3rx5XoDeLKMP4YMPPuhNB4BqxxjcAAAA8aCLe0Dt27dvFJxLhw4dGrSoA0C1YgxuAACAeBCgAwACYQxuAACAeBCgAwACYwxuAACA6JGDDgAIhTG4AQAAokULuqPjjjvOG+scAFCPMbgBAACiQ4DuSMOq/frrr+VeDAAAAABAlSJAd5RKpcq9CAAAAACAKkYOegDq4t66deu887Rr165kywMAAAAAqB4E6AFssMEGeVvYmzRpYpYuXVrSZQIAAAAAVAcC9AAeeugh06FDh3IvBgAAAACgChGgB7DDDjuYVVddtdyLAQAAAACoQhSJAwAAAAAgAQjQHa299tqmGQP8AgAAAABiQhd3R9OmTav7/5w5c8z06dO9onBdu3Y1K6+8clmXDQAAAABQ+WhBD+D99983O++8s+nUqZPp1auX2Xbbbb2c9N122818/PHH5V48AAAAAEAFowXd0cyZM02fPn3MKqusYoYPH266d+/uDa32wQcfmJEjR5qddtrJvPfeexSRAwAAAACEQoDu6Nprr/Xy0F9++WXTunXruul77bWXOfXUU82OO+7ozTNs2LCyLicAAAAAoDLRxd3R+PHjzXnnndcgOLeWW245c84555inn366LMsGAAAAAKh8BOiOPv/8c7PVVlvlfH7rrbf25gEAAAAAIAwCdEc//vijadeuXc7nV1hhBfPTTz+VdJkAAAAAANWDHPSAQXq2Lu4yf/58r2gcAAAAAABhEKA7UvC9wQYb5H1e46IDAAAAABAGAbqjCRMmlHsRAAAAAABVjADdkcZABwAAAAAgLgToAc2bN88bcm369Olel/Zu3bqZvn375i0gBwAAAABAIQToAdx7771m4MCBXkE4v/bt25tbb73VHHbYYWVbNgAAAABAZWOYNUdTp041xx57rOnfv7956623zK+//mp++eUX8+abb5r999/fHH300eadd94p92ICAAAAACoULeiObrzxRi84v+uuuxpM32qrrcw999zjBevXX3+9ufPOO8u2jAAAAACAykULuqOXX37ZnHzyyTmfP+WUU8xLL71U0mUCAAAAAFQPAnRHX3/9dd5x0PXcV199VdJlAgAAAABUDwJ0R+rC3rp165zPt2rVyixYsKCkywQAAAAAqB7koAfw9NNPexXbs5k7d27JlwcAAAAAUD0I0AMYMGBAuRcBAAAAAFClCNAdLVu2rNyLAAAAAACoYuSgR2T27Nnm8ssvL/diAAAAAAAqFAF6RL755htz4YUXlnsxAAAAAAAVigAdAAAAAIAEIEAHAAAAACABCNABAAAAAEgAqrg7Gjx4cN7nv/3221DvO2LECHPVVVeZmTNnmh49epgbb7zRbLvttgVfN2rUKHPEEUeYAw880IwZMybU3wYAAAAAJAcBuqO33nqr4Dw777xzoPccPXq0F/jfeuutplevXua6664ze+65p/n444/NqquumvN106dPN2effbbZaaedAv09AAAAAEByEaA7mjBhQuTvOXz4cHPiiSeaY4891nusQP3JJ580d955pzn//POzvmbp0qXmqKOOMkOHDjUvvviimTt3buTLBQAAAAAoPXLQi5BKpbyfMBYtWmSmTJli+vbtWzetadOm3uPJkyfnfN2ll17qta4ff/zxof4uAAAAACCZaEEP4W9/+5u59tprzSeffOI9Xn/99c2gQYPMCSec4Pwec+bM8VrDO3Xq1GC6Hn/00UdZX/PSSy95f/vtt992/jsLFy70fqz58+d7vxcvXuz9RMm+X9Tvi2RhO1c/tnFtYDtXP7Zx9WMb14Y4tzP7TvIQoAd00UUXeV3T//CHP5jevXt709TifeaZZ5oZM2Z4Ldxx+PHHH83RRx9tRo4caTp27Oj8umHDhnnd4TM988wzpk2bNiYO48ePj+V9kSxs5+rHNq4NbOfqxzaufmzj2hDHdv7ll18if08Up0kqbB/tGrXKKquYG264waug7vfPf/7TC9rVMu7axV0B8kMPPWT69+9fN33AgAFeXvmjjz7aYH61mm+55ZamWbNmddOWLVtW1zVeheXWXXddpxb0Ll26eMvZrl07E/UdOJ04+vXrZ1q0aBHpeyM52M7Vj21cG9jO1Y9tXP3YxrUhzu2s2ECNf/PmzYs8NkA4tKCHOEC23nrrRtN79uxplixZ4vw+LVu29F7z3HPP1QXoCrj1eODAgY3m7969u3n33XcbTLvgggu8lvXrr7/eC7qzadWqlfeTSQd3XCfyON8bycF2rn5s49rAdq5+bOPqxzauDXFsZ/ab5CFAD0jdzG+55Ravm7vf7bff7lVX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w/Tp08dcc801Zt999zWjRo0yb775prn99tvL/EkAAAAAAMUiQC+jww47zHz77bfmoosu8gq9bbHFFmbcuHF1heBmzJjhVXa3tt9+e3P//febCy64wPzpT38y66+/vhkzZozZdNNNy/gpAAAAAABRIEAvM3Vnz9WlfeLEiY2m/eY3v/F+kkhd6S+++OJGXepRXdjO1Y9tXBvYztWPbVz92Ma1ge1cW5qkqKkPAAAAAEDZ1fefBgAAAAAAZUOADgAAAABAAhCgAwAAAACQAAToAAAAAAAkAAE6IjNixAjTtWtX07p1a9OrVy/z+uuvl3uRENILL7xg9t9/f7P66qubJk2aeMP5+am2pIYHXG211cxyyy1n+vbtaz755JOyLS+CGzZsmNlmm23MCiusYFZddVXTv39/8/HHHzeYZ8GCBeb00083K6+8sll++eXNIYccYmbNmlW2ZUZwt9xyi9l8881Nu3btvJ/evXubp556qu55tnH1ueKKK7zz9qBBg+qmsZ0r3yWXXOJtV/9P9+7d655nG1eHr776yvzud7/ztqOurzbbbDPz5ptv1j3P9VdtIEBHJEaPHm0GDx7sDQExdepU06NHD7Pnnnua2bNnl3vREMLPP//sbUPddMnmyiuvNDfccIO59dZbzWuvvWbatm3rbW9dIKAyTJo0ybuYe/XVV8348ePN4sWLzR577OFte+vMM880jz/+uHnwwQe9+b/++mtz8MEHl3W5Ecyaa67pBWxTpkzxLvJ22203c+CBB5r333/fe55tXF3eeOMNc9ttt3k3ZfzYztVhk002Md98803dz0svvVT3HNu48v3www9mhx12MC1atPBupH7wwQfmmmuuMSuttFLdPFx/1QgNswYUa9ttt02dfvrpdY+XLl2aWn311VPDhg0r63KheDpNPPLII3WPly1blurcuXPqqquuqps2d+7cVKtWrVL//Oc/y7SUKNbs2bO9bT1p0qS6bdqiRYvUgw8+WDfPhx9+6M0zefLkMi4pirXSSiul7rjjDrZxlfnxxx9T66+/fmr8+PGpPn36pM444wxvOtu5Olx88cWpHj16ZH2ObVwdzjvvvNSOO+6Y83muv2oHLego2qJFi7zWGXWzsZo2beo9njx5clmXDdGbNm2amTlzZoPt3b59ey+tge1duebNm+f97tChg/dbx7Ra1f3bWd0p11prLbZzhVq6dKkZNWqU10tCXd3ZxtVFPWL23XffBttT2M7VQ12ZlXq2zjrrmKOOOsrMmDHDm842rg6PPfaY2Xrrrc1vfvMbL/Vsyy23NCNHjqx7nuuv2kGAjqLNmTPHu/Dr1KlTg+l6rBMJqovdpmzv6rFs2TIvX1Vd6zbddFNvmrZly5YtzYorrthgXrZz5Xn33Xe9nNRWrVqZU045xTzyyCNm4403ZhtXEd14UXqZaktkYjtXBwVhd911lxk3bpxXW0LB2k477WR+/PFHtnGV+Pzzz71tu/7665unn37anHrqqeaPf/yjufvuu73nuf6qHc3LvQAAgPK3vL333nsN8hlRPTbccEPz9ttve70kHnroITNgwAAvRxXV4YsvvjBnnHGGV0tCRVpRnfbee++6/6vGgAL2tdde2zzwwANesTBUx81ytaBffvnl3mO1oOu7WfnmOm+jdtCCjqJ17NjRNGvWrFG1UD3u3Llz2ZYL8bDblO1dHQYOHGieeOIJM2HCBK+gmKVtqfSVuXPnNpif7Vx51LK23nrrmZ49e3otrCoAef3117ONq4S6N6sg61ZbbWWaN2/u/egGjApJ6f9qXWM7Vx+1lm+wwQbm008/5ViuEqrMrt5NfhtttFFdKgPXX7WDAB2RXPzpwu+5555rcBdQj5XniOrSrVs374vAv73nz5/vVRNle1cO1f9TcK7uzs8//7y3Xf10TKuSrH87axg2XSiwnSubzs8LFy5kG1eJ3Xff3UtjUC8J+6NWOOUo2/+znavPTz/9ZD777DMvqONYrg5KM8sc7vQ///mP11NCuP6qHXRxRyQ0xJq63+hCYNtttzXXXXedV4jo2GOPLfeiIeQXv+7KW8p104WeCoip6Izylf/85z97eVL6wrjwwgu9wjUaSxuV0639/vvvN48++qg3FrrNX1PBGXWX1O/jjz/eO7a13TWG9h/+8AfvImC77bYr9+LD0ZAhQ7yusTpulauqbT5x4kQvv5FtXB10/NraEZaGXtI4ynY627nynX322Wb//ff3gjUNoaZhbdV78YgjjuBYrhIaKm/77bf3urj/9re/Na+//rq5/fbbvR9p0qQJ11+1otxl5FE9brzxxtRaa62VatmypTfs2quvvlruRUJIEyZM8IZnyfwZMGBA3VAfF154YapTp07e8B6777576uOPPy73YiOAbNtXP3//+9/r5vn1119Tp512mjcsV5s2bVIHHXRQ6ptvvinrciOY4447LrX22mt75+VVVlnFO1afeeaZuufZxtXJP8yasJ0r32GHHZZabbXVvGN5jTXW8B5/+umndc+zjavD448/ntp00029a6vu3bunbr/99gbPc/1VG5ron3LfJAAAAAAAoNaRgw4AAAAAQAIQoAMAAAAAkAAE6AAAAAAAJAABOgAAAAAACUCADgAAAABAAhCgAwAAAACQAAToAAAAAAAkAAE6AABlMH36dNOkSRPz9ttv55xn4sSJ3jxz5841tb4uAACoBQToAABk8fvf/94LGvXTokUL061bN3PuueeaBQsWRPL+Xbp0Md98843ZdNNNTVI+6xVXXNFg+pgxY7zpAACgNAjQAQDIYa+99vKC6M8//9xce+215rbbbjMXX3xxJO/drFkz07lzZ9O8eXOTBK1btzZ//etfzQ8//GCqxaJFi8q9CAAABEKADgBADq1atfKCaLV29+/f3/Tt29eMHz++7vlly5aZYcOGea3ryy23nOnRo4d56KGH6p5XsHvUUUeZVVZZxXt+/fXXN3//+99zduseO3as2WCDDbx5d911V28ev0suucRsscUWDaZdd911pmvXrg2m3XHHHWajjTbygu7u3bubm2++ueBn1WfTZ9XnycXl76s1Xuvq8ssvN506dTIrrriiufTSS82SJUvMOeecYzp06GDWXHPNuvXg99FHH5ntt9/eW271LJg0aVKD59977z2z9957m+WXX95776OPPtrMmTOn7vlddtnFDBw40AwaNMh07NjR7LnnngU/NwAASUKADgCAAwWHr7zyimnZsmXdNAWz99xzj7n11lvN+++/b84880zzu9/9ri6wvPDCC80HH3xgnnrqKfPhhx+aW265xQscs/niiy/MwQcfbPbff38vaD/hhBPM+eefH3g577vvPnPRRReZv/zlL97fVKCs5bj77rsLtuhr3htvvNF8+eWXphjPP/+8+frrr80LL7xghg8f7vU62G+//cxKK61kXnvtNXPKKaeYk08+udHfUQB/1llnmbfeesv07t3bWxffffed95zy8HfbbTez5ZZbmjfffNOMGzfOzJo1y/z2t79t8B76nNpGL7/8srddAACoJMnoVwcAQAI98cQTXmutWn8XLlxomjZtam666SbvOT1WQPvss896waSss8465qWXXvK6wvfp08fMmDHDCyi33npr7/nMlm4/Be/rrruuueaaa7zHG264oXn33Xe9budBKBjWeyjYF7Xu6yaBlmnAgAF5X3vQQQd5LeR6j7/97W8mLLWS33DDDd760ue48sorzS+//GL+9Kc/ec8PGTLEy3fXujr88MPrXqfW70MOOaRufSgI13Io91/rXetS69y68847vd4N//nPf7yeB6JeCvp7AABUIgJ0AAByUDdzBYo///yzl4OufHEbQH766ade0NmvX79Gec8KJOXUU0/15p86darZY489vK7f6sKdjVq7e/Xq1WCaDfxdaTk/++wzc/zxx5sTTzyxbrpuMLRv397pPXRDQC3VZ599tglrk0028YJzS93R/cXw1Fq/8sorm9mzZ+f8vFrXurGh9SLvvPOOmTBhgnfDJJM+sw3Qe/bsGXq5AQAoNwJ0AAByaNu2rVlvvfXqWmuVY64WXQXAP/30kzf9ySefNGussUaj3HVRvvR///tfL7dcueu77767Of30083VV18dankU9KZSqQbTFi9eXPd/u0wjR45sFOwrKHax8847e7nbauVWPnmQv2+p6r2frYSfOU05/K702dTlPVuPgtVWW63BNgMAoFIRoAMA4EDBqbpoDx482Bx55JFm44039gJxdWNXd/ZcVCBOXcv1s9NOO3l51tkCdBV1e+yxxxpMe/XVVxu918yZM70g2Q5/5i8yp5bq1Vdf3as6r+J0Yan7ubq6q3t6kL9fLH1e3SCwrf5Tpkzxur3LVlttZR5++GEvTSAple8BAIgaReIAAHD0m9/8xmuJHjFihFlhhRW8buAqDKfCZOpmra7sKrJmC7KpWNujjz7qdYdXETnltCsQz0aF0z755BMvgP/444/N/fffb+66664G86hK+bfffuvlWOvvaTlUgM5v6NChXvE65YArN1t57KqYrmJtrjbbbDMvwNd7BP37xdD7PfLII141d/U0UBX84447zntOj7///ntzxBFHmDfeeMP7+08//bQ59thjzdKlSyNbBgAAyokAHQAAR2q5VYuuAlTle1922WVehXQFxAq8NW66uryrMJuomri6im+++eZey7CC+1GjRmV977XWWstrIR4zZozXlV4VyP0F0UR/Q0OmKZDVPK+//nqjXHFVf9cwawrKFWirdV+Bvl0mVxoaLbMLusvfL4Za7vWj91YBOfUosFXv1TNAldkVjCufX59Nw6lpGDd/vjsAAJWsSSozmQwAAAAAAJQct5wBAAAAAEgAAnQAAAAAABKAAB0AAAAAgAQgQAcAAAAAIAEI0AEAAAAASAACdAAAAAAAEoAAHQAAAACABCBABwAAAAAgAQjQAQAAAABIAAJ0AAAAAAASgAAdAAAAAIAEIEAHAAAAACABCNABAAAAAEgAAnQAAAAAAEz5/T+TbYPxNUGAVQAAAABJRU5ErkJggg==" alt="pLDDT Plot" style="max-width:800px;">
+              </body>
+            </html>
+            
