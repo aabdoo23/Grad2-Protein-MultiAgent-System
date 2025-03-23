@@ -1,0 +1,4 @@
+Pipeline/venv/
+Pipeline/__pycache__/
+Pipeline/StructurePrediction/__pycache__/
+Pipeline/StructurePrediction/visualizations/
