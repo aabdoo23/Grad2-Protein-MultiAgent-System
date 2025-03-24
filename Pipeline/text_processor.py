@@ -1,13 +1,15 @@
 import json
 from enum import Enum
 from typing import Dict, Any, List
-from groq import Groq  # Assuming this is your LLM client
+from groq import Groq
 
 class PipelineFunction(Enum):
     GENERATE_PROTEIN = "generate_protein"
     PREDICT_STRUCTURE = "predict_structure"
     EVALUATE_SEQUENCE = "evaluate_sequence"
     SEARCH_SIMILARITY = "search_similarity"
+    SEARCH_STRUCTURE = "search_structure"
+    EVALUATE_STRUCTURE = "evaluate_structure"
 
     @classmethod
     def get_description(cls, function: str) -> str:
@@ -15,28 +17,69 @@ class PipelineFunction(Enum):
             cls.GENERATE_PROTEIN.value: "Generate a protein sequence with specific properties",
             cls.PREDICT_STRUCTURE.value: "Predict the 3D structure of a protein sequence",
             cls.EVALUATE_SEQUENCE.value: "Evaluate properties of a protein sequence",
-            cls.SEARCH_SIMILARITY.value: "Search for similar protein structures"
+            cls.SEARCH_SIMILARITY.value: "Search for similar protein sequences",
+            cls.SEARCH_STRUCTURE.value: "Search for similar protein structures using FoldSeek",
+            cls.EVALUATE_STRUCTURE.value: "Evaluate the quality and properties of a predicted 3D structure"
         }
         return descriptions.get(function, "Unknown function")
 
 class TextProcessor:
-    def __init__(self, api_key: str):
-        self.client = Groq(api_key=api_key)
+    def __init__(self):
+        self.client = Groq(api_key="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")
 
     def process_input(self, text: str) -> Dict[str, Any]:
         system_prompt = """
-You are a protein engineering assistant that interprets natural language requests into structured commands.
-Return a JSON object like:
+You are a protein engineering assistant that interprets natural language requests into structured commands for protein design and analysis workflows.
+Analyze the input text carefully to identify:
+1. Any provided protein sequences
+2. Specific analysis requests (structure prediction, similarity search, evaluation)
+3. Whether protein generation is explicitly requested
+
+Return a JSON object with an array of functions to be executed in sequence. Only include any functionality if explicitly requested.
+
+Example response format:
 {
     "functions": [
         {
+            "name": "generate_protein",
+            "parameters": {
+                "prompt": "<functionality description>"
+            }
+        },
+        {
             "name": "predict_structure",
             "parameters": {
-                "sequence": "<protein sequence>"
+                "sequence": "MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKT"
+            }
+        },
+        {
+            "name": "search_structure",
+            "parameters": {
+                "pdb_file": "<predicted structure file>"
+            }
+        },
+        {
+            "name": "evaluate_structure",
+            "parameters": {
+                "structure": "<predicted structure file>"
+            }
+        },
+        {
+            "name": "evaluate_sequence",
+            "parameters": {
+                "sequence": "MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKT"
             }
         }
     ]
 }
+
+Rules:
+1. Extract any protein sequence from the input text
+2. Only include generate_protein if explicitly requested
+3. For structure prediction, use the provided sequence
+4. For evaluation, use the actual sequence or predicted structure
+5. Include search_structure when FoldSeek search is requested
+6. Include evaluate_sequence when sequence analysis is requested
 """
         try:
             response = self.client.chat.completions.create(
@@ -48,10 +91,53 @@ Return a JSON object like:
                 temperature=0.1,
                 max_tokens=500
             )
-            parsed = json.loads(response.choices[0].message.content)
-            if self.validate(parsed):
+            response_text = response.choices[0].message.content.strip()
+            print("response",response_text)
+            if not response_text:
+                return {"success": False, "error": "Empty response from LLM"}
+            
+            # Clean and validate response text
+            try:
+                # Find the first { and last } to extract the JSON object
+                first_brace = response_text.find('{')
+                last_brace = response_text.rfind('}')
+                
+                if first_brace == -1 or last_brace == -1:
+                    return {"success": False, "error": "Invalid JSON format: missing braces"}
+                
+                # Extract the JSON content and ensure it's balanced
+                json_content = response_text[first_brace:last_brace + 1]
+                brace_count = 0
+                for char in json_content:
+                    if char == '{': brace_count += 1
+                    elif char == '}': brace_count -= 1
+                    if brace_count < 0:
+                        return {"success": False, "error": "Invalid JSON format: unbalanced braces"}
+                
+                if brace_count != 0:
+                    return {"success": False, "error": "Invalid JSON format: unbalanced braces"}
+                
+                parsed = json.loads(json_content)
+                if not self.validate(parsed):
+                    return {"success": False, "error": "Invalid output format from LLM"}
+                
+                # Validate sequence lengths and parameters
+                for func in parsed["functions"]:
+                    if func["name"] in [PipelineFunction.PREDICT_STRUCTURE.value, 
+                                      PipelineFunction.EVALUATE_SEQUENCE.value,
+                                      PipelineFunction.SEARCH_SIMILARITY.value]:
+                        if "sequence" not in func["parameters"] or not func["parameters"]["sequence"]:
+                            return {"success": False, "error": f"Missing sequence parameter for {func['name']}"}
+                
+                # Remove generate_protein if not explicitly requested and sequence is provided
+                has_sequence = any("sequence" in f["parameters"] for f in parsed["functions"])
+                if has_sequence:
+                    parsed["functions"] = [f for f in parsed["functions"] 
+                                         if f["name"] != PipelineFunction.GENERATE_PROTEIN.value]
+                
                 return {"success": True, "functions": parsed["functions"]}
-            return {"success": False, "error": "Invalid output format from LLM"}
+            except json.JSONDecodeError as je:
+                return {"success": False, "error": f"JSON parsing error: {str(je)}"}
         except Exception as e:
             return {"success": False, "error": str(e)}
 

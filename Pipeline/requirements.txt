@@ -5,3 +5,5 @@ py3Dmol>=2.0.0
 biopython>=1.83
 typing>=3.7.4
 enum34>=1.1.10
+flask>=2.3.2
+flask-cors>=4.0.0

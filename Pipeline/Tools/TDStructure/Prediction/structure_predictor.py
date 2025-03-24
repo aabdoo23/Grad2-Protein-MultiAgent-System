@@ -6,7 +6,7 @@ from typing import Dict, Any
 class StructurePredictor:
     def __init__(self):
         self.api_endpoint = "https://api.esmatlas.com/foldSequence/v1/pdb/"
-        self.visualization_dir = os.path.join(os.path.dirname(__file__), 'visualizations')
+        self.visualization_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'static', 'pdb_files')
         os.makedirs(self.visualization_dir, exist_ok=True)
 
     def validate_sequence(self, sequence: str) -> bool:

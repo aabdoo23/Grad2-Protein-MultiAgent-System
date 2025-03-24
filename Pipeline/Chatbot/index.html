@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Protein Pipeline Chatbot</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+    .main-container { display: flex; gap: 20px; max-width: 1200px; margin: auto; }
+    #chat-container { width: 500px; background: #fff; padding: 20px; border-radius: 8px; }
+    #structure-container { flex-grow: 1; background: #fff; padding: 20px; border-radius: 8px; min-height: 500px; }
+    #chat-log { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+    .message { margin: 5px 0; }
+    .user { color: blue; }
+    .bot { color: green; }
+    #confirmation { display: none; background: #e0e0e0; padding: 15px; border-radius: 8px; margin-top: 10px; }
+    button { padding: 8px 12px; margin-right: 5px; }
+  </style>
+</head>
+<body>
+
+<div class="main-container">
+  <div id="chat-container">
+    <h2>Protein Pipeline Chatbot</h2>
+    <div id="chat-log"></div>
+    <input type="text" id="chat-input" placeholder="Enter your message..." style="width:80%;">
+    <button id="send-btn">Send</button>
+  
+  <div id="confirmation">
+    <p id="confirm-message"></p>
+    <button id="confirm-yes">Yes</button>
+    <button id="confirm-no">No</button>
+  </div>
+</div>
+  <div id="structure-container">
+    <h2>Structure Viewer</h2>
+    <iframe id="structure-viewer" src="../Tools/TDStructure/Visualization/viewer.html" style="width:100%; height:100%; border:none;"></iframe>
+  </div>
+</div>
+
+<script>
+  // Append a message to the chat log.
+  function appendMessage(sender, text) {
+    $("#chat-log").append('<div class="message ' + sender + '"><strong>' + sender + ':</strong> ' + text + '</div>');
+    $("#chat-log").scrollTop($("#chat-log")[0].scrollHeight);
+  }
+
+  // Send user message to /chat endpoint.
+  $("#send-btn").click(function() {
+    let message = $("#chat-input").val().trim();
+    if (!message) return;
+    
+    appendMessage("user", message);
+    $("#chat-input").val("");
+    
+    $.ajax({
+      url: "http://127.0.0.1:5000/chat",
+      method: "POST",
+      contentType: "application/json",
+      data: JSON.stringify({ message: message }),
+      success: function(response) {
+        // Display the bot's response
+        if(response.status === "awaiting_confirmation") {
+          appendMessage("bot", response.message);
+          // Show confirmation buttons
+          $("#confirm-message").text("Do you want to proceed with these actions?");
+          $("#confirmation").show();
+        } else {
+          appendMessage("bot", response.message || "Received response.");
+        }
+      },
+      error: function() {
+        appendMessage("bot", "Error contacting the server. Details: " + error.statusText);
+        console.error("Server connection error:", error);
+      }
+    });
+  });
+
+  // Handle confirmation yes
+  $("#confirm-yes").click(function() {
+    $.ajax({
+      url: "http://127.0.0.1:5000/confirm",
+      method: "POST",
+      contentType: "application/json",
+      data: JSON.stringify({ confirmation: "yes" }),
+      success: function(response) {
+        $("#confirmation").hide();
+        if(response.success) {
+          appendMessage("bot", "Pipeline executed successfully. Results:");
+          appendMessage("bot", JSON.stringify(response.results, null, 2));
+          // Load structure if available
+          if (response.results.structure_prediction && response.results.structure_prediction.success) {
+            const pdbPath = response.results.structure_prediction.pdb_file;
+            document.getElementById('structure-viewer').contentWindow.postMessage(
+              { type: 'loadStructure', pdbPath: pdbPath },
+              '*'
+            );
+          }
+        } else {
+          appendMessage("bot", "Error: " + response.message);
+        }
+      },
+      error: function() {
+        $("#confirmation").hide();
+        appendMessage("bot", "Error contacting the server.");
+      }
+    });
+  });
+
+  // Handle confirmation no
+  $("#confirm-no").click(function() {
+    $("#confirmation").hide();
+    appendMessage("bot", "Pipeline execution cancelled.");
+  });
+
+  $("#chat-input").keypress(function(e) {
+    if(e.which === 13) {
+      $("#send-btn").click();
+    }
+  });
+</script>
+
+</body>
+</html>

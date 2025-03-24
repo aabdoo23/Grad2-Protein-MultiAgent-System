@@ -1,4 +1,9 @@
 Pipeline/venv/
 Pipeline/__pycache__/
-Pipeline/StructurePrediction/__pycache__/
-Pipeline/StructurePrediction/visualizations/
+Pipeline/*/__pycache__/
+Pipeline/*/*/__pycache__/
+Pipeline/*/*/*/__pycache__/
+Pipeline/*/*/*/*/__pycache__/
+Pipeline/*/*/*/*/*/__pycache__/
+Pipeline/Tools/TDStructure/Prediction/visualizations/
+Pipeline/static/

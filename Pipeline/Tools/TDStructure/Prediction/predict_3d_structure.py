@@ -9,8 +9,8 @@ class ProteinStructureAnalyzer:
         self.visualizer = StructureVisualizer()
         self.foldseek = FoldseekSearcher()
 
-    def predict_and_analyze(self, sequence: str) -> Dict[str, Any]:
-        """Predict the 3D structure of a protein sequence and perform analysis.
+    def predict_structure(self, sequence: str) -> Dict[str, Any]:
+        """Predict the 3D structure of a protein sequence.
 
         Args:
             sequence (str): The protein sequence to predict
@@ -20,9 +20,7 @@ class ProteinStructureAnalyzer:
                 - success: bool indicating if prediction was successful
                 - structure: PDB structure if successful
                 - pdb_file: Path to the saved PDB file if successful
-                - metrics: Calculated structure quality metrics
                 - visualization_file: Path to visualization file if successful
-                - foldseek_results: Results from FoldSeek search if successful
                 - error: Error message if unsuccessful
         """
         # Predict structure
@@ -38,26 +36,32 @@ class ProteinStructureAnalyzer:
                 'error': f'Error creating visualization: {visualization_result["error"]}'
             }
 
-        # Perform FoldSeek search
-        search_result = self.foldseek.submit_foldseek_search(visualization_result['pdb_file'])
-        if search_result['success']:
-            results = self.foldseek.wait_for_results(
-                search_result['ticket_id'],
-                max_wait_time=300,
-                check_interval=10
-            )
-            foldseek_data = results if results['success'] else {'error': results['error']}
-        else:
-            foldseek_data = {'error': search_result['error']}
-
         return {
             'success': True,
             'structure': prediction_result['structure'],
             'pdb_file': visualization_result['pdb_file'],
-            'metrics': prediction_result['metrics'],
-            'visualization_file': visualization_result['file_path'],
-            'foldseek_results': foldseek_data
+            'visualization_file': visualization_result['file_path']
         }
+
+    def search_similar_structures(self, pdb_file: str) -> Dict[str, Any]:
+        """Search for similar structures using FoldSeek.
+
+        Args:
+            pdb_file (str): Path to the PDB file to search
+
+        Returns:
+            Dict[str, Any]: FoldSeek search results
+        """
+        search_result = self.foldseek.submit_search(pdb_file)
+        if not search_result['success']:
+            return search_result
+
+        results = self.foldseek.wait_for_results(
+            search_result['ticket_id'],
+            max_wait=300,
+            interval=10
+        )
+        return results
 
     def validate_sequence(self, sequence: str) -> bool:
         """Validate if the input is a valid protein sequence.
