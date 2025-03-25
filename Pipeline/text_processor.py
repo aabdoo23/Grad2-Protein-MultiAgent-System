@@ -129,11 +129,9 @@ Rules:
                         if "sequence" not in func["parameters"] or not func["parameters"]["sequence"]:
                             return {"success": False, "error": f"Missing sequence parameter for {func['name']}"}
                 
-                # Remove generate_protein if not explicitly requested and sequence is provided
                 has_sequence = any("sequence" in f["parameters"] for f in parsed["functions"])
                 if has_sequence:
-                    parsed["functions"] = [f for f in parsed["functions"] 
-                                         if f["name"] != PipelineFunction.GENERATE_PROTEIN.value]
+                    parsed["functions"] = [f for f in parsed["functions"]]
                 
                 return {"success": True, "functions": parsed["functions"]}
             except json.JSONDecodeError as je:
