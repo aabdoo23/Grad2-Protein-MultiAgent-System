@@ -34,8 +34,9 @@ Analyze the input text carefully to identify:
 1. Any provided protein sequences
 2. Specific analysis requests (structure prediction, similarity search, evaluation)
 3. Whether protein generation is explicitly requested
+4. Specific requirements for generated proteins (e.g., binding affinity, stability, etc.)
 
-Return a JSON object with an array of functions to be executed in sequence. Only include any functionality if explicitly requested.
+Return a JSON object with an array of functions to be executed in sequence. Only include functions that are explicitly requested in the input text.
 
 Example response format:
 {
@@ -43,31 +44,7 @@ Example response format:
         {
             "name": "generate_protein",
             "parameters": {
-                "prompt": "<functionality description>"
-            }
-        },
-        {
-            "name": "predict_structure",
-            "parameters": {
-                "sequence": "MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKT"
-            }
-        },
-        {
-            "name": "search_structure",
-            "parameters": {
-                "pdb_file": "<predicted structure file>"
-            }
-        },
-        {
-            "name": "evaluate_structure",
-            "parameters": {
-                "structure": "<predicted structure file>"
-            }
-        },
-        {
-            "name": "evaluate_sequence",
-            "parameters": {
-                "sequence": "MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKT"
+                "prompt": "Generate a protein sequence with high binding affinity to IL-2 receptors, focusing on key binding motifs and structural stability"
             }
         }
     ]
@@ -76,10 +53,12 @@ Example response format:
 Rules:
 1. Extract any protein sequence from the input text
 2. Only include generate_protein if explicitly requested
-3. For structure prediction, use the provided sequence
-4. For evaluation, use the actual sequence or predicted structure
-5. Include search_structure when FoldSeek search is requested
-6. Include evaluate_sequence when sequence analysis is requested
+3. Only include predict_structure if structure prediction is explicitly requested
+4. Only include evaluate_sequence if sequence evaluation is explicitly requested
+5. Only include search_structure if FoldSeek search is explicitly requested
+6. Only include evaluate_structure if structure evaluation is explicitly requested
+7. When generating proteins, include specific requirements in the prompt
+8. Do not automatically add additional functions - only include what is explicitly requested
 """
         try:
             response = self.client.chat.completions.create(

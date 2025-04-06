@@ -5,5 +5,6 @@ Pipeline/*/*/__pycache__/
 Pipeline/*/*/*/__pycache__/
 Pipeline/*/*/*/*/__pycache__/
 Pipeline/*/*/*/*/*/__pycache__/
+Pipeline/Chatbot/node_modules
 Pipeline/Tools/TDStructure/Prediction/visualizations/
 Pipeline/static/
