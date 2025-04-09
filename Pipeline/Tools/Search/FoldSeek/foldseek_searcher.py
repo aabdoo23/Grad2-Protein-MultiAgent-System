@@ -25,7 +25,45 @@ class FoldseekSearcher:
         if status in ["RUNNING", "COMPLETE"]:
             return {"success": True, "status": status, "results": res if status == "COMPLETE" else None}
         return {"success": False, "error": f"Unexpected status: {status}"}
-
+    
+    def _process_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Process and format the search results."""
+        processed_results = {
+            "success": True,
+            "databases": {}
+        }
+        
+        for db_result in results.get("results", []):
+            db_name = db_result.get("db")
+            if not db_name:
+                continue
+                
+            # Get top 3 hits
+            top_hits = []
+            for alignment in db_result.get("alignments", [])[:3]:
+                for hit in alignment:
+                    hit_data = {
+                        "target": hit.get("target", "Unknown"),
+                        "seqId": hit.get("seqId", 0),
+                        "alnLength": hit.get("alnLength", 0),
+                        "score": hit.get("score", 0),
+                        "eval": hit.get("eval", 0),
+                        "prob": hit.get("prob", 0),
+                        "qAln": hit.get("qAln", ""),
+                        "dbAln": hit.get("dbAln", ""),
+                        "tSeq": hit.get("tSeq", ""),
+                        "taxName": hit.get("taxName", "Unknown"),
+                        "visualization": self._create_visualization(hit.get("tSeq", ""), hit.get("target", "Unknown"))
+                    }
+                    top_hits.append(hit_data)
+            
+            processed_results["databases"][db_name] = {
+                "hits": top_hits,
+                "total_hits": len(db_result.get("alignments", []))
+            }
+        
+        return processed_results
+    
     def wait_for_results(self, ticket_id: str, max_wait: int = 300, interval: int = 10) -> Dict[str, Any]:
         start = time.time()
         while time.time() - start < max_wait:
@@ -37,8 +75,9 @@ class FoldseekSearcher:
             time.sleep(interval)
         return {"success": False, "error": "Timeout waiting for results."}
 
-    def download_results(self, ticket_id: str) -> Dict[str, Any]:
-        res = requests.get(f"{self.base_url}/result/download/{ticket_id}").json()
+    def get_results(self, ticket_id: str) -> Dict[str, Any]:
+        res = requests.get(f"{self.base_url}/result/{ticket_id}/0").json()
+        print(res)
         if res.get("status") == "COMPLETE":
             return {"success": True, "results": res}
         return {"success": False, "error": f"Search not complete: {res.get('status')}"}

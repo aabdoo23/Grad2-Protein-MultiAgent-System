@@ -1,82 +1,76 @@
 import React from 'react';
+import axios from 'axios';
 
 class JobManager {
   constructor() {
     this.jobQueue = [];
     this.jobList = new Map();
     this.pendingConfirmations = [];
+    this.onJobUpdate = null;
+    
+    this.api = axios.create({
+      baseURL: 'http://localhost:5000',
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+
+  setJobUpdateCallback(callback) {
+    this.onJobUpdate = callback;
   }
 
   addJobConfirmation(job) {
-    const jobElement = this.createConfirmationDialog(job);
+    this.jobList.set(job.id, job);
     this.pendingConfirmations.push(job.id);
     
-    // Find the chat container and append the job confirmation
-    const chatContainer = document.getElementById('chatContainer');
-    if (chatContainer) {
-      chatContainer.appendChild(jobElement);
-      chatContainer.scrollTop = chatContainer.scrollHeight;
+    if (this.onJobUpdate) {
+      this.onJobUpdate();
     }
   }
 
-  createConfirmationDialog(job) {
-    const dialog = document.createElement('div');
-    dialog.className = 'flex justify-start';
-    dialog.innerHTML = `
-      <div class="max-w-[70%] rounded-xl px-4 py-2 bg-[#233c48] text-white">
-        <div class="font-medium mb-2">${job.title}</div>
-        <div class="text-sm text-gray-300 mb-3">${job.description}</div>
-        <div class="flex gap-2">
-          <button 
-            onclick="window.jobManager.confirmJob('${job.id}')"
-            class="px-3 py-1 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1]"
-          >
-            Confirm
-          </button>
-          <button 
-            onclick="window.jobManager.rejectJob('${job.id}')"
-            class="px-3 py-1 bg-[#233c48] text-white border border-[#13a4ec] rounded-lg text-sm hover:bg-[#2a4a5a]"
-          >
-            Reject
-          </button>
-        </div>
-      </div>
-    `;
-    return dialog;
-  }
-
-  confirmJob(jobId) {
+  async confirmJob(jobId) {
     const job = this.jobList.get(jobId);
     if (job) {
-      // Remove the confirmation dialog
-      const dialog = document.querySelector(`[data-job-id="${jobId}"]`);
-      if (dialog) {
-        dialog.remove();
+      try {
+        // Send confirmation to backend
+        const response = await this.api.post('/confirm-job', { job_id: jobId });
+        
+        if (response.data.success) {
+          // Add the job to the queue
+          this.jobQueue.push(job);
+          
+          // Remove from pending confirmations
+          this.pendingConfirmations = this.pendingConfirmations.filter(id => id !== jobId);
+          
+          if (this.onJobUpdate) {
+            this.onJobUpdate();
+          }
+          
+          return true;
+        } else {
+          console.error('Failed to confirm job:', response.data.message);
+          return false;
+        }
+      } catch (error) {
+        console.error('Error confirming job:', error);
+        return false;
       }
-      
-      // Add the job to the queue
-      this.jobQueue.push(job);
-      
-      // Remove from pending confirmations
-      this.pendingConfirmations = this.pendingConfirmations.filter(id => id !== jobId);
-      
-      // Start the job
-      this.startJob(job);
     }
+    return false;
   }
 
   rejectJob(jobId) {
-    // Remove the confirmation dialog
-    const dialog = document.querySelector(`[data-job-id="${jobId}"]`);
-    if (dialog) {
-      dialog.remove();
-    }
-    
     // Remove from pending confirmations
     this.pendingConfirmations = this.pendingConfirmations.filter(id => id !== jobId);
     
     // Remove from job list
     this.jobList.delete(jobId);
+    
+    if (this.onJobUpdate) {
+      this.onJobUpdate();
+    }
   }
 
   startJob(job) {
@@ -87,6 +81,18 @@ class JobManager {
 
   addJobToList(job) {
     this.jobList.set(job.id, job);
+    
+    if (this.onJobUpdate) {
+      this.onJobUpdate();
+    }
+  }
+
+  getPendingConfirmations() {
+    return this.pendingConfirmations.map(id => this.jobList.get(id));
+  }
+
+  getJobQueue() {
+    return this.jobQueue;
   }
 }
 

@@ -38,27 +38,39 @@ Analyze the input text carefully to identify:
 
 Return a JSON object with an array of functions to be executed in sequence. Only include functions that are explicitly requested in the input text.
 
-Example response format:
+Example response format for a chained operation:
 {
     "functions": [
         {
             "name": "generate_protein",
             "parameters": {
-                "prompt": "Generate a protein sequence with high binding affinity to IL-2 receptors, focusing on key binding motifs and structural stability"
+                "prompt": "Generate a protein sequence with high binding affinity"
             }
+        },
+        {
+            "name": "predict_structure",
+            "parameters": {}
+        },
+        {
+            "name": "search_structure",
+            "parameters": {}
         }
     ]
 }
 
 Rules:
-1. Extract any protein sequence from the input text
-2. Only include generate_protein if explicitly requested
-3. Only include predict_structure if structure prediction is explicitly requested
-4. Only include evaluate_sequence if sequence evaluation is explicitly requested
-5. Only include search_structure if FoldSeek search is explicitly requested
-6. Only include evaluate_structure if structure evaluation is explicitly requested
-7. When generating proteins, include specific requirements in the prompt
-8. Do not automatically add additional functions - only include what is explicitly requested
+1. For chained operations, only include required parameters in the first function
+2. Subsequent functions in the chain will automatically receive their parameters from previous functions
+3. Extract any protein sequence from the input text
+4. Only include generate_protein if explicitly requested
+5. Only include predict_structure if structure prediction is explicitly requested
+6. Only include evaluate_sequence if sequence evaluation is explicitly requested
+7. Only include search_structure if FoldSeek search is explicitly requested
+8. Only include evaluate_structure if structure evaluation is explicitly requested
+9. When generating proteins, include specific requirements in the prompt
+10. Do not automatically add additional functions - only include what is explicitly requested
+11. For predict_structure, if it follows generate_protein, do not include sequence parameter
+12. For search_structure, if it follows predict_structure, do not include pdb_file parameter
 """
         try:
             response = self.client.chat.completions.create(
@@ -100,17 +112,15 @@ Rules:
                 if not self.validate(parsed):
                     return {"success": False, "error": "Invalid output format from LLM"}
                 
-                # Validate sequence lengths and parameters
-                for func in parsed["functions"]:
-                    if func["name"] in [PipelineFunction.PREDICT_STRUCTURE.value, 
-                                      PipelineFunction.EVALUATE_SEQUENCE.value,
-                                      PipelineFunction.SEARCH_SIMILARITY.value]:
-                        if "sequence" not in func["parameters"] or not func["parameters"]["sequence"]:
-                            return {"success": False, "error": f"Missing sequence parameter for {func['name']}"}
-                
-                has_sequence = any("sequence" in f["parameters"] for f in parsed["functions"])
-                if has_sequence:
-                    parsed["functions"] = [f for f in parsed["functions"]]
+                # Only validate sequence parameter for the first function in a chain
+                first_func = parsed["functions"][0] if parsed["functions"] else None
+                if first_func and first_func["name"] in [
+                    PipelineFunction.PREDICT_STRUCTURE.value,
+                    PipelineFunction.EVALUATE_SEQUENCE.value,
+                    PipelineFunction.SEARCH_SIMILARITY.value
+                ]:
+                    if "sequence" not in first_func["parameters"] or not first_func["parameters"]["sequence"]:
+                        return {"success": False, "error": f"Missing sequence parameter for {first_func['name']}"}
                 
                 return {"success": True, "functions": parsed["functions"]}
             except json.JSONDecodeError as je:

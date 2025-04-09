@@ -2,13 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import JobManager from './components/JobManager';
 import JobStatus from './components/JobStatus';
+import JobConfirmation from './components/JobConfirmation';
 
 function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
+  const [pendingJobs, setPendingJobs] = useState([]);
   const chatContainerRef = useRef(null);
   const jobManager = useRef(new JobManager());
-  const jobStatusManager = useRef(new JobStatus());
+  const jobStatusRef = useRef(null);
 
   const api = axios.create({
     baseURL: 'http://localhost:5000',
@@ -17,6 +19,13 @@ function App() {
       'Content-Type': 'application/json'
     }
   });
+
+  useEffect(() => {
+    // Set up the job update callback
+    jobManager.current.setJobUpdateCallback(() => {
+      setPendingJobs(jobManager.current.getPendingConfirmations());
+    });
+  }, []);
 
   const appendMessage = (message, isUser = false) => {
     setMessages(prev => [...prev, { text: message, isUser }]);
@@ -52,6 +61,17 @@ function App() {
     }
   };
 
+  const handleConfirmJob = async (jobId) => {
+    const success = await jobManager.current.confirmJob(jobId);
+    if (success && jobStatusRef.current) {
+      jobStatusRef.current.startPolling(jobId);
+    }
+  };
+
+  const handleRejectJob = (jobId) => {
+    jobManager.current.rejectJob(jobId);
+  };
+
   const handleKeyPress = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
@@ -63,7 +83,7 @@ function App() {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, pendingJobs]);
 
   return (
     <div className="relative flex size-full min-h-screen flex-col bg-[#111c22] dark group/design-root overflow-x-hidden" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
@@ -98,6 +118,14 @@ function App() {
                   </div>
                 </div>
               ))}
+              {pendingJobs.map(job => (
+                <JobConfirmation 
+                  key={job.id} 
+                  job={job} 
+                  onConfirm={handleConfirmJob} 
+                  onReject={handleRejectJob} 
+                />
+              ))}
             </div>
             <div className="flex items-center px-4 py-3 gap-3 @container sticky bottom-0 bg-[#111c22]">
               <label className="flex flex-col min-w-40 h-12 flex-1">
@@ -125,7 +153,7 @@ function App() {
           </div>
           <div className="layout-content-container flex flex-col w-[360px]">
             <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Running Jobs</h3>
-            <JobStatus ref={jobStatusManager} />
+            <JobStatus ref={jobStatusRef} />
           </div>
         </div>
       </div>
