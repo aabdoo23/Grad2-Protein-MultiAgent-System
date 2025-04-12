@@ -3,6 +3,8 @@ from flask_cors import CORS
 from pipeline_controller import PipelineController
 from Chatbot.ConversationMemory import ConversationMemory
 from job_manager import JobManager, JobStatus
+from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
+from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 import os
 
 app = Flask(__name__)
@@ -79,6 +81,51 @@ def serve_pdb(filename):
     if not os.path.exists(os.path.join(STATIC_PDB_DIR, safe_filename)):
         return jsonify({'error': 'PDB file not found'}), 404
     return send_from_directory(STATIC_PDB_DIR, safe_filename)
+
+@app.route('/download-pdb', methods=['POST'])
+def download_pdb():
+    """Download a PDB file from either RCSB or AlphaFold database."""
+    data = request.json
+    target_id = data.get('target_id')
+    database = data.get('database')
+    
+    if not target_id or not database:
+        return jsonify({'success': False, 'error': 'Missing target_id or database'}), 400
+    
+    foldseek = FoldseekSearcher()
+    result = foldseek.download_pdb(target_id, database)
+    
+    if result['success']:
+        # Extract just the filename for the response
+        filename = os.path.basename(result['pdb_file'])
+        return jsonify({
+            'success': True,
+            'pdb_file': filename
+        })
+    else:
+        return jsonify(result), 500
+
+@app.route('/evaluate-structures', methods=['POST'])
+def evaluate_structures():
+    """Evaluate structural similarity between two PDB files using USalign."""
+    data = request.json
+    pdb1_path = data.get('pdb1_path')
+    pdb2_path = data.get('pdb2_path')
+    
+    if not pdb1_path or not pdb2_path:
+        return jsonify({'success': False, 'error': 'Missing PDB file paths'}), 400
+    
+    # Convert relative paths to absolute paths
+    pdb1_abs = os.path.join(STATIC_PDB_DIR, os.path.basename(pdb1_path))
+    pdb2_abs = os.path.join(STATIC_PDB_DIR, os.path.basename(pdb2_path))
+    
+    if not os.path.exists(pdb1_abs) or not os.path.exists(pdb2_abs):
+        return jsonify({'success': False, 'error': 'One or both PDB files not found'}), 404
+    
+    evaluator = StructureEvaluator()
+    result = evaluator.evaluate_with_usalign(pdb1_abs, pdb2_abs)
+    
+    return jsonify(result)
 
 if __name__ == '__main__':
     import uuid

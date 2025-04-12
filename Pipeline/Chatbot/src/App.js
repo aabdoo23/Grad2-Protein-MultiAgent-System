@@ -102,7 +102,7 @@ function App() {
           </div>
         </header>
         <div className="gap-1 px-6 flex flex-1 justify-center py-5 relative">
-          <div className="layout-content-container flex flex-col min-w-[520px] w-full flex-1">
+          <div className="layout-content-container flex flex-col min-w-[50%] w-full flex-1">
             <h2 className="text-white tracking-light text-[28px] font-bold leading-tight px-4 text-center pb-3 pt-5">Hello, aabdoo23</h2>
             <div 
               ref={chatContainerRef}
@@ -151,7 +151,7 @@ function App() {
               </label>
             </div>
           </div>
-          <div className="layout-content-container flex flex-col w-full max-w-[760px]">
+          <div className="layout-content-container flex flex-col min-w-[35%] max-w-[50%]">
             <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Running Jobs</h3>
             <JobStatus ref={jobStatusRef} />
           </div>

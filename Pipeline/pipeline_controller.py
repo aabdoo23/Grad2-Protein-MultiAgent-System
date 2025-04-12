@@ -87,7 +87,15 @@ class PipelineController:
             if pdb_file:
                 fold_result = self.foldseek_searcher.submit_search(pdb_file)
                 if fold_result.get("success"):
-                    result = self.foldseek_searcher.get_results(fold_result["ticket_id"])
+                    search_results = self.foldseek_searcher.get_results(fold_result["ticket_id"])
+                    if search_results.get("success"):
+                        result = {
+                            "success": True,
+                            "results": search_results["results"],
+                            "pdb_file": pdb_file  # Include the original PDB file path
+                        }
+                    else:
+                        result = search_results
             else:
                 result = {"success": False, "error": "No PDB file provided"}
         elif name == PipelineFunction.EVALUATE_STRUCTURE.value:
