@@ -2,6 +2,98 @@ import React, { forwardRef, useImperativeHandle, useState, useEffect, useRef } f
 import axios from 'axios';
 import * as NGL from 'ngl';
 
+const FoldSeekResults = ({ results }) => {
+  const [expandedDbs, setExpandedDbs] = useState({});
+  
+  if (!results || !results.databases) return null;
+
+  const toggleDatabase = (dbName) => {
+    setExpandedDbs(prev => ({
+      ...prev,
+      [dbName]: !prev[dbName]
+    }));
+  };
+
+  return (
+    <div className="space-y-4">
+      {Object.entries(results.databases).map(([dbName, dbData]) => (
+        <div key={dbName} className="bg-[#1a2b34] rounded-lg p-4">
+          <button 
+            onClick={() => toggleDatabase(dbName)}
+            className="w-full text-left flex items-center justify-between cursor-pointer hover:bg-[#1d333d] p-2 rounded transition-colors"
+          >
+            <h6 className="text-white font-medium flex items-center space-x-2">
+              <span>{dbName}</span>
+              <span className="text-xs px-2 py-0.5 bg-[#344752] rounded-full text-gray-300">
+                {dbData.hits.length} hits
+              </span>
+            </h6>
+            <svg 
+              className={`w-5 h-5 text-gray-400 transform transition-transform ${expandedDbs[dbName] ? 'rotate-180' : ''}`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {expandedDbs[dbName] && (
+            <div className="space-y-4 mt-4">
+              {dbData.hits.map((hit, index) => (
+                <div key={index} className="border border-[#344752] rounded-lg p-3">
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div className="col-span-2">
+                      <div className="flex flex-col space-y-1">
+                        <span className="text-gray-400 text-sm">Target:</span>
+                        <span className="text-[#13a4ec] text-sm break-words whitespace-pre-wrap pr-4">{hit.target}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 col-span-2 gap-x-4 gap-y-2 mt-2">
+                      <div>
+                        <span className="text-gray-400 text-sm">Score: </span>
+                        <span className="text-[#13a4ec] text-sm">{hit.score}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-sm">E-value: </span>
+                        <span className="text-[#13a4ec] text-sm">{hit.eval.toExponential(2)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-sm">Probability: </span>
+                        <span className="text-[#13a4ec] text-sm">{(hit.prob * 100).toFixed(1)}%</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-sm">Sequence Identity: </span>
+                        <span className="text-[#13a4ec] text-sm">{hit.seqId}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-[#1d333d] p-3 rounded text-sm font-mono mt-3 overflow-x-auto">
+                    <div className="mb-2 whitespace-nowrap">
+                      <span className="text-gray-400 mr-2 inline-block w-16">Query:</span>
+                      <span className="text-[#13a4ec]">{hit.qAln}</span>
+                    </div>
+                    <div className="whitespace-nowrap">
+                      <span className="text-gray-400 mr-2 inline-block w-16">Match:</span>
+                      <span className="text-[#13a4ec]">{hit.dbAln}</span>
+                    </div>
+                  </div>
+                  {hit.taxName && (
+                    <div className="mt-3 text-sm">
+                      <span className="text-gray-400">Organism: </span>
+                      <span className="text-[#13a4ec] break-words">{hit.taxName}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const JobStatus = forwardRef((props, ref) => {
   const [jobs, setJobs] = useState([]);
   const [pollingIntervals, setPollingIntervals] = useState({});
@@ -169,6 +261,9 @@ const JobStatus = forwardRef((props, ref) => {
                       </div>
                     )}
                   </>
+                )}
+                {job.result.results && job.result.results.databases && (
+                  <FoldSeekResults results={job.result.results} />
                 )}
                 {job.result.info && (
                   <p className="text-sm text-gray-300 mt-2">{job.result.info}</p>

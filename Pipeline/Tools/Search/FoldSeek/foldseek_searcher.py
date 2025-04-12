@@ -53,7 +53,7 @@ class FoldseekSearcher:
                         "dbAln": hit.get("dbAln", ""),
                         "tSeq": hit.get("tSeq", ""),
                         "taxName": hit.get("taxName", "Unknown"),
-                        "visualization": self._create_visualization(hit.get("tSeq", ""), hit.get("target", "Unknown"))
+                        # "visualization": self._create_visualization(hit.get("tSeq", ""), hit.get("target", "Unknown"))
                     }
                     top_hits.append(hit_data)
             
@@ -77,7 +77,6 @@ class FoldseekSearcher:
 
     def get_results(self, ticket_id: str) -> Dict[str, Any]:
         res = requests.get(f"{self.base_url}/result/{ticket_id}/0").json()
+        res = self._process_results(res)
         print(res)
-        if res.get("status") == "COMPLETE":
-            return {"success": True, "results": res}
-        return {"success": False, "error": f"Search not complete: {res.get('status')}"}
+        return {"success": True, "results": res}
