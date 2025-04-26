@@ -19,7 +19,7 @@ class Job:
         self.result = None
         self.error = None
         self.progress = 0
-        self.depends_on = None  # ID of the job this one depends on
+        self.depends_on = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {

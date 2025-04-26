@@ -1,32 +1,34 @@
 import React from 'react';
 import axios from 'axios';
 
+const api = axios.create({
+  baseURL: 'http://localhost:5000',
+  timeout: 300000, // 5 minutes timeout for BLAST searches
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
 class JobManager {
   constructor() {
     this.jobQueue = [];
     this.jobList = new Map();
     this.pendingConfirmations = [];
-    this.onJobUpdate = null;
+    this.jobUpdateCallback = null;
     
-    this.api = axios.create({
-      baseURL: 'http://localhost:5000',
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    this.api = api;
   }
 
   setJobUpdateCallback(callback) {
-    this.onJobUpdate = callback;
+    this.jobUpdateCallback = callback;
   }
 
   addJobConfirmation(job) {
     this.jobList.set(job.id, job);
     this.pendingConfirmations.push(job.id);
     
-    if (this.onJobUpdate) {
-      this.onJobUpdate();
+    if (this.jobUpdateCallback) {
+      this.jobUpdateCallback();
     }
   }
 
@@ -44,8 +46,8 @@ class JobManager {
           // Remove from pending confirmations
           this.pendingConfirmations = this.pendingConfirmations.filter(id => id !== jobId);
           
-          if (this.onJobUpdate) {
-            this.onJobUpdate();
+          if (this.jobUpdateCallback) {
+            this.jobUpdateCallback();
           }
           
           return true;
@@ -68,8 +70,8 @@ class JobManager {
     // Remove from job list
     this.jobList.delete(jobId);
     
-    if (this.onJobUpdate) {
-      this.onJobUpdate();
+    if (this.jobUpdateCallback) {
+      this.jobUpdateCallback();
     }
   }
 
@@ -82,8 +84,8 @@ class JobManager {
   addJobToList(job) {
     this.jobList.set(job.id, job);
     
-    if (this.onJobUpdate) {
-      this.onJobUpdate();
+    if (this.jobUpdateCallback) {
+      this.jobUpdateCallback();
     }
   }
 

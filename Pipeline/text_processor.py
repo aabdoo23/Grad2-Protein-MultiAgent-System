@@ -38,6 +38,14 @@ Analyze the input text carefully to identify:
 
 Return a JSON object with an array of functions to be executed in sequence. Only include functions that are explicitly requested in the input text.
 
+Valid function names and their purposes:
+- generate_protein: Generate a new protein sequence
+- predict_structure: Predict 3D structure of a protein sequence
+- evaluate_sequence: Analyze properties of a protein sequence
+- search_similarity: Search for similar protein sequences using BLAST
+- search_structure: Search for similar protein structures using FoldSeek
+- evaluate_structure: Evaluate quality of a protein structure
+
 Example response format for a chained operation:
 {
     "functions": [
@@ -71,6 +79,7 @@ Rules:
 10. Do not automatically add additional functions - only include what is explicitly requested
 11. For predict_structure, if it follows generate_protein, do not include sequence parameter
 12. For search_structure, if it follows predict_structure, do not include pdb_file parameter
+13. IMPORTANT: Use EXACTLY the function names listed above - do not use variations like 'blast_search'
 """
         try:
             response = self.client.chat.completions.create(

@@ -83,9 +83,6 @@ class ProteinStructureAnalyzer:
         Returns:
             Dict[str, float]: Dictionary containing structure quality metrics:
                 - plddt: Average per-residue confidence score (0-100)
-                - ptm: Predicted TM-score (placeholder)
-                - rmsd: Root-mean-square deviation (placeholder)
-                - tm_score: Template modeling score (placeholder)
         """
         try:
             # Parse PDB structure to extract B-factor values (pLDDT scores)
@@ -99,25 +96,14 @@ class ProteinStructureAnalyzer:
                         continue
             
             # Calculate average pLDDT score
-            avg_plddt = sum(plddt_scores) / len(plddt_scores) if plddt_scores else 0.0
-            
-            # Placeholder values for other metrics
-            ptm_score = 0.8  
-            rmsd_value = 2.5  
-            tm_score = 0.75   
+            avg_plddt = sum(plddt_scores) / len(plddt_scores) if plddt_scores else 0.0 
             
             return {
                 'plddt': avg_plddt,
-                'ptm': ptm_score,
-                'rmsd': rmsd_value,
-                'tm_score': tm_score
-            }
+                }
             
         except Exception as e:
             print(f"Error calculating structure metrics: {str(e)}")
             return {
                 'plddt': 0.0,
-                'ptm': 0.0,
-                'rmsd': 0.0,
-                'tm_score': 0.0
             }

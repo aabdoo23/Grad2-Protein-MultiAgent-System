@@ -106,7 +106,11 @@ class PipelineController:
             seq = params.get("sequence", "")
             result = self.evaluator.evaluate_sequence(seq)
         elif name == PipelineFunction.SEARCH_SIMILARITY.value:
-            result = self.blast_searcher.search(params.get("sequence", ""))
+            sequence = params.get("sequence", "")
+            if sequence:
+                result = self.blast_searcher.search(sequence)
+            else:
+                result = {"success": False, "error": "No sequence provided"}
             
         return result
 

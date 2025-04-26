@@ -5,6 +5,7 @@ from Chatbot.ConversationMemory import ConversationMemory
 from job_manager import JobManager, JobStatus
 from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
 from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
+from Tools.Search.BLAST.blast_searcher import BlastSearcher
 import os
 
 app = Flask(__name__)
@@ -19,6 +20,7 @@ os.makedirs(STATIC_PDB_DIR, exist_ok=True)
 memory = ConversationMemory()
 job_manager = JobManager()
 controller = PipelineController(conversation_memory=memory, job_manager=job_manager)
+blast_searcher = BlastSearcher()
 
 @app.before_request
 def setup_session():
@@ -126,6 +128,30 @@ def evaluate_structures():
     result = evaluator.evaluate_with_usalign(pdb1_abs, pdb2_abs)
     
     return jsonify(result)
+
+@app.route('/check-blast-results/<rid>', methods=['GET'])
+def check_blast_results(rid):
+    """Check the status and get results of a BLAST search.
+    
+    Args:
+        rid (str): The Request ID from BLAST
+        
+    Returns:
+        Dict[str, Any]: Dictionary containing:
+            - success: bool indicating if check was successful
+            - status: Current status ('running', 'completed', 'failed')
+            - results: Processed BLAST results if completed
+            - error: Error message if unsuccessful
+    """
+    try:
+        result = blast_searcher.check_results(rid)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "status": "failed",
+            "error": str(e)
+        }), 500
 
 if __name__ == '__main__':
     import uuid

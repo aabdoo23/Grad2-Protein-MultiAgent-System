@@ -14,7 +14,7 @@ function App() {
 
   const api = axios.create({
     baseURL: 'http://localhost:5000',
-    timeout: 10000,
+    timeout: 300000, // 5 minutes timeout for BLAST searches
     headers: {
       'Content-Type': 'application/json'
     }
@@ -102,7 +102,7 @@ function App() {
           </div>
         </header>
         <div className="gap-1 px-6 flex flex-1 justify-center py-5 relative">
-          <div className="layout-content-container flex flex-col min-w-[50%] w-full flex-1">
+          <div className="layout-content-container flex flex-col min-w-[50%] w-full flex-1 relative">
             <h2 className="text-white tracking-light text-[28px] font-bold leading-tight px-4 text-center pb-3 pt-5">Hello, aabdoo23</h2>
             <div 
               ref={chatContainerRef}
@@ -127,14 +127,14 @@ function App() {
                 />
               ))}
             </div>
-            <div className="flex items-center px-4 py-3 gap-3 @container sticky bottom-0 bg-[#111c22]">
-              <label className="flex flex-col min-w-40 h-12 flex-1">
+            <div className="flex items-center px-4 py-3 gap-3 @container fixed bottom-0 left-0 w-[58%] bg-[#111c22] border-t border-[#233c48]">
+              <label className="flex flex-col min-w-40 h-12 flex-1 w-full mx-auto">
                 <div className="flex w-full flex-1 items-stretch rounded-xl h-full">
                   <input
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Start your first message with Protein AI..."
+                    placeholder="Message with Protein AI..."
                     className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border-none bg-[#233c48] focus:border-none h-full placeholder:text-[#92b7c9] px-4 rounded-r-none border-r-0 pr-2 text-base font-normal leading-normal"
                   />
                   <div className="flex border-none bg-[#233c48] items-center justify-center pr-4 rounded-r-xl border-l-0 !pr-2">
@@ -151,8 +151,9 @@ function App() {
               </label>
             </div>
           </div>
-          <div className="layout-content-container flex flex-col min-w-[35%] max-w-[50%]">
-            <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Running Jobs</h3>
+          <div className="w-px bg-[#233c48] mx-4"></div>
+          <div className="layout-content-container flex flex-col w-[40%] h-[calc(100vh-120px)] overflow-y-auto">
+            <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4 sticky top-0 bg-[#111c22] z-10">Running Jobs</h3>
             <JobStatus ref={jobStatusRef} />
           </div>
         </div>

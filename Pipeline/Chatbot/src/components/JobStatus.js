@@ -1,6 +1,15 @@
 import React, { forwardRef, useImperativeHandle, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import * as NGL from 'ngl';
+import BlastResults from './BlastResults';
+
+const api = axios.create({
+  baseURL: 'http://localhost:5000',
+  timeout: 300000, // 5 minutes timeout for BLAST searches
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 
 const FoldSeekResults = ({ results, originalPdbPath }) => {
   const [expandedDbs, setExpandedDbs] = useState({});
@@ -8,15 +17,7 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
   const [evaluationResults, setEvaluationResults] = useState({});
   const [isEvaluating, setIsEvaluating] = useState({});
   const viewerRefs = useRef({});
-  
-  const api = axios.create({
-    baseURL: 'http://localhost:5000',
-    timeout: 10000,
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
-  
+
   if (!results || !results.databases) return null;
 
   const toggleDatabase = (dbName) => {
@@ -30,7 +31,7 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
     if (!viewerRefs.current[hitId]) {
       const stage = new NGL.Stage(`viewer-${hitId}`, { backgroundColor: '#1a2b34' });
       viewerRefs.current[hitId] = stage;
-      
+
       // Load and display the PDB structure
       const filename = pdbPath.split('\\').pop();
       stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
@@ -47,9 +48,9 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
   // const handleEvaluate = async (hit, dbName) => {
   //   const hitKey = `${dbName}-${hit.target_id}`;
   //   if (!visualizedHits[hitKey] || !originalPdbPath) return;
-    
+
   //   setIsEvaluating(prev => ({ ...prev, [hitKey]: true }));
-    
+
   //   try {
   //     console.log('Evaluating structure...');
   //     const response = await api.post('/evaluate-structures', {
@@ -89,12 +90,12 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
           ...prev,
           [hitKey]: pdbPath
         }));
-        
+
         // Get the filename from the original PDB path
         const originalPdbFilename = originalPdbPath.split(/[\\\/]/).pop();
         console.log('Original PDB filename:', originalPdbFilename);
         console.log('Downloaded PDB path:', pdbPath);
-        
+
         // Trigger evaluation with the downloaded PDB path
         const evalResponse = await api.post('/evaluate-structures', {
           pdb1_path: originalPdbFilename,
@@ -123,7 +124,7 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
     <div className="space-y-4">
       {Object.entries(results.databases).map(([dbName, dbData]) => (
         <div key={dbName} className="bg-[#1a2b34] rounded-lg p-4">
-          <button 
+          <button
             onClick={() => toggleDatabase(dbName)}
             className="w-full text-left flex items-center justify-between cursor-pointer hover:bg-[#1d333d] p-2 rounded transition-colors"
           >
@@ -133,16 +134,16 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
                 {dbData.hits.length} hits
               </span>
             </h6>
-            <svg 
+            <svg
               className={`w-5 h-5 text-gray-400 transform transition-transform ${expandedDbs[dbName] ? 'rotate-180' : ''}`}
-              fill="none" 
-              stroke="currentColor" 
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-          
+
           {expandedDbs[dbName] && (
             <div className="space-y-4 mt-4">
               {dbData.hits.map((hit, index) => {
@@ -204,15 +205,27 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
                         {isEvaluating[hitKey] ? 'Loading...' : 'Visualize Structure'}
                       </button>
                     </div>
-                    
+
                     {visualizedHits[hitKey] && (
-                      <div 
-                        id={`viewer-${hitKey}`} 
+                      <div
+                        id={`viewer-${hitKey}`}
                         className="w-full h-[300px] rounded-lg mt-3 bg-[#1a2b34]"
-                        ref={() => initViewer(hitKey, visualizedHits[hitKey])}
+                        ref={(el) => {
+                          // Only initialize the stage when the element is mounted:
+                          if (el) {
+                            // In case a stage already exists for this hitKey, dispose it
+                            if (viewerRefs.current[hitKey]) {
+                              // Optional: if NGL supports disposing of a stage, you can do:
+                              viewerRefs.current[hitKey].dispose();
+                              delete viewerRefs.current[hitKey];
+                            }
+                            initViewer(hitKey, visualizedHits[hitKey]);
+                          }
+                        }}
                       />
+
                     )}
-                    
+
                     {evaluationResults[hitKey] && (
                       <div className="mt-3 bg-[#1d333d] p-3 rounded-lg">
                         <h6 className="text-white font-medium mb-2">Structure Evaluation</h6>
@@ -258,21 +271,116 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
 const JobStatus = forwardRef((props, ref) => {
   const [jobs, setJobs] = useState([]);
   const [pollingIntervals, setPollingIntervals] = useState({});
+  const [expandedJobs, setExpandedJobs] = useState({});
+  const [jobTimers, setJobTimers] = useState({});
   const viewerRefs = useRef({});
 
   const api = axios.create({
     baseURL: 'http://localhost:5000',
-    timeout: 10000,
+    timeout: 300000, // 5 minutes timeout for BLAST searches
     headers: {
       'Content-Type': 'application/json'
     }
   });
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const startTimer = (jobId) => {
+    setJobTimers(prev => ({
+      ...prev,
+      [jobId]: 0
+    }));
+
+    const timerInterval = setInterval(() => {
+      setJobTimers(prev => ({
+        ...prev,
+        [jobId]: (prev[jobId] || 0) + 1
+      }));
+    }, 1000);
+
+    return timerInterval;
+  };
+
+  const checkBlastResults = async (jobId, rid) => {
+    const pollInterval = 15000; // 15 seconds
+    let isPolling = true;
+
+    const pollResults = async () => {
+        while (isPolling) {
+            try {
+                const response = await api.get(`/check-blast-results/${rid}`);
+                const status = response.data;
+
+                setJobs(prevJobs => {
+                    const updatedJobs = prevJobs.map(job => {
+                        if (job.id === jobId) {
+                            if (status.status === 'completed') {
+                                isPolling = false;
+                                return {
+                                    ...job,
+                                    status: 'completed',
+                                    result: status
+                                };
+                            } else if (status.status === 'failed') {
+                                isPolling = false;
+                                return {
+                                    ...job,
+                                    status: 'failed',
+                                    error: status.error
+                                };
+                            } else {
+                                return {
+                                    ...job,
+                                    status: 'running',
+                                    progress: 50 // Show some progress while waiting
+                                };
+                            }
+                        }
+                        return job;
+                    });
+
+                    if (status.status === 'completed' || status.status === 'failed') {
+                        clearInterval(pollingIntervals[jobId]);
+                        const newPollingIntervals = { ...pollingIntervals };
+                        delete newPollingIntervals[jobId];
+                        setPollingIntervals(newPollingIntervals);
+
+                        clearInterval(jobTimers[jobId]);
+                        const newJobTimers = { ...jobTimers };
+                        delete newJobTimers[jobId];
+                        setJobTimers(newJobTimers);
+                    }
+
+                    return updatedJobs;
+                });
+
+                if (status.status === 'completed' || status.status === 'failed') {
+                    break;
+                }
+
+                // Wait for the next poll
+                await new Promise(resolve => setTimeout(resolve, pollInterval));
+            } catch (error) {
+                console.error('Error checking BLAST results:', error);
+                isPolling = false;
+                break;
+            }
+        }
+    };
+
+    // Start polling
+    pollResults();
+  };
+
   const initViewer = (jobId, pdbPath) => {
     if (!viewerRefs.current[jobId]) {
       const stage = new NGL.Stage(`viewer-${jobId}`, { backgroundColor: '#1a2b34' });
       viewerRefs.current[jobId] = stage;
-      
+
       // Load and display the PDB structure
       const filename = pdbPath.split('\\').pop();
       stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
@@ -290,6 +398,13 @@ const JobStatus = forwardRef((props, ref) => {
     return typeof value === 'number' ? value.toFixed(2) : value;
   };
 
+  const toggleJob = (jobId) => {
+    setExpandedJobs(prev => ({
+      ...prev,
+      [jobId]: !prev[jobId]
+    }));
+  };
+
   useImperativeHandle(ref, () => ({
     startPolling: (jobId) => {
       if (pollingIntervals[jobId]) {
@@ -304,46 +419,68 @@ const JobStatus = forwardRef((props, ref) => {
         return prevJobs;
       });
 
+      // Start timer for this job
+      const timerInterval = startTimer(jobId);
+
       const interval = setInterval(async () => {
         try {
           const response = await api.get(`/job-status/${jobId}`);
           const jobStatus = response.data;
 
           setJobs(prevJobs => {
-            const updatedJobs = prevJobs.map(job => 
-              job.id === jobId ? { ...job, ...jobStatus } : job
-            );
+            const updatedJobs = prevJobs.map(job => {
+              if (job.id === jobId) {
+                // If this is a BLAST search and we have a RID, check its status
+                if (jobStatus.function_name === 'search_similarity' && jobStatus.result?.rid) {
+                  checkBlastResults(jobId, jobStatus.result.rid);
+                  return {
+                    ...job,
+                    ...jobStatus,
+                    blast_rid: jobStatus.result.rid
+                  };
+                }
+                return { ...job, ...jobStatus };
+              }
+              return job;
+            });
 
             if (jobStatus.status === 'completed' || jobStatus.status === 'failed') {
               clearInterval(pollingIntervals[jobId]);
               const newPollingIntervals = { ...pollingIntervals };
               delete newPollingIntervals[jobId];
               setPollingIntervals(newPollingIntervals);
+
+              clearInterval(timerInterval);
+              const newJobTimers = { ...jobTimers };
+              delete newJobTimers[jobId];
+              setJobTimers(newJobTimers);
             }
 
             return updatedJobs;
           });
         } catch (error) {
           console.error('Error polling job status:', error);
-          
-          // If the job is not found, mark it as failed
           if (error.response && error.response.status === 404) {
             setJobs(prevJobs => {
-              const updatedJobs = prevJobs.map(job => 
+              const updatedJobs = prevJobs.map(job =>
                 job.id === jobId ? { ...job, status: 'failed', error: 'Job not found on server' } : job
               );
-              
-              // Stop polling for this job
+
               clearInterval(pollingIntervals[jobId]);
               const newPollingIntervals = { ...pollingIntervals };
               delete newPollingIntervals[jobId];
               setPollingIntervals(newPollingIntervals);
-              
+
+              clearInterval(timerInterval);
+              const newJobTimers = { ...jobTimers };
+              delete newJobTimers[jobId];
+              setJobTimers(newJobTimers);
+
               return updatedJobs;
             });
           }
         }
-      }, 5000); // Poll every 5 seconds
+      }, 5000);
 
       setPollingIntervals(prev => ({
         ...prev,
@@ -353,6 +490,8 @@ const JobStatus = forwardRef((props, ref) => {
     stopAllPolling: () => {
       Object.values(pollingIntervals).forEach(interval => clearInterval(interval));
       setPollingIntervals({});
+      Object.values(jobTimers).forEach(timer => clearInterval(timer));
+      setJobTimers({});
     }
   }));
 
@@ -376,6 +515,19 @@ const JobStatus = forwardRef((props, ref) => {
     }
   };
 
+  const renderJobResults = (job) => {
+    if (!job.result) return null;
+
+    switch (job.function_name) {
+      case 'search_similarity':
+        return <BlastResults results={job.result.results} />;
+      case 'search_structure':
+        return <FoldSeekResults results={job.result.results} originalPdbPath={job.result.pdb_file} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-4 px-4">
       {jobs.length === 0 ? (
@@ -383,58 +535,90 @@ const JobStatus = forwardRef((props, ref) => {
       ) : (
         jobs.map(job => (
           <div key={job.id} className="bg-[#233c48] rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-white font-medium">{job.title || `Job ${job.id}`}</h4>
-              <div className={`w-2 h-2 rounded-full ${getStatusColor(job.status)}`} />
-            </div>
-            <p className="text-sm text-gray-300 mb-2">{job.description || 'Processing...'}</p>
-            {job.progress !== undefined && (
-              <div className="w-full bg-gray-700 rounded-full h-2 mb-3">
-                <div 
-                  className="bg-[#13a4ec] h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${job.progress}%` }}
-                />
+            <button
+              onClick={() => toggleJob(job.id)}
+              className="w-full text-left flex items-center justify-between cursor-pointer hover:bg-[#1d333d] p-2 rounded transition-colors"
+            >
+              <div className="flex items-center space-x-2">
+                <h4 className="text-white font-medium">{job.title || `Job ${job.id}`}</h4>
+                <div className={`w-2 h-2 rounded-full ${getStatusColor(job.status)}`} />
               </div>
-            )}
-            {job.status === 'completed' && job.result && (
-              <div className="mt-3 border-t border-[#344752] pt-3">
-                <h5 className="text-white text-sm font-medium mb-2">Result:</h5>
-                {job.result.sequence && (
-                  <div className="bg-[#1a2b34] rounded-lg p-3 mb-2">
-                    <p className="text-sm font-mono text-[#13a4ec] break-all">{job.result.sequence}</p>
+              <div className="flex items-center space-x-2">
+                {job.status === 'running' && jobTimers[job.id] !== undefined && (
+                  <span className="text-gray-400 text-sm">
+                    {formatTime(jobTimers[job.id])}
+                  </span>
+                )}
+                {job.blast_rid && (
+                  <span className="text-gray-400 text-sm">
+                    RID: {job.blast_rid}
+                  </span>
+                )}
+                <svg
+                  className={`w-5 h-5 text-gray-400 transform transition-transform ${expandedJobs[job.id] ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+
+            {expandedJobs[job.id] && (
+              <>
+                <p className="text-sm text-gray-300 mb-2">{job.description || 'Processing...'}</p>
+                {job.progress !== undefined && (
+                  <div className="w-full bg-gray-700 rounded-full h-2 mb-3">
+                    <div
+                      className="bg-[#13a4ec] h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${job.progress}%` }}
+                    />
                   </div>
                 )}
-                {job.result.pdb_file && (
-                  <>
-                    <div 
-                      id={`viewer-${job.id}`} 
-                      className="w-full h-[300px] rounded-lg mb-3 bg-[#1a2b34]"
-                      ref={() => initViewer(job.id, job.result.pdb_file)}
-                    />
-                    {job.result.metrics && (
-                      <div className="grid grid-cols-2 gap-3 bg-[#1a2b34] p-3 rounded-lg">
-                        {Object.entries(job.result.metrics).map(([key, value]) => (
-                          <div key={key} className="flex justify-between">
-                            <span className="text-gray-300 text-sm capitalize">{key}:</span>
-                            <span className="text-[#13a4ec] text-sm font-medium">{formatMetric(value)}</span>
-                          </div>
-                        ))}
+                {job.status === 'completed' && job.result && (
+                  <div className="mt-3 border-t border-[#344752] pt-3">
+                    <h5 className="text-white text-sm font-medium mb-2">Result:</h5>
+                    {job.result.sequence && (
+                      <div className="bg-[#1a2b34] rounded-lg p-3 mb-2">
+                        <p className="text-sm font-mono text-[#13a4ec] break-all">{job.result.sequence}</p>
                       </div>
                     )}
-                  </>
+                    {job.result.pdb_file && (
+                      <>
+                        <div
+                          id={`viewer-${job.id}`}
+                          className="w-full h-[300px] rounded-lg mb-3 bg-[#1a2b34]"
+                          ref={(el) => {
+                            if (el) {
+                              initViewer(job.id, job.result.pdb_file);
+                            }
+                          }}
+                        />
+                        {job.result.metrics && (
+                          <div className="grid grid-cols-2 gap-3 bg-[#1a2b34] p-3 rounded-lg">
+                            {Object.entries(job.result.metrics).map(([key, value]) => (
+                              <div key={key} className="flex justify-between">
+                                <span className="text-gray-300 text-sm capitalize">{key}:</span>
+                                <span className="text-[#13a4ec] text-sm font-medium">{formatMetric(value)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {renderJobResults(job)}
+                    {job.result.info && (
+                      <p className="text-sm text-gray-300 mt-2">{job.result.info}</p>
+                    )}
+                  </div>
                 )}
-                {job.result.results && job.result.results.databases && (
-                  <FoldSeekResults results={job.result.results} originalPdbPath={job.result.pdb_file} />
+                {job.status === 'failed' && job.error && (
+                  <div className="mt-3 text-red-400 text-sm">
+                    Error: {job.error}
+                  </div>
                 )}
-                {job.result.info && (
-                  <p className="text-sm text-gray-300 mt-2">{job.result.info}</p>
-                )}
-              </div>
-            )}
-            {job.status === 'failed' && job.error && (
-              <div className="mt-3 text-red-400 text-sm">
-                Error: {job.error}
-              </div>
+              </>
             )}
           </div>
         ))
