@@ -7,7 +7,6 @@ class JobStatus(Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
-
 class Job:
     def __init__(self, title: str, description: str, function_name: str, parameters: Dict[str, Any]):
         self.id = str(uuid.uuid4())

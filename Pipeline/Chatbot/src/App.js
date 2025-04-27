@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Split from 'react-split';
 import axios from 'axios';
 import JobManager from './components/JobManager';
 import JobStatus from './components/JobStatus';
@@ -153,13 +154,26 @@ function App() {
       </header>
 
       {/* Main content area */}
-      <div className="flex flex-1 overflow-hidden">
+      <Split
+        className="flex flex-1 overflow-hidden"
+        sizes={[50, 50]}
+        minSize={200}
+        expandToMin={false}
+        gutterSize={8}
+        gutterAlign="center"
+        snapOffset={30}
+        dragInterval={1}
+        direction="horizontal"
+        cursor="col-resize"
+        gutterStyle={() => ({
+          backgroundColor: '#233c48',
+          width: '8px',
+          cursor: 'col-resize',
+          position: 'relative',
+        })}
+      >
         {/* Chat section */}
-        <div
-          className="flex flex-col relative border-r border-[#233c48]"
-          style={{ flex: `1 1 ${50}%` }}
-          id="chat-section"
-        >
+        <div className="flex flex-col relative border-r border-[#233c48]">
           <h2 className="text-white tracking-light text-[28px] font-bold leading-tight px-4 text-center pb-3 pt-5 shrink-0">
             Hello, aabdoo23
           </h2>
@@ -213,42 +227,9 @@ function App() {
           </div>
         </div>
 
-        {/* Resizable separator */}
-        <div
-          className="w-2 bg-[#233c48] cursor-col-resize"
-          onMouseDown={(e) => {
-            const startX = e.clientX;
-            const chatSection = document.getElementById('chat-section');
-            const jobsSection = document.getElementById('jobs-section');
-            const initialChatWidth = chatSection.offsetWidth;
-            const initialJobsWidth = jobsSection.offsetWidth;
-
-            const onMouseMove = (moveEvent) => {
-              const deltaX = moveEvent.clientX - startX;
-              const newChatWidth = initialChatWidth + deltaX;
-              const newJobsWidth = initialJobsWidth - deltaX;
-
-              chatSection.style.flex = `1 1 ${newChatWidth}px`;
-              jobsSection.style.flex = `1 1 ${newJobsWidth}px`;
-            };
-
-            const onMouseUp = () => {
-              document.removeEventListener('mousemove', onMouseMove);
-              document.removeEventListener('mouseup', onMouseUp);
-            };
-
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-          }}
-        ></div>
-
         {/* Jobs section */}
-        <div
-          className="flex flex-col flex-grow-0 flex-shrink-0 bg-[#111c22]"
-          style={{ flex: `1 1 ${50}%` }}
-          id="jobs-section"
-        >
-          <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 py-4 sticky top-0 bg-[#111c22] z-10 border-b border-[#233c48]">
+        <div className="flex flex-col flex-grow-0 flex-shrink-0 bg-[#111c22] mb-4">
+          <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] mb-4 px-4 py-4 sticky top-0 bg-[#111c22] z-10 border-b border-[#233c48]">
             Running Jobs
           </h3>
 
@@ -257,7 +238,7 @@ function App() {
             <JobStatus ref={jobStatusRef} />
           </div>
         </div>
-      </div>
+      </Split>
     </div>
   );
 }

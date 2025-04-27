@@ -33,8 +33,7 @@ class PipelineController:
         self.selected_functions = parsed["functions"]
         jobs = []
         
-        # Create jobs for each function and link them together
-        previous_job = None
+        # Create jobs for each function
         for func in self.selected_functions:
             job = self.job_manager.create_job(
                 title=PipelineFunction.get_description(func["name"]),
@@ -42,13 +41,18 @@ class PipelineController:
                 function_name=func["name"],
                 parameters=func["parameters"]
             )
-            
-            # Link this job to the previous one if they can be chained
-            if previous_job and self._can_chain_jobs(previous_job, job):
-                job.depends_on = previous_job.id
-            
-            jobs.append(job.to_dict())
-            previous_job = job
+            jobs.append(job)
+        
+        # Set up dependencies between jobs
+        for i, job in enumerate(jobs):
+            # Define what type of job this job depends on
+            dependency_type = self._get_dependency_type(job.function_name)
+            if dependency_type:
+                # Find the most recent job of the required type
+                for prev_job in reversed(jobs[:i]):
+                    if prev_job.function_name == dependency_type:
+                        job.depends_on = prev_job.id
+                        break
         
         # Add the natural language explanation to the conversation
         self.conversation_memory.add_message(session_id, "bot", parsed["explanation"])
@@ -56,7 +60,7 @@ class PipelineController:
         return {
             "success": True,
             "explanation": parsed["explanation"],
-            "jobs": jobs
+            "jobs": [job.to_dict() for job in jobs]
         }
 
     def execute_job(self, job: Job) -> Dict[str, Any]:
@@ -115,41 +119,45 @@ class PipelineController:
             
         return result
 
-    def _can_chain_jobs(self, previous_job: Job, current_job: Job) -> bool:
-        """Determine if two jobs can be chained based on their input/output compatibility."""
-        chains = {
-            PipelineFunction.GENERATE_PROTEIN.value: [
-                PipelineFunction.PREDICT_STRUCTURE.value,
-                PipelineFunction.EVALUATE_SEQUENCE.value,
-                PipelineFunction.SEARCH_SIMILARITY.value
-            ],
-            PipelineFunction.PREDICT_STRUCTURE.value: [
-                PipelineFunction.SEARCH_STRUCTURE.value,
-                PipelineFunction.EVALUATE_STRUCTURE.value
-            ]
+    def _get_dependency_type(self, function_name: str) -> str:
+        """Get the type of job that this function depends on."""
+        dependencies = {
+            PipelineFunction.PREDICT_STRUCTURE.value: PipelineFunction.GENERATE_PROTEIN.value,
+            PipelineFunction.SEARCH_STRUCTURE.value: PipelineFunction.PREDICT_STRUCTURE.value,
+            PipelineFunction.EVALUATE_STRUCTURE.value: PipelineFunction.PREDICT_STRUCTURE.value,
+            PipelineFunction.EVALUATE_SEQUENCE.value: PipelineFunction.GENERATE_PROTEIN.value,
+            PipelineFunction.SEARCH_SIMILARITY.value: PipelineFunction.GENERATE_PROTEIN.value
         }
-        
-        return previous_job.function_name in chains and current_job.function_name in chains[previous_job.function_name]
+        return dependencies.get(function_name)
 
     def _chain_job_parameters(self, previous_result: Dict[str, Any], current_job: Job) -> Dict[str, Any]:
         """Update job parameters based on the previous job's result."""
         params = current_job.parameters.copy()
         
-        # Chain GENERATE_PROTEIN to structure prediction or sequence-based jobs
-        if current_job.function_name in [
-            PipelineFunction.PREDICT_STRUCTURE.value,
-            PipelineFunction.EVALUATE_SEQUENCE.value,
-            PipelineFunction.SEARCH_SIMILARITY.value
-        ] and "sequence" in previous_result:
-            params["sequence"] = previous_result["sequence"]
+        # Map of job types to their output fields and corresponding parameter names
+        output_mappings = {
+            PipelineFunction.GENERATE_PROTEIN.value: {
+                "sequence": "sequence"
+            },
+            PipelineFunction.PREDICT_STRUCTURE.value: {
+                "pdb_file": "pdb_file",
+                "sequence": "sequence"
+            }
+        }
+        
+        # Get the previous job type
+        previous_job = self.job_manager.get_job(current_job.depends_on)
+        if not previous_job:
+            return params
             
-        # Chain PREDICT_STRUCTURE to structure-based jobs
-        elif current_job.function_name in [
-            PipelineFunction.SEARCH_STRUCTURE.value,
-            PipelineFunction.EVALUATE_STRUCTURE.value
-        ] and "pdb_file" in previous_result:
-            params["pdb_file"] = previous_result["pdb_file"]
-            
+        # Get the output mapping for the previous job
+        mapping = output_mappings.get(previous_job.function_name, {})
+        
+        # Update parameters based on the mapping
+        for output_field, param_name in mapping.items():
+            if output_field in previous_result:
+                params[param_name] = previous_result[output_field]
+                
         return params
 
     def _generate_job_description(self, func: Dict[str, Any]) -> str:
