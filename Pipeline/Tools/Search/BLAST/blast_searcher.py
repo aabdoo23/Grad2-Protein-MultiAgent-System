@@ -4,6 +4,7 @@ import re
 from typing import Dict, Any
 from bs4 import BeautifulSoup
 import logging
+from .phylogenetic_analyzer import PhylogeneticAnalyzer
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +17,7 @@ class BlastSearcher:
         self.default_database = "nr"
         self.max_wait_time = 300  # 5 minutes
         self.poll_interval = 10   # 10 seconds
+        self.phylogenetic_analyzer = PhylogeneticAnalyzer()
 
     def submit_search(self, sequence: str) -> Dict[str, Any]:
         """Submit a BLAST search and return the RID (Request ID).
@@ -120,6 +122,12 @@ class BlastSearcher:
             
             # Process XML results
             results = self._process_xml_results(response.text)
+            
+            # Generate phylogenetic tree
+            tree_file = self.phylogenetic_analyzer.create_phylogenetic_tree(results)
+            if tree_file:
+                results['phylogenetic_tree'] = tree_file
+            
             logger.info(f"Successfully retrieved results for BLAST search {rid}")
             return {"success": True, "results": results}
             
@@ -140,10 +148,15 @@ class BlastSearcher:
             Dict[str, Any]: Processed results containing:
                 - hits: List of hit information
                 - statistics: Search statistics
+                - query: Query sequence
         """
         try:
             # Use lxml parser explicitly
             soup = BeautifulSoup(xml_text, 'lxml-xml')
+            
+            # Extract query sequence
+            query = soup.find('BlastOutput_query-seq')
+            query_seq = query.text if query else ''
             
             # Extract hits
             hits = []
@@ -194,7 +207,8 @@ class BlastSearcher:
             
             return {
                 'hits': hits,
-                'statistics': stats
+                'statistics': stats,
+                'query': query_seq
             }
             
         except Exception as e:
@@ -256,6 +270,14 @@ class BlastSearcher:
             if status_result['status'] == 'READY':
                 results = self.get_results(rid)
                 if results['success']:
+                    # Generate phylogenetic tree
+                    tree_file = self.phylogenetic_analyzer.create_phylogenetic_tree(results['results'])
+                    if tree_file:
+                        # Read the tree file content
+                        with open(tree_file, 'r') as f:
+                            tree_content = f.read()
+                        results['results']['phylogenetic_tree'] = tree_content
+                    
                     return {
                         "success": True,
                         "status": "completed",

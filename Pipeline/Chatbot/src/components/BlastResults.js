@@ -1,7 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Tree } from 'react-d3-tree';
 
 const BlastResults = ({ results }) => {
   const [expandedHits, setExpandedHits] = useState({});
+  const [treeData, setTreeData] = useState(null);
+
+  useEffect(() => {
+    if (results?.phylogenetic_tree) {
+      // Parse the Newick format tree data
+      const tree = {
+        name: 'Root',
+        children: parseNewick(results.phylogenetic_tree)
+      };
+      setTreeData(tree);
+    }
+  }, [results?.phylogenetic_tree]);
+
+  // Helper function to parse Newick format
+  const parseNewick = (newick) => {
+    // This is a simplified parser - you might want to use a more robust one
+    const nodes = [];
+    const parts = newick.split(';')[0].split(',');
+    
+    parts.forEach(part => {
+      const [name, length] = part.split(':');
+      nodes.push({
+        name: name.trim(),
+        ...(length && { branchLength: parseFloat(length) })
+      });
+    });
+    
+    return nodes;
+  };
 
   if (!results || !results.hits) return null;
 
@@ -25,6 +55,23 @@ const BlastResults = ({ results }) => {
           ))}
         </div>
       </div>
+
+      {treeData && (
+        <div className="bg-[#1a2b34] rounded-lg p-4">
+          <h5 className="text-white text-sm font-medium mb-2">Phylogenetic Tree</h5>
+          <div style={{ width: '100%', height: '400px' }}>
+            <Tree
+              data={treeData}
+              orientation="vertical"
+              pathFunc="step"
+              translate={{ x: 200, y: 50 }}
+              nodeSize={{ x: 200, y: 100 }}
+              separation={{ siblings: 2, nonSiblings: 2 }}
+              zoom={0.8}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         {results.hits.map((hit, index) => (

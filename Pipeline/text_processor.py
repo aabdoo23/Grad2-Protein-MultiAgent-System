@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Dict, Any, List
+from typing import Dict, Any
 from groq import Groq
 
 class PipelineFunction(Enum):
@@ -25,7 +25,7 @@ class PipelineFunction(Enum):
 
 class TextProcessor:
     def __init__(self):
-        self.client = Groq(api_key="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")
+        self.client = Groq(api_key="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") #invalidate on production
 
     def process_input(self, text: str) -> Dict[str, Any]:
         system_prompt = """

@@ -176,5 +176,5 @@ class PipelineController:
         elif func["name"] == PipelineFunction.EVALUATE_SEQUENCE.value:
             return f"Analyze sequence properties and characteristics"
         elif func["name"] == PipelineFunction.SEARCH_SIMILARITY.value:
-            return f"Search for similar sequences in the database"
+            return f"Run a BLAST search on NCBI server in the nr database to find similar sequences"
         return "Execute the requested operation"
