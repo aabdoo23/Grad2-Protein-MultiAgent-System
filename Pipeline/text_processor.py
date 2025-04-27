@@ -36,7 +36,9 @@ Analyze the input text carefully to identify:
 3. Whether protein generation is explicitly requested
 4. Specific requirements for generated proteins (e.g., binding affinity, stability, etc.)
 
-Return a JSON object with an array of functions to be executed in sequence. Only include functions that are explicitly requested in the input text.
+Return a JSON object with two fields:
+1. "explanation": A natural language explanation of what will be done
+2. "functions": An array of functions to be executed in sequence
 
 Valid function names and their purposes:
 - generate_protein: Generate a new protein sequence
@@ -46,8 +48,9 @@ Valid function names and their purposes:
 - search_structure: Search for similar protein structures using FoldSeek
 - evaluate_structure: Evaluate quality of a protein structure
 
-Example response format for a chained operation:
+Example response format:
 {
+    "explanation": "I'll help you generate a protein sequence with high binding affinity, predict its 3D structure, and search for similar structures in the database.",
     "functions": [
         {
             "name": "generate_protein",
@@ -80,6 +83,7 @@ Rules:
 11. For predict_structure, if it follows generate_protein, do not include sequence parameter
 12. For search_structure, if it follows predict_structure, do not include pdb_file parameter
 13. IMPORTANT: Use EXACTLY the function names listed above - do not use variations like 'blast_search'
+14. The explanation should be clear, concise, and explain what each function will do
 """
         try:
             response = self.client.chat.completions.create(
@@ -131,13 +135,15 @@ Rules:
                     if "sequence" not in first_func["parameters"] or not first_func["parameters"]["sequence"]:
                         return {"success": False, "error": f"Missing sequence parameter for {first_func['name']}"}
                 
-                return {"success": True, "functions": parsed["functions"]}
+                return {"success": True, "explanation": parsed["explanation"], "functions": parsed["functions"]}
             except json.JSONDecodeError as je:
                 return {"success": False, "error": f"JSON parsing error: {str(je)}"}
         except Exception as e:
             return {"success": False, "error": str(e)}
 
     def validate(self, data: Dict[str, Any]) -> bool:
+        if "explanation" not in data or not isinstance(data["explanation"], str):
+            return False
         if "functions" not in data or not isinstance(data["functions"], list):
             return False
         valid = {f.value for f in PipelineFunction}

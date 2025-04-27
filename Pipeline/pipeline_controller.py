@@ -50,13 +50,14 @@ class PipelineController:
             jobs.append(job.to_dict())
             previous_job = job
         
-        # Generate response message
-        message = "I understand your request. Here are the tasks I can help you with:"
-        for job in jobs:
-            message += f"\n- {job['title']}"
+        # Add the natural language explanation to the conversation
+        self.conversation_memory.add_message(session_id, "bot", parsed["explanation"])
         
-        self.conversation_memory.add_message(session_id, "bot", message)
-        return {"success": True, "message": message, "jobs": jobs}
+        return {
+            "success": True,
+            "explanation": parsed["explanation"],
+            "jobs": jobs
+        }
 
     def execute_job(self, job: Job) -> Dict[str, Any]:
         name = job.function_name
