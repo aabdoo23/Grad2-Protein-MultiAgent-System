@@ -32,10 +32,9 @@ class StructurePredictor:
             return {"success": False, "error": str(e)}
 
     def calculate_metrics(self, structure: str) -> Dict[str, float]:
-        # Example: calculate average pLDDT (from B-factors)
         scores = [float(line[60:66].strip()) for line in structure.splitlines() if line.startswith("ATOM")]
         avg_plddt = sum(scores)/len(scores) if scores else 0.0
-        return {"plddt": avg_plddt, "ptm": 0.8, "rmsd": 2.5, "tm_score": 0.75}
+        return {"plddt": avg_plddt}
 
     def save_structure(self, structure: str) -> str:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

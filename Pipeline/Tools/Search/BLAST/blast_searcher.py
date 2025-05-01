@@ -16,8 +16,8 @@ class BlastSearcher:
         self.default_program = "blastp"
         self.default_database = "nr"
         self.max_wait_time = 300  # 5 minutes
-        self.poll_interval = 10   # 10 seconds
-        self.phylogenetic_analyzer = PhylogeneticAnalyzer()
+        self.poll_interval = 15   # 15 seconds
+        self.phylogenetic_analyzer = PhylogeneticAnalyzer(email="aabdoo2304@gmail.com")
 
     def submit_search(self, sequence: str) -> Dict[str, Any]:
         """Submit a BLAST search and return the RID (Request ID).

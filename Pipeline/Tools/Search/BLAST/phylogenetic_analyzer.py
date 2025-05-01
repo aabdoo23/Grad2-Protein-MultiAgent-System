@@ -1,18 +1,21 @@
 from Bio import Phylo
 from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
 from Bio import AlignIO
-from Bio.Align import MultipleSeqAlignment
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import tempfile
 import os
 import logging
+import sys
+from .clustalo import serviceRun, serviceGetStatus, serviceGetResult, serviceGetResultTypes
+import time
 
 logger = logging.getLogger(__name__)
 
 class PhylogeneticAnalyzer:
-    def __init__(self):
+    def __init__(self, email):
         self.temp_dir = tempfile.mkdtemp()
+        self.email = email
         
     def create_phylogenetic_tree(self, blast_results):
         """
@@ -35,6 +38,10 @@ class PhylogeneticAnalyzer:
             # Create multiple sequence alignment
             alignment = self._create_alignment(sequences)
             
+            if not alignment:
+                logger.error("Failed to create alignment")
+                return None
+                
             # Calculate distance matrix
             calculator = DistanceCalculator('identity')
             distance_matrix = calculator.get_distance(alignment)
@@ -46,7 +53,6 @@ class PhylogeneticAnalyzer:
             # Save tree to file
             tree_file = os.path.join(self.temp_dir, 'phylogenetic_tree.newick')
             Phylo.write(tree, tree_file, 'newick')
-            print(tree_file)
             return tree_file
             
         except Exception as e:
@@ -80,8 +86,10 @@ class PhylogeneticAnalyzer:
                     # Use the first HSP's sequence
                     hsp = hit['hsps'][0]
                     if 'hseq' in hsp and hsp['hseq']:
+                        # Remove gaps from the sequence
+                        sequence = hsp['hseq'].replace('-', '')
                         sequences.append(SeqRecord(
-                            Seq(hsp['hseq']),
+                            Seq(sequence),
                             id=hit.get('accession', 'Unknown'),
                             description=hit.get('def', '')
                         ))
@@ -90,7 +98,7 @@ class PhylogeneticAnalyzer:
         
     def _create_alignment(self, sequences):
         """
-        Create multiple sequence alignment
+        Create multiple sequence alignment using EMBL-EBI's Clustal Omega Python client
         
         Args:
             sequences (list): List of SeqRecord objects
@@ -102,12 +110,53 @@ class PhylogeneticAnalyzer:
             logger.error("No sequences to align")
             return None
             
-        # For now, we'll use a simple alignment method
-        # In a production environment, you might want to use more sophisticated
-        # alignment tools like ClustalW or MUSCLE
         try:
-            alignment = MultipleSeqAlignment(sequences)
+            # Format sequences for submission
+            formatted_sequences = []
+            for seq in sequences:
+                formatted_sequences.append(f">{seq.id}\n{seq.seq}")
+            
+            sequence_data = "\n".join(formatted_sequences)
+            
+            # Submit job to EMBL-EBI
+            params = {
+                'email': self.email,
+                'sequence': sequence_data,
+                'outfmt': 'clustal_num',
+                'stype': 'protein',
+                'dealign': 'false',
+                'mbed': 'true',
+                'mbediteration': 'true'
+            }
+            
+            # Submit the job
+            job_id = serviceRun(self.email, None, params)
+            logger.info(f"Submitted Clustal Omega job: {job_id}")
+            
+            # Wait for job to complete
+            status = "RUNNING"
+            while status == "RUNNING":
+                status = serviceGetStatus(job_id)
+                logger.info(f"Job status: {status}")
+                if status == "ERROR":
+                    logger.error("Alignment job failed")
+                    return None
+                if status != "FINISHED":
+                    time.sleep(5)  # Wait 5 seconds between checks
+            
+            # Get the alignment result
+            alignment_result = serviceGetResult(job_id, "aln-clustal_num")
+            
+            # Save alignment to file
+            alignment_file = os.path.join(self.temp_dir, 'alignment.aln')
+            with open(alignment_file, 'w') as f:
+                f.write(alignment_result)
+            
+            # Read the alignment
+            alignment = AlignIO.read(alignment_file, "clustal")
+            logger.info(f"Successfully created alignment with {len(alignment)} sequences")
             return alignment
+            
         except Exception as e:
             logger.error(f"Error creating alignment: {str(e)}")
             return None 

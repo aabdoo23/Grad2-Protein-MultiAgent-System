@@ -7,30 +7,46 @@ const BlastResults = ({ results }) => {
 
   useEffect(() => {
     if (results?.phylogenetic_tree) {
-      // Parse the Newick format tree data
-      const tree = {
-        name: 'Root',
-        children: parseNewick(results.phylogenetic_tree)
-      };
-      setTreeData(tree);
+      try {
+        // Parse the Newick format tree data
+        const parsedTree = parseNewick(results.phylogenetic_tree);
+        setTreeData({
+          name: 'Root',
+          children: parsedTree
+        });
+      } catch (error) {
+        console.error('Error parsing phylogenetic tree:', error);
+      }
     }
   }, [results?.phylogenetic_tree]);
 
   // Helper function to parse Newick format
   const parseNewick = (newick) => {
-    // This is a simplified parser - you might want to use a more robust one
-    const nodes = [];
-    const parts = newick.split(';')[0].split(',');
+    if (!newick) return [];
     
-    parts.forEach(part => {
-      const [name, length] = part.split(':');
-      nodes.push({
-        name: name.trim(),
-        ...(length && { branchLength: parseFloat(length) })
+    try {
+      // Remove any whitespace and ensure proper format
+      const cleanNewick = newick.trim().replace(/\s+/g, '');
+      
+      // Split into nodes
+      const nodes = [];
+      const parts = cleanNewick.split(';')[0].split(',');
+      
+      parts.forEach(part => {
+        const [name, length] = part.split(':');
+        if (name) {
+          nodes.push({
+            name: name.trim(),
+            ...(length && { branchLength: parseFloat(length) })
+          });
+        }
       });
-    });
-    
-    return nodes;
+      
+      return nodes;
+    } catch (error) {
+      console.error('Error parsing Newick string:', error);
+      return [];
+    }
   };
 
   if (!results || !results.hits) return null;
@@ -68,6 +84,15 @@ const BlastResults = ({ results }) => {
               nodeSize={{ x: 200, y: 100 }}
               separation={{ siblings: 2, nonSiblings: 2 }}
               zoom={0.8}
+              enableLegacyTransitions={true}
+              renderCustomNodeElement={rd3tProps => (
+                <circle r={10} fill="#13a4ec" />
+              )}
+              collapsible={false}
+              zoomable={true}
+              scaleExtent={{ min: 0.1, max: 2 }}
+              initialDepth={1}
+              depthFactor={200}
             />
           </div>
         </div>
