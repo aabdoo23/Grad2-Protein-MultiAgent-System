@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Tree } from 'react-d3-tree';
+import { useNavigate } from 'react-router-dom';
+import RBButton from 'react-bootstrap/Button';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTree, faExpand } from '@fortawesome/free-solid-svg-icons';
+import PhylogeneticTreeTest from './PhylogeneticTreeTest';
 
 const BlastResults = ({ results }) => {
   const [expandedHits, setExpandedHits] = useState({});
   const [treeData, setTreeData] = useState(null);
+  const [showTree, setShowTree] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (results?.phylogenetic_tree) {
@@ -49,6 +56,19 @@ const BlastResults = ({ results }) => {
     }
   };
 
+  const handleGenerateTree = () => {
+    setShowTree(true);
+  };
+
+  const handleExpandTree = () => {
+    navigate('/phylogenetic-tree', { 
+      state: { 
+        newick: results.phylogenetic_tree,
+        title: 'Phylogenetic Tree - BLAST Results'
+      } 
+    });
+  };
+
   if (!results || !results.hits) return null;
 
   const toggleHit = (hitId) => {
@@ -72,29 +92,44 @@ const BlastResults = ({ results }) => {
         </div>
       </div>
 
-      {treeData && (
+      {results.phylogenetic_tree && (
         <div className="bg-[#1a2b34] rounded-lg p-4">
-          <h5 className="text-white text-sm font-medium mb-2">Phylogenetic Tree</h5>
-          <div style={{ width: '100%', height: '400px' }}>
-            <Tree
-              data={treeData}
-              orientation="vertical"
-              pathFunc="step"
-              translate={{ x: 200, y: 50 }}
-              nodeSize={{ x: 200, y: 100 }}
-              separation={{ siblings: 2, nonSiblings: 2 }}
-              zoom={0.8}
-              enableLegacyTransitions={true}
-              renderCustomNodeElement={rd3tProps => (
-                <circle r={10} fill="#13a4ec" />
+          <div className="flex justify-between items-center mb-4">
+            <h5 className="text-white text-sm font-medium">Phylogenetic Tree</h5>
+            <div className="flex space-x-2">
+              <RBButton
+                variant="outline-light"
+                size="sm"
+                onClick={handleGenerateTree}
+                disabled={showTree}
+              >
+                <FontAwesomeIcon icon={faTree} className="me-2 text-white" />
+                <span className="text-white">{showTree ? 'Tree Generated' : 'Generate Tree'}</span>
+              </RBButton>
+              {showTree && (
+                <RBButton
+                  variant="outline-light"
+                  size="sm"
+                  onClick={handleExpandTree}
+                >
+                  <FontAwesomeIcon icon={faExpand} className="me-2 text-white" />
+                  <span className="text-white">Expand View</span>
+                </RBButton>
               )}
-              collapsible={false}
-              zoomable={true}
-              scaleExtent={{ min: 0.1, max: 2 }}
-              initialDepth={1}
-              depthFactor={200}
-            />
+            </div>
           </div>
+          
+          {showTree && (
+            <div className="tree-container" style={{ height: '400px', width: '100%', overflow: 'auto' }}>
+              <PhylogeneticTreeTest
+                newick={results.phylogenetic_tree}
+                width={800}
+                height={400}
+                padding={20}
+                includeBLAxis={true}
+              />
+            </div>
+          )}
         </div>
       )}
 

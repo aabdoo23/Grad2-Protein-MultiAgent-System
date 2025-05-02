@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { phylotree } from "phylotree";
 import { scaleLinear, scaleOrdinal } from "d3-scale";
 import { schemeCategory10 } from "d3-scale-chromatic";
@@ -113,7 +113,19 @@ function getColorScale(tree, highlightBranches) {
 
 function Phylotree(props) {
   const [tooltip, setTooltip] = useState(false);
+  const [highlightedLinks, setHighlightedLinks] = useState([]);
+  const [distanceToRoot, setDistanceToRoot] = useState(null);
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [isAnimating, setIsAnimating] = useState(false);
   const { width, height, maxLabelWidth } = props;
+  
+  // Reset highlighted path when tree changes (e.g., sort, expand/collapse)
+  useEffect(() => {
+    setHighlightedLinks([]);
+    setDistanceToRoot(null);
+    setSelectedNode(null);
+  }, [props.sort, props.alignTips]);
+  
   var{ tree, newick } = props;
   if (!tree && !newick) {
     return <g />;
@@ -125,10 +137,11 @@ function Phylotree(props) {
   }
 
   function attachTextWidth(node) {
-    node.data.text_width = text_width(node.data.name, 14, maxLabelWidth);
+    node.data.text_width = text_width(node.data.name, 12, maxLabelWidth);
     if(node.children) node.children.forEach(attachTextWidth);
   }
   attachTextWidth(tree.nodes);
+  
   const sorted_tips = tree.getTips().sort((a,b) => (
       b.data.abstract_x - a.data.abstract_x
     ));
@@ -155,19 +168,86 @@ function Phylotree(props) {
       .domain([0, tree.max_y])
       .range([props.includeBLAxis ? 60 : 0, height]),
     color_scale = getColorScale(tree, props.highlightBranches);
-  return (<g transform={props.transform}>
+
+  function handleLabelClick(targetNode) {
+    // Animation state
+    setIsAnimating(true);
+    setTimeout(() => setIsAnimating(false), 500);
+    
+    // If already selected, deselect
+    if (selectedNode && selectedNode.unique_id === targetNode.unique_id) {
+      setHighlightedLinks([]);
+      setDistanceToRoot(null);
+      setSelectedNode(null);
+      return;
+    }
+    
+    // Store selected node
+    setSelectedNode(targetNode);
+    
+    // Trace path to root and sum branch lengths
+    let node = targetNode;
+    let pathLinks = [];
+    let totalDist = 0;
+    let path = [targetNode.data.name];
+    
+    while (node.parent) {
+      // Find the link (source, target) for this branch
+      pathLinks.push(node.parent.unique_id + "," + node.unique_id);
+      
+      // Branch length is in node.data.attribute
+      const branchLength = parseFloat(node.data.attribute || 0);
+      totalDist += branchLength;
+      
+      // Add node name to path (if it exists)
+      if (node.parent.data.name) {
+        path.unshift(node.parent.data.name);
+      }
+      
+      node = node.parent;
+    }
+    
+    setHighlightedLinks(pathLinks);
+    setDistanceToRoot(parseFloat(totalDist.toFixed(4)));
+  }
+
+  return (<g transform={props.transform} className={isAnimating ? 'animating' : ''}>
+    {distanceToRoot !== null && (
+      <g>
+        <rect 
+          x={width/2 - 120} 
+          y={0} 
+          width={240} 
+          height={25} 
+          rx={5} 
+          fill="#f8f9fa" 
+          stroke="#e74c3c"
+          strokeWidth={1.5} 
+        />
+        <text 
+          x={width/2} 
+          y={18} 
+          textAnchor="middle" 
+          className="distance-label"
+        >
+          Distance to root: {distanceToRoot}
+        </text>
+        {selectedNode && (
+          <text
+            x={width/2}
+            y={-40}
+            textAnchor="middle"
+            className="distance-label"
+            style={{ fontSize: 12, fill: '#7f8c8d' }}
+          >
+            Selected: {selectedNode.data.name}
+          </text>
+        )}
+      </g>
+    )}
     {props.includeBLAxis ? <g>
-      <text
-        x={x_scale(tree.max_x/2)}
-        y={10}
-        alignmentBaseline='middle'
-        textAnchor='middle'
-        fontFamily='Courier'
-      >
-        Substitutions per site
-      </text>
       <AxisTop
-        transform={`translate(0, 40)`}
+        transform={`translate(0, 45)`}
         scale={x_scale}
       />
     </g> : null }
@@ -192,6 +272,8 @@ function Phylotree(props) {
         tooltip={props.tooltip}
         setTooltip={setTooltip}
         onClick={props.onBranchClick}
+        onLabelClick={handleLabelClick}
+        highlighted={highlightedLinks.includes(key)}
       />);
     }) }
     { tooltip ? <props.tooltip

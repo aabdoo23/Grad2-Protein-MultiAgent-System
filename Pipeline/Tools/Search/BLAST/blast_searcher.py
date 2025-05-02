@@ -205,6 +205,10 @@ class BlastSearcher:
                     'entropy': stats_elem.find('Statistics_entropy').text if stats_elem.find('Statistics_entropy') else ''
                 }
             
+            # If query sequence is empty, try to get it from the first HSP
+            if not query_seq and hits and hits[0]['hsps']:
+                query_seq = hits[0]['hsps'][0]['qseq']
+            
             return {
                 'hits': hits,
                 'statistics': stats,

@@ -7,7 +7,7 @@ import PhylogeneticTreeTest from './components/PhylogeneticTreeTest';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <PhylogeneticTreeTest />
-    {/* <App/> */}
+    {/* <PhylogeneticTreeTest /> */}
+    <App/>
   </React.StrictMode>
 ); 

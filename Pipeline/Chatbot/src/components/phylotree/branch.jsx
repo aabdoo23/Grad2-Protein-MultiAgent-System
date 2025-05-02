@@ -5,7 +5,7 @@ import { line } from "d3-shape";
 
 function Branch(props) {
 
-  const { xScale, yScale, colorScale, showLabel, setTooltip } = props,
+  const { xScale, yScale, colorScale, showLabel, setTooltip, onLabelClick, highlighted } = props,
     { source, target } = props.link,
     source_x = xScale(source.data.abstract_x),
     source_y = yScale(source.data.abstract_y),
@@ -28,15 +28,19 @@ function Branch(props) {
       stroke: colorScale(target.data.annotation)
     } : {},
     all_branch_styles = Object.assign(
-      {}, props.branchStyle, computed_branch_styles
+      {}, props.branchStyle, computed_branch_styles,
+      highlighted ? { className: "highlighted-path" } : {}
     ),
     label_style = target.data.name && props.labelStyler ?
       props.labelStyler(target.data) :
       {} ;
-  return (<g className="node"
-  >
+
+  // Determine if this is a tip node
+  const isTip = !target.children || target.children.length === 0;
+  
+  return (<g className="node">
     <path
-      className="rp-branch"
+      className={`rp-branch ${highlighted ? 'highlighted-path' : ''}`}
       fill="none"
       d={branch_line(data)}
       onClick={() => props.onClick(props.link)}
@@ -52,13 +56,29 @@ function Branch(props) {
         setTooltip(false);
       } : undefined}
     />
+    
+    {/* Add circle at the target node */}
+    <circle 
+      cx={target_x} 
+      cy={target_y} 
+      r={isTip ? 4 : 3}
+      className="node-circle"
+      style={{ 
+        fill: isTip ? '#27ae60' : '#3498db',
+        opacity: highlighted ? 1 : 0.8
+      }}
+      onClick={() => props.onClick(props.link)}
+    />
+    
     {showLabel ? <line
       x1={target_x}
       x2={tracer_x2}
       y1={target_y}
       y2={target_y}
-      className="rp-branch-tracer"
+      className={`rp-branch-tracer ${highlighted ? 'highlighted-tracer' : ''}`}
+      style={{ opacity: highlighted ? 0.8 : 0.5 }}
     /> : null}
+    
     {showLabel ? <text
       x={tracer_x2 + 5}
       y={target_y}
@@ -66,6 +86,12 @@ function Branch(props) {
       alignmentBaseline="middle"
       {...Object.assign({}, props.labelStyle, label_style)}
       className="rp-label"
+      style={{ 
+        cursor: 'pointer',
+        fontWeight: highlighted ? 'bold' : 'normal',
+        fill: highlighted ? '#e74c3c' : 'inherit'
+      }}
+      onClick={() => onLabelClick && onLabelClick(target)}
     >{target.data.name.slice(0, props.maxLabelWidth)}</text> : null}
   </g>);
 }
@@ -73,7 +99,7 @@ function Branch(props) {
 Branch.defaultProps = {
   branchStyle: {
     strokeWidth: 2,
-    stroke: "grey"
+    stroke: '#95a5a6'
   },
   labelStyle: {
   }
