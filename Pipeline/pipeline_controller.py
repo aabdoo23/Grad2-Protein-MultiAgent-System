@@ -2,7 +2,7 @@ import json
 from typing import Dict, Any, List
 from text_processor import TextProcessor, PipelineFunction
 from Tools.DeNovo.protein_generator import ProteinGenerator
-from Tools.TDStructure.Prediction.structure_predictor import StructurePredictor
+from Tools.TDStructure.Prediction.esm_predictor import StructurePredictor
 from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
 from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.blast_searcher import BlastSearcher
