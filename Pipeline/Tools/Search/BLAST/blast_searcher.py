@@ -16,8 +16,8 @@ class BlastSearcher:
         self.default_program = "blastp"
         self.default_database = "nr"
         self.max_wait_time = 300  # 5 minutes
-        self.poll_interval = 10   # 10 seconds
-        self.phylogenetic_analyzer = PhylogeneticAnalyzer()
+        self.poll_interval = 15   # 15 seconds
+        self.phylogenetic_analyzer = PhylogeneticAnalyzer(email="aabdoo2304@gmail.com")
 
     def submit_search(self, sequence: str) -> Dict[str, Any]:
         """Submit a BLAST search and return the RID (Request ID).
@@ -204,6 +204,10 @@ class BlastSearcher:
                     'lambda': stats_elem.find('Statistics_lambda').text if stats_elem.find('Statistics_lambda') else '',
                     'entropy': stats_elem.find('Statistics_entropy').text if stats_elem.find('Statistics_entropy') else ''
                 }
+            
+            # If query sequence is empty, try to get it from the first HSP
+            if not query_seq and hits and hits[0]['hsps']:
+                query_seq = hits[0]['hsps'][0]['qseq']
             
             return {
                 'hits': hits,

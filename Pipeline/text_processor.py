@@ -25,7 +25,7 @@ class PipelineFunction(Enum):
 
 class TextProcessor:
     def __init__(self):
-        self.client = Groq(api_key="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") #invalidate on production
+        self.client = Groq(api_key="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") #invalidate on production
 
     def process_input(self, text: str) -> Dict[str, Any]:
         system_prompt = """
@@ -87,7 +87,7 @@ Rules:
 """
         try:
             response = self.client.chat.completions.create(
-                model="gemma2-9b-it",
+                model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": text}

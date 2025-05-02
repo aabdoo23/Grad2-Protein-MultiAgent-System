@@ -3,16 +3,27 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
+    "@mkoliba/phylogeny-tree-plugin-context-menu": "^3.18.0-beta.7",
+    "@mkoliba/phylogeny-tree-plugin-interactions": "^3.18.0-beta.7",
+    "@mkoliba/phylogeny-tree-plugin-scalebar": "^3.18.0-beta.7",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.6.7",
+    "d3": "^7.9.0",
+    "d3-fetch": "^3.0.1",
+    "d3-react-axis": "^0.0.3",
     "ngl": "^2.1.0",
     "phylotree": "^2.1.0",
     "plotly.js-dist-min": "^3.0.1",
     "react": "^18.2.0",
+    "react-bootstrap": "^2.10.9",
     "react-d3-tree": "^3.6.6",
     "react-dom": "^18.2.0",
+    "react-phylogeny-tree": "^0.0.4",
     "react-plotly.js": "^2.6.0",
     "react-scripts": "5.0.1",
     "react-split": "^2.0.14",
@@ -44,6 +55,7 @@
     ]
   },
   "devDependencies": {
+    "react-router-dom": "^7.5.3",
     "tailwindcss": "^3.4.1"
   }
 }

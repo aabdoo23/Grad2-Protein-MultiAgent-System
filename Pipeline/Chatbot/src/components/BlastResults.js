@@ -1,36 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import { Tree } from 'react-d3-tree';
+import { useNavigate } from 'react-router-dom';
+import RBButton from 'react-bootstrap/Button';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTree, faExpand } from '@fortawesome/free-solid-svg-icons';
+import PhylogeneticTreeTest from './PhylogeneticTreeTest';
 
 const BlastResults = ({ results }) => {
   const [expandedHits, setExpandedHits] = useState({});
   const [treeData, setTreeData] = useState(null);
+  const [showTree, setShowTree] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (results?.phylogenetic_tree) {
-      // Parse the Newick format tree data
-      const tree = {
-        name: 'Root',
-        children: parseNewick(results.phylogenetic_tree)
-      };
-      setTreeData(tree);
+      try {
+        // Parse the Newick format tree data
+        const parsedTree = parseNewick(results.phylogenetic_tree);
+        setTreeData({
+          name: 'Root',
+          children: parsedTree
+        });
+      } catch (error) {
+        console.error('Error parsing phylogenetic tree:', error);
+      }
     }
   }, [results?.phylogenetic_tree]);
 
   // Helper function to parse Newick format
   const parseNewick = (newick) => {
-    // This is a simplified parser - you might want to use a more robust one
-    const nodes = [];
-    const parts = newick.split(';')[0].split(',');
+    if (!newick) return [];
     
-    parts.forEach(part => {
-      const [name, length] = part.split(':');
-      nodes.push({
-        name: name.trim(),
-        ...(length && { branchLength: parseFloat(length) })
+    try {
+      // Remove any whitespace and ensure proper format
+      const cleanNewick = newick.trim().replace(/\s+/g, '');
+      
+      // Split into nodes
+      const nodes = [];
+      const parts = cleanNewick.split(';')[0].split(',');
+      
+      parts.forEach(part => {
+        const [name, length] = part.split(':');
+        if (name) {
+          nodes.push({
+            name: name.trim(),
+            ...(length && { branchLength: parseFloat(length) })
+          });
+        }
       });
+      
+      return nodes;
+    } catch (error) {
+      console.error('Error parsing Newick string:', error);
+      return [];
+    }
+  };
+
+  const handleGenerateTree = () => {
+    setShowTree(true);
+  };
+
+  const handleExpandTree = () => {
+    navigate('/phylogenetic-tree', { 
+      state: { 
+        newick: results.phylogenetic_tree,
+        title: 'Phylogenetic Tree - BLAST Results'
+      } 
     });
-    
-    return nodes;
   };
 
   if (!results || !results.hits) return null;
@@ -56,20 +92,44 @@ const BlastResults = ({ results }) => {
         </div>
       </div>
 
-      {treeData && (
+      {results.phylogenetic_tree && (
         <div className="bg-[#1a2b34] rounded-lg p-4">
-          <h5 className="text-white text-sm font-medium mb-2">Phylogenetic Tree</h5>
-          <div style={{ width: '100%', height: '400px' }}>
-            <Tree
-              data={treeData}
-              orientation="vertical"
-              pathFunc="step"
-              translate={{ x: 200, y: 50 }}
-              nodeSize={{ x: 200, y: 100 }}
-              separation={{ siblings: 2, nonSiblings: 2 }}
-              zoom={0.8}
-            />
+          <div className="flex justify-between items-center mb-4">
+            <h5 className="text-white text-sm font-medium">Phylogenetic Tree</h5>
+            <div className="flex space-x-2">
+              <RBButton
+                variant="outline-light"
+                size="sm"
+                onClick={handleGenerateTree}
+                disabled={showTree}
+              >
+                <FontAwesomeIcon icon={faTree} className="me-2 text-white" />
+                <span className="text-white">{showTree ? 'Tree Generated' : 'Generate Tree'}</span>
+              </RBButton>
+              {showTree && (
+                <RBButton
+                  variant="outline-light"
+                  size="sm"
+                  onClick={handleExpandTree}
+                >
+                  <FontAwesomeIcon icon={faExpand} className="me-2 text-white" />
+                  <span className="text-white">Expand View</span>
+                </RBButton>
+              )}
+            </div>
           </div>
+          
+          {showTree && (
+            <div className="tree-container" style={{ height: '400px', width: '100%', overflow: 'auto' }}>
+              <PhylogeneticTreeTest
+                newick={results.phylogenetic_tree}
+                width={800}
+                height={400}
+                padding={20}
+                includeBLAxis={true}
+              />
+            </div>
+          )}
         </div>
       )}
 
