@@ -202,5 +202,9 @@ class PipelineController:
         elif func["name"] == PipelineFunction.EVALUATE_SEQUENCE.value:
             return f"Analyze sequence properties and characteristics"
         elif func["name"] == PipelineFunction.SEARCH_SIMILARITY.value:
-            return f"Run a BLAST search on NCBI server in the nr database to find similar sequences"
+            search_type = params.get("search_type", "colabfold")
+            if search_type == "colabfold":
+                return "Search for similar protein sequences using ColabFold MSA"
+            else:
+                return "Run a BLAST search on NCBI server in the nr database to find similar sequences"
         return "Execute the requested operation"
