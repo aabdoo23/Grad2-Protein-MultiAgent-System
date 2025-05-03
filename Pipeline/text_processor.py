@@ -35,6 +35,8 @@ Analyze the input text carefully to identify:
 2. Specific analysis requests (structure prediction, similarity search, evaluation)
 3. Whether protein generation is explicitly requested
 4. Specific requirements for generated proteins (e.g., binding affinity, stability, etc.)
+5. Preferred structure prediction model (ESM, AlphaFold2, or OpenFold)
+6. Preferred search type for sequence similarity (NCBI BLAST or ColabFold MSA)
 
 Return a JSON object with two fields:
 1. "explanation": A natural language explanation of what will be done
@@ -44,13 +46,28 @@ Valid function names and their purposes:
 - generate_protein: Generate a new protein sequence
 - predict_structure: Predict 3D structure of a protein sequence
 - evaluate_sequence: Analyze properties of a protein sequence
-- search_similarity: Search for similar protein sequences using BLAST
+- search_similarity: Search for similar protein sequences using BLAST or ColabFold MSA
 - search_structure: Search for similar protein structures using FoldSeek
 - evaluate_structure: Evaluate quality of a protein structure
 
+For predict_structure, include a "model" parameter with one of these values ONLY IF the model is explicitly specified in the user's request:
+- "esm": Use ESM model
+- "alphafold2": Use AlphaFold2 model
+- "openfold": Use OpenFold model
+
+For search_similarity, include a "search_type" parameter with one of these values ONLY IF the search type is explicitly specified in the user's request:
+- "ncbi": Use NCBI BLAST search
+- "colabfold": Use ColabFold MSA search
+- "local": Use local BLAST search with custom database
+
+For local BLAST search, you can also include these optional parameters:
+- "fasta_file": Path to a custom FASTA file to use as database
+- "db_name": Name for the custom database
+- "interpro_ids": List of InterPro IDs to create database from
+
 Example response format:
 {
-    "explanation": "I'll help you generate a protein sequence with high binding affinity, predict its 3D structure, and search for similar structures in the database.",
+    "explanation": "I'll help you generate a protein sequence with high binding affinity, predict its 3D structure using AlphaFold2, and search for similar sequences using ColabFold MSA.",
     "functions": [
         {
             "name": "generate_protein",
@@ -60,11 +77,15 @@ Example response format:
         },
         {
             "name": "predict_structure",
-            "parameters": {}
+            "parameters": {
+                "model": "alphafold2"
+            }
         },
         {
-            "name": "search_structure",
-            "parameters": {}
+            "name": "search_similarity",
+            "parameters": {
+                "search_type": "colabfold"
+            }
         }
     ]
 }
@@ -84,6 +105,9 @@ Rules:
 12. For search_structure, if it follows predict_structure, do not include pdb_file parameter
 13. IMPORTANT: Use EXACTLY the function names listed above - do not use variations like 'blast_search'
 14. The explanation should be clear, concise, and explain what each function will do
+15. For predict_structure, ONLY include the model parameter if EXPLICITLY mentioned in the request
+16. For search_similarity, ONLY include the search_type parameter if EXPLICITLY mentioned in the request
+17. If a model or search type is not explicitly specified, DO NOT include the corresponding parameter
 """
         try:
             response = self.client.chat.completions.create(
@@ -125,6 +149,13 @@ Rules:
                 if not self.validate(parsed):
                     return {"success": False, "error": "Invalid output format from LLM"}
                 
+                # Process each function to ensure model is only included when explicitly specified
+                for func in parsed["functions"]:
+                    if func["name"] == PipelineFunction.PREDICT_STRUCTURE.value:
+                        # If model is empty string, remove it
+                        if "model" in func["parameters"] and not func["parameters"]["model"]:
+                            del func["parameters"]["model"]
+                
                 # Only validate sequence parameter for the first function in a chain
                 first_func = parsed["functions"][0] if parsed["functions"] else None
                 if first_func and first_func["name"] in [
@@ -152,4 +183,10 @@ Rules:
                 return False
             if func["name"] not in valid:
                 return False
+            # Validate model parameter for predict_structure if it exists
+            if func["name"] == PipelineFunction.PREDICT_STRUCTURE.value and "model" in func["parameters"]:
+                model = func["parameters"]["model"]
+                if model not in ["esm", "alphafold2", "openfold"]:
+                    print("Invalid model parameter:", model)
+                    return False
         return True

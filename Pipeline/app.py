@@ -5,8 +5,9 @@ from conversation_memory import ConversationMemory
 from job_manager import JobManager, JobStatus
 from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
 from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
-from Tools.Search.BLAST.blast_searcher import BlastSearcher
+from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 import os
+import threading
 
 app = Flask(__name__)
 CORS(app)
@@ -20,7 +21,19 @@ os.makedirs(STATIC_PDB_DIR, exist_ok=True)
 memory = ConversationMemory()
 job_manager = JobManager()
 controller = PipelineController(conversation_memory=memory, job_manager=job_manager)
-blast_searcher = BlastSearcher()
+blast_searcher = NCBI_BLAST_Searcher()
+
+# Function to execute a job in a background thread
+def execute_job_in_background(job_id):
+    job = job_manager.get_job(job_id)
+    if not job:
+        return
+        
+    try:
+        result = controller.execute_job(job)
+        job_manager.update_job_status(job_id, JobStatus.COMPLETED, result=result)
+    except Exception as e:
+        job_manager.update_job_status(job_id, JobStatus.FAILED, error=str(e))
 
 @app.before_request
 def setup_session():
@@ -41,6 +54,8 @@ def chat():
 @app.route('/confirm-job', methods=['POST'])
 def confirm_job():
     job_id = request.json.get('job_id')
+    job_data = request.json.get('job_data')
+    
     if not job_id:
         return jsonify({"success": False, "message": "Job ID is required."})
     
@@ -48,18 +63,22 @@ def confirm_job():
     if not job:
         return jsonify({"success": False, "message": "Job not found."})
     
+    # Update job parameters if job_data is provided (for model selection)
+    if job_data and 'parameters' in job_data:
+        # Update job parameters with the ones from the frontend
+        job.parameters.update(job_data['parameters'])
+    
     # Queue the job
     job_manager.queue_job(job_id)
     job_manager.update_job_status(job_id, JobStatus.RUNNING)
     
-    # Execute the job
-    try:
-        result = controller.execute_job(job)
-        job_manager.update_job_status(job_id, JobStatus.COMPLETED, result=result)
-        return jsonify({"success": True, "job": job.to_dict()})
-    except Exception as e:
-        job_manager.update_job_status(job_id, JobStatus.FAILED, error=str(e))
-        return jsonify({"success": False, "message": str(e)})
+    # Start job execution in a background thread
+    job_thread = threading.Thread(target=execute_job_in_background, args=(job_id,))
+    job_thread.daemon = True  # Thread will exit when the main program exits
+    job_thread.start()
+    
+    # Return immediately after the job is queued and the thread is started
+    return jsonify({"success": True, "job": job.to_dict()})
 
 @app.route('/job-status/<job_id>', methods=['GET'])
 def get_job_status(job_id):

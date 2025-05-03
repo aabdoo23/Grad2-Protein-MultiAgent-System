@@ -1,9 +1,8 @@
-import React from 'react';
 import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'http://localhost:5000',
-  timeout: 300000, // 5 minutes timeout for BLAST searches
+  timeout: 900000, // 15 minutes timeout to accommodate AlphaFold2 predictions
   headers: {
     'Content-Type': 'application/json'
   }
@@ -36,8 +35,11 @@ class JobManager {
     const job = this.jobList.get(jobId);
     if (job) {
       try {
-        // Send confirmation to backend
-        const response = await this.api.post('/confirm-job', { job_id: jobId });
+        // Send confirmation to backend with the updated job (possibly with model selection)
+        const response = await this.api.post('/confirm-job', { 
+          job_id: jobId,
+          job_data: job  // Send the full job data which may include selected model
+        });
         
         if (response.data.success) {
           // Add the job to the queue
@@ -75,6 +77,15 @@ class JobManager {
     }
   }
 
+  removeFromPendingConfirmations(jobId) {
+    // Remove from pending confirmations without deleting from job list
+    this.pendingConfirmations = this.pendingConfirmations.filter(id => id !== jobId);
+    
+    if (this.jobUpdateCallback) {
+      this.jobUpdateCallback();
+    }
+  }
+
   startJob(job) {
     // Implementation for starting the job
     console.log('Starting job:', job);
@@ -87,6 +98,31 @@ class JobManager {
     if (this.jobUpdateCallback) {
       this.jobUpdateCallback();
     }
+  }
+
+  updateJob(jobId, updatedJob) {
+    // Get the existing job
+    const existingJob = this.jobList.get(jobId);
+    if (existingJob) {
+      // Create an updated job with merged parameters
+      const mergedJob = {
+        ...existingJob,
+        parameters: {
+          ...existingJob.parameters,
+          ...updatedJob.parameters
+        }
+      };
+      
+      // Update the job in the job list
+      this.jobList.set(jobId, mergedJob);
+      
+      if (this.jobUpdateCallback) {
+        this.jobUpdateCallback();
+      }
+      
+      return true;
+    }
+    return false;
   }
 
   getPendingConfirmations() {
