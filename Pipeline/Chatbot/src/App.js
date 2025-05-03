@@ -4,7 +4,7 @@ import axios from 'axios';
 import JobManager from './components/JobManager';
 import JobStatus from './components/JobStatus';
 import JobConfirmation from './components/JobConfirmation';
-import PhylogeneticTreeViewer from './components/PhylogeneticTreeViewer';
+import PhylogeneticTreeViewer from './components/phylotree/PhylogeneticTreeViewer';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 function App() {
@@ -17,7 +17,7 @@ function App() {
 
   const api = axios.create({
     baseURL: 'http://localhost:5000',
-    timeout: 300000,
+    timeout: 900000, // 15 minutes timeout to accommodate AlphaFold2 predictions
     headers: {
       'Content-Type': 'application/json'
     }
@@ -103,7 +103,17 @@ function App() {
     }
   };
 
-  const handleConfirmJob = async (jobId) => {
+  const handleConfirmJob = async (jobId, modifiedJob = null) => {
+    // Only use the modified job if provided (with model selection)
+    if (modifiedJob) {
+      // Update the job in the job list with the selected model
+      jobManager.current.updateJob(jobId, modifiedJob);
+    }
+    
+    // Immediately remove the job from pending confirmations for a better UX
+    // This is an optimistic update - we remove it from UI before the server confirms
+    jobManager.current.removeFromPendingConfirmations(jobId);
+    
     const success = await jobManager.current.confirmJob(jobId);
     if (success && jobStatusRef.current) {
       jobStatusRef.current.startPolling(jobId);

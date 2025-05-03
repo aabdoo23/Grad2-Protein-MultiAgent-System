@@ -1,13 +1,24 @@
 import os
 import requests
 from datetime import datetime
+import json
 from typing import Dict, Any
+from dotenv import load_dotenv
+from .base_predictor import BaseStructurePredictor
 
-class StructurePredictor:
+load_dotenv()
+
+class ESM_Predictor(BaseStructurePredictor):
     def __init__(self):
-        self.api_endpoint = "https://api.esmatlas.com/foldSequence/v1/pdb/"
+        super().__init__()
+        self.key = os.getenv("NVCF_RUN_KEY")
+        self.api_endpoint = "https://health.api.nvidia.com/v1/biology/nvidia/esmfold"
         self.visualization_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'static', 'pdb_files')
         os.makedirs(self.visualization_dir, exist_ok=True)
+        self.headers = {
+            "Authorization": f"Bearer {self.key}",
+            "Accept": "application/json",
+        }
 
     def validate_sequence(self, sequence: str) -> bool:
         valid_residues = set("ACDEFGHIKLMNPQRSTVWY")
@@ -16,19 +27,44 @@ class StructurePredictor:
     def predict_structure(self, sequence: str) -> Dict[str, Any]:
         if not self.validate_sequence(sequence):
             return {"success": False, "error": "Invalid protein sequence."}
+            
         try:
-            response = requests.post(
+            print("Making ESMFold request...")
+            payload = {
+                "sequence": sequence
+            }
+            
+            # Use a session for better connection handling
+            session = requests.Session()
+            response = session.post(
                 self.api_endpoint,
-                data=sequence,
-                headers={"Content-Type": "application/x-www-form-urlencoded"}
+                headers=self.headers,
+                json=payload,
+                timeout=600  # 10-minute timeout
             )
+            
             if response.status_code != 200:
-                return {"success": False, "error": f"API error: {response.status_code}"}
-            structure = response.text
-            pdb_file = self.save_structure(structure)
-            metrics = self.calculate_metrics(structure)
-            return {"success": True, "structure": structure, "pdb_file": pdb_file, "metrics": metrics}
+                return {"success": False, "error": f"API error: {response.status_code} - {response.text}"}
+                
+            result = response.json()
+            
+            # Check if the response has the expected format
+            if "pdbs" in result and len(result["pdbs"]) > 0:
+                structure = result["pdbs"][0]
+                pdb_file = self.save_structure(structure)
+                metrics = self.calculate_metrics(structure)
+                return {"success": True, "structure": structure, "pdb_file": pdb_file, "metrics": metrics}
+            else:
+                return {"success": False, "error": "No PDB structure in ESMFold response"}
+                
+        except requests.exceptions.Timeout:
+            return {"success": False, "error": "ESMFold API request timed out"}
+        except requests.exceptions.ConnectionError:
+            return {"success": False, "error": "Connection error with ESMFold API"}
+        except json.JSONDecodeError as e:
+            return {"success": False, "error": f"Invalid JSON response from ESMFold API: {str(e)}"}
         except Exception as e:
+            print(f"Unexpected error in ESMFold predictor: {str(e)}")
             return {"success": False, "error": str(e)}
 
     def calculate_metrics(self, structure: str) -> Dict[str, float]:

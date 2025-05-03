@@ -2,7 +2,9 @@ import json
 from typing import Dict, Any, List
 from text_processor import TextProcessor, PipelineFunction
 from Tools.DeNovo.protein_generator import ProteinGenerator
-from Tools.TDStructure.Prediction.esm_predictor import StructurePredictor
+from Tools.TDStructure.Prediction.esm_predictor import ESM_Predictor
+from Tools.TDStructure.Prediction.af2_predictor import AlphaFold2_Predictor
+from Tools.TDStructure.Prediction.openfold_predictor import OpenFold_Predictor
 from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
 from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.blast_searcher import BlastSearcher
@@ -13,7 +15,9 @@ class PipelineController:
         # Instantiate all components
         self.text_processor = TextProcessor()
         self.protein_generator = ProteinGenerator()
-        self.structure_predictor = StructurePredictor()
+        self.esm_predictor = ESM_Predictor()
+        self.af2_predictor = AlphaFold2_Predictor()
+        self.openfold_predictor = OpenFold_Predictor()
         self.foldseek_searcher = FoldseekSearcher()
         self.evaluator = StructureEvaluator()
         self.blast_searcher = BlastSearcher()
@@ -78,7 +82,18 @@ class PipelineController:
         if name == PipelineFunction.GENERATE_PROTEIN.value:
             result = self.protein_generator.generate(params.get("prompt", ""))
         elif name == PipelineFunction.PREDICT_STRUCTURE.value:
-            prediction = self.structure_predictor.predict_structure(params.get("sequence", ""))
+            sequence = params.get("sequence", "")
+            model = params.get("model", "openfold")  # Default to OpenFold if not specified
+            
+            if model == "esm":
+                prediction = self.esm_predictor.predict_structure(sequence)
+            elif model == "alphafold2":
+                prediction = self.af2_predictor.predict_structure(sequence)
+            elif model == "openfold":
+                prediction = self.openfold_predictor.predict_structure(sequence)
+            else:
+                return {"success": False, "error": f"Unknown model: {model}"}
+                
             if prediction.get("success"):
                 result = {
                     "success": True,
@@ -165,7 +180,9 @@ class PipelineController:
         if func["name"] == PipelineFunction.PREDICT_STRUCTURE.value:
             sequence = params.get("sequence", "")
             seq_length = len(sequence) if sequence else "N/A"
-            return f"Sequence length: {seq_length} amino acids\nOutput: 3D structure prediction in PDB format\nAdditional analysis: Structure similarity search using FoldSeek"
+            model = params.get("model", "")
+            model_info = f"Model: {model}" if model else "Model: To be selected"
+            return f"Sequence length: {seq_length} amino acids\n{model_info}\nOutput: 3D structure prediction in PDB format\nAdditional analysis: Structure similarity search using FoldSeek"
         elif func["name"] == PipelineFunction.GENERATE_PROTEIN.value:
             prompt = params.get("prompt", "")
             return f"Target: {prompt}"

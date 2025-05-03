@@ -5,7 +5,7 @@ import BlastResults from './BlastResults';
 
 const api = axios.create({
   baseURL: 'http://localhost:5000',
-  timeout: 300000, // 5 minutes timeout for BLAST searches
+  timeout: 900000, // 15 minutes timeout to accommodate AlphaFold2 predictions
   headers: {
     'Content-Type': 'application/json'
   }
@@ -277,7 +277,7 @@ const JobStatus = forwardRef((props, ref) => {
 
   const api = axios.create({
     baseURL: 'http://localhost:5000',
-    timeout: 300000, // 5 minutes timeout for BLAST searches
+    timeout: 900000, // 15 minutes timeout to accommodate AlphaFold2 predictions
     headers: {
       'Content-Type': 'application/json'
     }

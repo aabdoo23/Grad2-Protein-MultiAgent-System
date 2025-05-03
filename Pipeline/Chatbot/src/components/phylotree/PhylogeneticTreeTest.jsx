@@ -12,9 +12,9 @@ import {
   faSortAmountUp, faAlignRight, faAlignLeft, faInfoCircle,
   faTree, faCircleNodes, faRefresh, faEye, faEyeSlash
 } from "@fortawesome/free-solid-svg-icons";
-import Phylotree from "./phylotree/phylotree.jsx";
+import Phylotree from "./phylotree.jsx";
 
-import "./phylotree/phylotree.css";
+import "./phylotree.css";
 
 function Button(props) {
   return (<OverlayTrigger

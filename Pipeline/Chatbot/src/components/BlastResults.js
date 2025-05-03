@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Tree } from 'react-d3-tree';
 import { useNavigate } from 'react-router-dom';
 import RBButton from 'react-bootstrap/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTree, faExpand } from '@fortawesome/free-solid-svg-icons';
-import PhylogeneticTreeTest from './PhylogeneticTreeTest';
+import PhylogeneticTreeTest from './phylotree/PhylogeneticTreeTest';
 
 const BlastResults = ({ results }) => {
   const [expandedHits, setExpandedHits] = useState({});
