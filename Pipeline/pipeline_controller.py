@@ -7,7 +7,8 @@ from Tools.TDStructure.Prediction.af2_predictor import AlphaFold2_Predictor
 from Tools.TDStructure.Prediction.openfold_predictor import OpenFold_Predictor
 from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
 from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
-from Tools.Search.BLAST.blast_searcher import BlastSearcher
+from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
+from Tools.Search.BLAST.colabfold_msa_search import ColabFold_MSA_Searcher
 from job_manager import Job
 
 class PipelineController:
@@ -20,7 +21,8 @@ class PipelineController:
         self.openfold_predictor = OpenFold_Predictor()
         self.foldseek_searcher = FoldseekSearcher()
         self.evaluator = StructureEvaluator()
-        self.blast_searcher = BlastSearcher()
+        self.ncbi_blast_searcher = NCBI_BLAST_Searcher()
+        self.colabfold_msa_searcher = ColabFold_MSA_Searcher()
         self.conversation_memory = conversation_memory
         self.job_manager = job_manager
         self.selected_functions = []
@@ -127,10 +129,17 @@ class PipelineController:
             result = self.evaluator.evaluate_sequence(seq)
         elif name == PipelineFunction.SEARCH_SIMILARITY.value:
             sequence = params.get("sequence", "")
-            if sequence:
-                result = self.blast_searcher.search(sequence)
+            search_type = params.get("search_type", "ncbi")  # Default to NCBI BLAST
+            
+            if not sequence:
+                return {"success": False, "error": "No sequence provided"}
+                
+            if search_type == "ncbi":
+                result = self.ncbi_blast_searcher.search(sequence)
+            elif search_type == "colabfold":
+                result = self.colabfold_msa_searcher.search(sequence)
             else:
-                result = {"success": False, "error": "No sequence provided"}
+                return {"success": False, "error": f"Unknown search type: {search_type}"}
             
         return result
 

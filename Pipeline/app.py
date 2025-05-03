@@ -5,7 +5,7 @@ from conversation_memory import ConversationMemory
 from job_manager import JobManager, JobStatus
 from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
 from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
-from Tools.Search.BLAST.blast_searcher import BlastSearcher
+from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 import os
 import threading
 
@@ -21,7 +21,7 @@ os.makedirs(STATIC_PDB_DIR, exist_ok=True)
 memory = ConversationMemory()
 job_manager = JobManager()
 controller = PipelineController(conversation_memory=memory, job_manager=job_manager)
-blast_searcher = BlastSearcher()
+blast_searcher = NCBI_BLAST_Searcher()
 
 # Function to execute a job in a background thread
 def execute_job_in_background(job_id):

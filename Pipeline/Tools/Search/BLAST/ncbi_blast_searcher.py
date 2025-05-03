@@ -10,7 +10,7 @@ from .phylogenetic_analyzer import PhylogeneticAnalyzer
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class BlastSearcher:
+class NCBI_BLAST_Searcher:
     def __init__(self):
         self.base_url = "https://blast.ncbi.nlm.nih.gov/Blast.cgi"
         self.default_program = "blastp"

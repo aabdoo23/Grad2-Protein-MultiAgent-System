@@ -4,6 +4,7 @@ import RBButton from 'react-bootstrap/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTree, faExpand } from '@fortawesome/free-solid-svg-icons';
 import PhylogeneticTreeTest from './phylotree/PhylogeneticTreeTest';
+import MSAViewer from './MSAViewer';
 
 const BlastResults = ({ results }) => {
   const [expandedHits, setExpandedHits] = useState({});
@@ -68,7 +69,157 @@ const BlastResults = ({ results }) => {
     });
   };
 
-  if (!results || !results.hits) return null;
+  if (!results) return null;
+
+  // Check if this is a ColabFold MSA result
+  const isColabFold = results.metrics?.search_type === 'colabfold';
+
+  if (isColabFold) {
+    // Find the first alignment FASTA string
+    let fastaAlignment = null;
+    if (results.alignments) {
+      for (const dbName in results.alignments) {
+        if (results.alignments[dbName]?.fasta?.alignment) {
+          fastaAlignment = results.alignments[dbName].fasta.alignment;
+          break;
+        }
+      }
+    }
+    // If we have a FASTA alignment, add percent identity to each header
+    let fastaWithIdentity = null;
+    if (fastaAlignment) {
+      // Parse FASTA
+      const lines = fastaAlignment.split(/\r?\n/);
+      let seqs = [];
+      let current = { name: '', seq: '' };
+      for (const line of lines) {
+        if (line.startsWith('>')) {
+          if (current.name) seqs.push(current);
+          current = { name: line.slice(1).trim(), seq: '' };
+        } else {
+          current.seq += line.trim();
+        }
+      }
+      if (current.name) seqs.push(current);
+      // Calculate percent identity to the first sequence (query)
+      if (seqs.length > 0) {
+        const querySeq = seqs[0].seq;
+        const newSeqs = seqs.map((s, idx) => {
+          let identity = 0;
+          if (querySeq.length === s.seq.length) {
+            let matches = 0, total = 0;
+            for (let i = 0; i < querySeq.length; ++i) {
+              if (querySeq[i] !== '-' && s.seq[i] !== '-') {
+                total++;
+                if (querySeq[i].toUpperCase() === s.seq[i].toUpperCase()) matches++;
+              }
+            }
+            identity = total > 0 ? (matches / total) * 100 : 0;
+          }
+          const identityStr = identity.toFixed(2) + '%';
+          const header = idx === 0 ? `${s.name.split('|')[0]} (100.00%)` : `${s.name.split('|')[0]} (${identityStr})`;
+          return `>${header}\n${s.seq}`;
+        });
+        fastaWithIdentity = newSeqs.join('\n');
+      } else {
+        fastaWithIdentity = fastaAlignment;
+      }
+    }
+    return (
+      <div className="space-y-4">
+        {fastaWithIdentity && (
+          <div className="bg-[#1a2b34] rounded-lg p-4">
+            <h5 className="text-white text-sm font-medium mb-2">Multiple Sequence Alignment</h5>
+            <MSAViewer fastaAlignment={fastaWithIdentity} />
+          </div>
+        )}
+        {results.phylogenetic_tree && (
+          <div className="bg-[#1a2b34] rounded-lg p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h5 className="text-white text-sm font-medium">Phylogenetic Tree</h5>
+              <div className="flex space-x-2">
+                <RBButton
+                  variant="outline-light"
+                  size="sm"
+                  onClick={handleGenerateTree}
+                  disabled={showTree}
+                >
+                  <FontAwesomeIcon icon={faTree} className="me-2 text-white" />
+                  <span className="text-white">{showTree ? 'Tree Generated' : 'Generate Tree'}</span>
+                </RBButton>
+                {showTree && (
+                  <RBButton
+                    variant="outline-light"
+                    size="sm"
+                    onClick={handleExpandTree}
+                  >
+                    <FontAwesomeIcon icon={faExpand} className="me-2 text-white" />
+                    <span className="text-white">Expand View</span>
+                  </RBButton>
+                )}
+              </div>
+            </div>
+            {showTree && (
+              <div className="tree-container" style={{ height: '400px', width: '100%', overflow: 'auto' }}>
+                <PhylogeneticTreeTest
+                  newick={results.phylogenetic_tree}
+                  width={800}
+                  height={400}
+                  padding={20}
+                  includeBLAxis={true}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Original NCBI BLAST results display
+  if (!results.hits) return null;
+
+  // Build a FASTA alignment from query and all hit HSPs
+  const buildBlastFastaAlignment = (results) => {
+    if (!results || !results.hits || results.hits.length === 0) return null;
+    const seqs = [];
+    // Add query sequence (from first HSP, as aligned)
+    let queryAligned = null;
+    for (const hit of results.hits) {
+      if (hit.hsps && hit.hsps.length > 0 && hit.hsps[0].qseq) {
+        queryAligned = hit.hsps[0].qseq;
+        break;
+      }
+    }
+    if (queryAligned) {
+      seqs.push({ name: 'Query (100.00%)', seq: queryAligned });
+    }
+    // Add all hit HSPs (aligned)
+    for (const hit of results.hits) {
+      if (hit.hsps && hit.hsps.length > 0 && hit.hsps[0].hseq) {
+        const hseq = hit.hsps[0].hseq;
+        // Calculate percent identity to queryAligned
+        let identity = 0;
+        if (queryAligned && hseq && queryAligned.length === hseq.length) {
+          let matches = 0, total = 0;
+          for (let i = 0; i < queryAligned.length; ++i) {
+            if (queryAligned[i] !== '-' && hseq[i] !== '-') {
+              total++;
+              if (queryAligned[i].toUpperCase() === hseq[i].toUpperCase()) matches++;
+            }
+          }
+          identity = total > 0 ? (matches / total) * 100 : 0;
+        }
+        const identityStr = identity.toFixed(2) + '%';
+        seqs.push({ name: `${hit.accession || hit.id || 'Hit'} (${identityStr})`, seq: hseq });
+      }
+    }
+    // Only show if at least 2 sequences
+    if (seqs.length < 2) return null;
+    return seqs.map(s => `>${s.name}\n${s.seq}`).join('\n');
+  };
+
+  const blastFastaAlignment = buildBlastFastaAlignment(results);
 
   const toggleHit = (hitId) => {
     setExpandedHits(prev => ({
@@ -129,6 +280,13 @@ const BlastResults = ({ results }) => {
               />
             </div>
           )}
+        </div>
+      )}
+
+      {blastFastaAlignment && (
+        <div className="bg-[#1a2b34] rounded-lg p-4">
+          <h5 className="text-white text-sm font-medium mb-2">Multiple Sequence Alignment</h5>
+          <MSAViewer fastaAlignment={blastFastaAlignment} />
         </div>
       )}
 
