@@ -58,6 +58,12 @@ For predict_structure, include a "model" parameter with one of these values ONLY
 For search_similarity, include a "search_type" parameter with one of these values ONLY IF the search type is explicitly specified in the user's request:
 - "ncbi": Use NCBI BLAST search
 - "colabfold": Use ColabFold MSA search
+- "local": Use local BLAST search with custom database
+
+For local BLAST search, you can also include these optional parameters:
+- "fasta_file": Path to a custom FASTA file to use as database
+- "db_name": Name for the custom database
+- "interpro_ids": List of InterPro IDs to create database from
 
 Example response format:
 {

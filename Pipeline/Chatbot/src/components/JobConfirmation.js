@@ -98,6 +98,7 @@ const JobConfirmation = ({ job, onConfirm, onReject }) => {
             >
               <option value="colabfold">ColabFold MSA - Fast, modern MSA search(~20 sec)</option>
               <option value="ncbi">NCBI BLAST - Standard, comprehensive search(~3 min)</option>
+              <option value="local">Local BLAST - Custom database search(~1 min)</option>
             </select>
           </div>
         )}

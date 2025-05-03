@@ -9,6 +9,7 @@ from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
 from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 from Tools.Search.BLAST.colabfold_msa_search import ColabFold_MSA_Searcher
+from Tools.Search.BLAST.local_blast import LocalBlastSearcher
 from job_manager import Job
 
 class PipelineController:
@@ -23,6 +24,7 @@ class PipelineController:
         self.evaluator = StructureEvaluator()
         self.ncbi_blast_searcher = NCBI_BLAST_Searcher()
         self.colabfold_msa_searcher = ColabFold_MSA_Searcher()
+        self.local_blast_searcher = LocalBlastSearcher()
         self.conversation_memory = conversation_memory
         self.job_manager = job_manager
         self.selected_functions = []
@@ -138,6 +140,26 @@ class PipelineController:
                 result = self.ncbi_blast_searcher.search(sequence)
             elif search_type == "colabfold":
                 result = self.colabfold_msa_searcher.search(sequence)
+            elif search_type == "local":
+                # Get local BLAST specific parameters
+                fasta_path = params.get("fasta_file", None)
+                custom_db = params.get("db_name", None)
+                interpro_ids = params.get("interpro_ids", None)
+                
+                # Run local BLAST search
+                result = self.local_blast_searcher.search(
+                    sequence=sequence,
+                    fasta_file=fasta_path,
+                    db_name=custom_db,
+                    interpro_ids=interpro_ids
+                )
+                
+                # If search was successful, check results
+                if result.get("success"):
+                    # For local BLAST, results are returned immediately
+                    return result
+                else:
+                    return {"success": False, "error": result.get("error", "Local BLAST search failed")}
             else:
                 return {"success": False, "error": f"Unknown search type: {search_type}"}
             
