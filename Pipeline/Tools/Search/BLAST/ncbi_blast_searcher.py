@@ -5,6 +5,7 @@ from typing import Dict, Any
 from bs4 import BeautifulSoup
 import logging
 from .phylogenetic_analyzer import PhylogeneticAnalyzer
+import json
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -15,7 +16,7 @@ class NCBI_BLAST_Searcher:
         self.base_url = "https://blast.ncbi.nlm.nih.gov/Blast.cgi"
         self.default_program = "blastp"
         self.default_database = "nr"
-        self.max_wait_time = 300  # 5 minutes
+        self.max_wait_time = 600  # 10 minutes
         self.poll_interval = 15   # 15 seconds
         self.phylogenetic_analyzer = PhylogeneticAnalyzer(email="aabdoo2304@gmail.com")
 
@@ -219,33 +220,51 @@ class NCBI_BLAST_Searcher:
             logger.error(f"Error processing XML results: {str(e)}")
             raise
 
-    def search(self, sequence: str) -> Dict[str, Any]:
-        """Submit a BLAST search and return the RID immediately.
-        
-        Args:
-            sequence (str): The protein sequence to search
+    def search(self, sequence: str, parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+        if not sequence:
+            return {"success": False, "error": "No sequence provided"}
             
-        Returns:
-            Dict[str, Any]: Dictionary containing:
-                - success: bool indicating if submission was successful
-                - rid: Request ID if successful
-                - error: Error message if unsuccessful
-        """
         try:
-            # Submit search
+            # Use parameters from the job if provided, otherwise use defaults
+            e_value = parameters.get("e_value", 0.0001) if parameters else 0.0001
+            database = parameters.get("database", "nr") if parameters else "nr"
+            sequence = sequence.replace(" ", "")
+            
+            # Submit the BLAST search using the existing submit_search method
             submit_result = self.submit_search(sequence)
-            if not submit_result['success']:
+            if not submit_result["success"]:
                 return submit_result
                 
-            return {
-                "success": True,
-                "rid": submit_result['rid'],
-                "status": "submitted",
-                "message": "BLAST search submitted successfully"
-            }
+            rid = submit_result["rid"]
             
+            # Poll for results
+            max_attempts = 30
+            polling_interval = 10
+            attempts = 0
+            
+            while attempts < max_attempts:
+                attempts += 1
+                time.sleep(polling_interval)
+                
+                # Check the status using the existing check_status method
+                status_result = self.check_status(rid)
+                if not status_result["success"]:
+                    return status_result
+                    
+                if status_result["status"] == "READY":
+                    # Get the results using the existing get_results method
+                    results = self.get_results(rid)
+                    if results["success"]:
+                        return results
+                    else:
+                        return {"success": False, "error": results.get("error", "Failed to get results")}
+                elif status_result["status"] == "FAILED":
+                    return {"success": False, "error": "BLAST search failed"}
+                # If still running, continue polling
+                
+            return {"success": False, "error": "BLAST search timed out"}
+                
         except Exception as e:
-            logger.error(f"Error during BLAST search submission: {str(e)}")
             return {"success": False, "error": str(e)}
 
     def check_results(self, rid: str) -> Dict[str, Any]:

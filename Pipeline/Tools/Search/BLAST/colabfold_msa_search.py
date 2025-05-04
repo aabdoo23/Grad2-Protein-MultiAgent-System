@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import logging
 from .phylogenetic_analyzer import PhylogeneticAnalyzer
+import requests
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -70,83 +71,34 @@ class ColabFold_MSA_Searcher:
             else:
                 raise HTTPException(status_code=response.status_code, detail=response.text)
 
-    def search(self, sequence: str) -> Dict[str, Any]:
-        """Submit a ColabFold MSA search and return the results.
-        
-        Args:
-            sequence (str): The protein sequence to search
+    def search(self, sequence: str, parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+        if not sequence:
+            return {"success": False, "error": "No sequence provided"}
             
-        Returns:
-            Dict[str, Any]: Dictionary containing:
-                - success: bool indicating if submission was successful
-                - results: Search results if successful
-                - error: Error message if unsuccessful
-        """
         try:
-            # Initial request
-            data = {
+            # Use parameters from the job if provided, otherwise use defaults
+            e_value = parameters.get("e_value", 0.0001) if parameters else 0.0001
+            iterations = parameters.get("iterations", 1) if parameters else 1
+            databases = parameters.get("databases", ["Uniref30_2302"]) if parameters else ["Uniref30_2302"]
+            output_alignment_formats = parameters.get("output_alignment_formats", ["fasta"]) if parameters else ["fasta"]
+            sequence = sequence.replace(" ", "")
+            # Prepare the MSA search parameters
+            msa_params = {
                 "sequence": sequence,
-                "e_value": self.default_e_value,
-                "iterations": self.default_iterations,
-                "databases": [self.default_database],
-                "output_alignment_formats": ["fasta"]
+                "e_value": e_value,
+                "iterations": iterations,
+                "databases": databases,
+                "output_alignment_formats": output_alignment_formats
             }
-
-            # Run the async function
-            code, response = asyncio.run(self._make_nvcf_call(data=data))
-            
+            code, response = asyncio.run(self._make_nvcf_call(data=msa_params))
             if code == 200:
-                response_dict = response.json()
-                
-                # Process the results
-                processed_results = {
-                    "success": True,
-                    "results": {
-                        "alignments": response_dict.get("alignments", {}),
-                        "templates": response_dict.get("templates", {}),
-                        "metrics": response_dict.get("metrics", {})
-                    }
-                }
-                
-                # Generate phylogenetic tree if alignments are available
-                if self.default_database in response_dict.get("alignments", {}):
-                    alignment = response_dict["alignments"][self.default_database]["fasta"]["alignment"]
-                    tree_file = self.phylogenetic_analyzer.create_phylogenetic_tree_from_alignment(alignment)
-                    if tree_file:
-                        processed_results["results"]["phylogenetic_tree"] = tree_file
-                
-                return processed_results
+                try:
+                    results = response.json()
+                    return {"success": True, "results": results}
+                except json.JSONDecodeError:
+                    return {"success": False, "error": "Failed to parse MSA results"}
             else:
-                return {"success": False, "error": f"Request failed with status code {code}"}
-                
+                return {"success": False, "error": f"Failed to submit MSA search: HTTP {code}"}
         except Exception as e:
-            logger.error(f"Error during ColabFold MSA search: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    def check_results(self, rid: str) -> Dict[str, Any]:
-        """Check the status and get results of a ColabFold MSA search.
-        
-        Args:
-            rid (str): The Request ID
-            
-        Returns:
-            Dict[str, Any]: Dictionary containing:
-                - success: bool indicating if check was successful
-                - status: Current status ('running', 'completed', 'failed')
-                - results: Processed results if completed
-                - error: Error message if unsuccessful
-        """
-        try:
-            # For ColabFold MSA, we don't need to check status as results are returned immediately
-            return {
-                "success": False,
-                "status": "failed",
-                "error": "ColabFold MSA search returns results immediately, no need to check status"
-            }
-        except Exception as e:
-            logger.error(f"Error checking ColabFold MSA results: {str(e)}")
-            return {
-                "success": False,
-                "status": "failed",
-                "error": str(e)
-            }

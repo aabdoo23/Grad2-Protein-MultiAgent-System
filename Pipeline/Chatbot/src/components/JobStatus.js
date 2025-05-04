@@ -92,7 +92,7 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
         }));
 
         // Get the filename from the original PDB path
-        const originalPdbFilename = originalPdbPath.split(/[\\\/]/).pop();
+        const originalPdbFilename = originalPdbPath.split('\\').pop();
         console.log('Original PDB filename:', originalPdbFilename);
         console.log('Downloaded PDB path:', pdbPath);
 
@@ -270,9 +270,9 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
 
 const JobStatus = forwardRef((props, ref) => {
   const [jobs, setJobs] = useState([]);
-  const [pollingIntervals, setPollingIntervals] = useState({});
+  const pollingIntervals = useRef({});
+  const jobTimers = useRef({});
   const [expandedJobs, setExpandedJobs] = useState({});
-  const [jobTimers, setJobTimers] = useState({});
   const viewerRefs = useRef({});
 
   const api = axios.create({
@@ -290,16 +290,10 @@ const JobStatus = forwardRef((props, ref) => {
   };
 
   const startTimer = (jobId) => {
-    setJobTimers(prev => ({
-      ...prev,
-      [jobId]: 0
-    }));
+    jobTimers.current[jobId] = 0;
 
     const timerInterval = setInterval(() => {
-      setJobTimers(prev => ({
-        ...prev,
-        [jobId]: (prev[jobId] || 0) + 1
-      }));
+      jobTimers.current[jobId] = (jobTimers.current[jobId] || 0) + 1;
     }, 1000);
 
     return timerInterval;
@@ -344,15 +338,15 @@ const JobStatus = forwardRef((props, ref) => {
                     });
 
                     if (status.status === 'completed' || status.status === 'failed') {
-                        clearInterval(pollingIntervals[jobId]);
-                        const newPollingIntervals = { ...pollingIntervals };
+                        clearInterval(pollingIntervals.current[jobId]);
+                        const newPollingIntervals = { ...pollingIntervals.current };
                         delete newPollingIntervals[jobId];
-                        setPollingIntervals(newPollingIntervals);
+                        pollingIntervals.current = newPollingIntervals;
 
-                        clearInterval(jobTimers[jobId]);
-                        const newJobTimers = { ...jobTimers };
+                        clearInterval(jobTimers.current[jobId]);
+                        const newJobTimers = { ...jobTimers.current };
                         delete newJobTimers[jobId];
-                        setJobTimers(newJobTimers);
+                        jobTimers.current = newJobTimers;
                     }
 
                     return updatedJobs;
@@ -407,8 +401,9 @@ const JobStatus = forwardRef((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     startPolling: (jobId) => {
-      if (pollingIntervals[jobId]) {
-        clearInterval(pollingIntervals[jobId]);
+      // Clear any existing polling interval for this job
+      if (pollingIntervals.current[jobId]) {
+        clearInterval(pollingIntervals.current[jobId]);
       }
 
       // Add the job to the list if it's not already there
@@ -422,6 +417,7 @@ const JobStatus = forwardRef((props, ref) => {
       // Start timer for this job
       const timerInterval = startTimer(jobId);
 
+      // Create a new polling interval for this job
       const interval = setInterval(async () => {
         try {
           const response = await api.get(`/job-status/${jobId}`);
@@ -444,16 +440,15 @@ const JobStatus = forwardRef((props, ref) => {
               return job;
             });
 
+            // Only stop polling if the job is completed or failed
             if (jobStatus.status === 'completed' || jobStatus.status === 'failed') {
-              clearInterval(pollingIntervals[jobId]);
-              const newPollingIntervals = { ...pollingIntervals };
-              delete newPollingIntervals[jobId];
-              setPollingIntervals(newPollingIntervals);
-
+              // Clean up intervals
+              clearInterval(pollingIntervals.current[jobId]);
               clearInterval(timerInterval);
-              const newJobTimers = { ...jobTimers };
-              delete newJobTimers[jobId];
-              setJobTimers(newJobTimers);
+              
+              // Update state to remove intervals
+              pollingIntervals.current = { ...pollingIntervals.current };
+              delete pollingIntervals.current[jobId];
             }
 
             return updatedJobs;
@@ -466,41 +461,35 @@ const JobStatus = forwardRef((props, ref) => {
                 job.id === jobId ? { ...job, status: 'failed', error: 'Job not found on server' } : job
               );
 
-              clearInterval(pollingIntervals[jobId]);
-              const newPollingIntervals = { ...pollingIntervals };
-              delete newPollingIntervals[jobId];
-              setPollingIntervals(newPollingIntervals);
-
+              // Clean up intervals on error
+              clearInterval(pollingIntervals.current[jobId]);
               clearInterval(timerInterval);
-              const newJobTimers = { ...jobTimers };
-              delete newJobTimers[jobId];
-              setJobTimers(newJobTimers);
-
-              return updatedJobs;
+              
+              pollingIntervals.current = { ...pollingIntervals.current };
+              delete pollingIntervals.current[jobId];
             });
           }
         }
       }, 5000);
 
-      setPollingIntervals(prev => ({
-        ...prev,
-        [jobId]: interval
-      }));
+      // Store the new interval
+      pollingIntervals.current[jobId] = interval;
     },
     stopAllPolling: () => {
-      Object.values(pollingIntervals).forEach(interval => clearInterval(interval));
-      setPollingIntervals({});
-      Object.values(jobTimers).forEach(timer => clearInterval(timer));
-      setJobTimers({});
+      // Clean up all polling intervals and timers
+      Object.values(pollingIntervals.current).forEach(interval => clearInterval(interval));
+      Object.values(jobTimers.current).forEach(timer => clearInterval(timer));
+      pollingIntervals.current = {};
+      jobTimers.current = {};
     }
   }));
 
   useEffect(() => {
     return () => {
       // Cleanup polling intervals on component unmount
-      Object.values(pollingIntervals).forEach(interval => clearInterval(interval));
+      Object.values(pollingIntervals.current).forEach(interval => clearInterval(interval));
     };
-  }, [pollingIntervals]);
+  }, []);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -544,9 +533,9 @@ const JobStatus = forwardRef((props, ref) => {
                 <div className={`w-2 h-2 rounded-full ${getStatusColor(job.status)}`} />
               </div>
               <div className="flex items-center space-x-2">
-                {job.status === 'running' && jobTimers[job.id] !== undefined && (
+                {job.status === 'running' && jobTimers.current[job.id] !== undefined && (
                   <span className="text-gray-400 text-sm">
-                    {formatTime(jobTimers[job.id])}
+                    {formatTime(jobTimers.current[job.id])}
                   </span>
                 )}
                 {job.blast_rid && (

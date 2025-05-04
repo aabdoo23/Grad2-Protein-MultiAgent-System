@@ -22,18 +22,63 @@ class AlphaFold2_Predictor(BaseStructurePredictor):
             "NVCF-POLL-SECONDS": "600",
         }
 
-    def predict_structure(self, sequence: str) -> Dict[str, Any]:
+    #e_value [float]
+    #Defaults to 0.0001
+    #The e-value used for filtering hits when building the Multiple Sequence Alignment.
+    
+    #databases [list]   
+    #Defaults to uniref90,mgnify,small_bfd
+    #Databases used for Multiple Sequence Alignment. By default, uniref90, mgnify, and small_bfd are used.Choice of databases(s) can significantly impact downstream structure prediction, so we recommend modifying carefully.
+    databases = ["uniref90", "mgnify", "small_bfd"]
+    
+    #algorithm The algorithm to use for MSA. AlphaFold2 was trained on JackHMMer; MMSeqs2 provides faster inference.
+    algorithms = ["mmseqs2", "jackhmmer"]
+    
+    #iterations [int]
+    #Defaults to 1
+    #The number of MSA iterations to perform.
+    
+    #relax_prediction [true, false]
+    #Defaults to true
+    #Run structural relaxation after prediction
+    
+    #structure_model_preset [monomer, multimer]
+    #Defaults to monomer
+    #The AlphaFold2 structural prediction model to use for inference.
+    
+    #structure_models_to_relax
+    #Defaults to all
+    #Which structural prediction to relax with AMBER. Default: relax all models
+    
+    #num_predictions_per_model [int]
+    #Defaults to 1
+    #Determines the number of times the trunk of the network is run with different random MSA cluster centers.
+
+    #max_msa_sequences 
+    #The maximum sequences taken from the MSA for model prediction.
+    
+    #template_searcher [hhsearch, hmmsearch]
+    #Defaults to hhsearch
+    #The template searcher to use for templating. hmmsearch should be used for multimer; most other queries should rely on hhsearch.
+    
+    def predict_structure(self, sequence: str, parameters: Dict[str, Any] = None) -> Dict[str, Any]:
         if not self.validate_sequence(sequence):
             return {"success": False, "error": "Invalid protein sequence."}
             
         try:
+            # Use parameters from the job if provided, otherwise use defaults
             data = {
                 "sequence": sequence,
-                "algorithm": "mmseqs2",
-                "e_value": 0.0001,
-                "iterations": 1,
-                "databases": ["small_bfd"],
-                "relax_prediction": False,
+                "algorithm": parameters.get("algorithm", "mmseqs2") if parameters else "mmseqs2",
+                "e_value": parameters.get("e_value", 0.0001) if parameters else 0.0001,
+                "iterations": parameters.get("iterations", 1) if parameters else 1,
+                "databases": parameters.get("databases", ["small_bfd"]) if parameters else ["small_bfd"],
+                "relax_prediction": parameters.get("relax_prediction", False) if parameters else False,
+                "structure_model_preset": parameters.get("structure_model_preset", "monomer") if parameters else "monomer",
+                "structure_models_to_relax": parameters.get("structure_models_to_relax", "all") if parameters else "all",
+                "num_predictions_per_model": parameters.get("num_predictions_per_model", 1) if parameters else 1,
+                "max_msa_sequences": parameters.get("max_msa_sequences", 512) if parameters else 512,
+                "template_searcher": parameters.get("template_searcher", "hhsearch") if parameters else "hhsearch",
                 "skip_template_search": True
             }
 
@@ -53,7 +98,6 @@ class AlphaFold2_Predictor(BaseStructurePredictor):
             if response.status_code == 200:
                 try:
                     result = response.json()
-                    # print("Received immediate response:", result)
                     if isinstance(result, list) and len(result) > 0:
                         structure = result[0]
                         pdb_file = self.save_structure(structure)

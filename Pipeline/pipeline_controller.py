@@ -1,5 +1,4 @@
-import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 from text_processor import TextProcessor, PipelineFunction
 from Tools.DeNovo.protein_generator import ProteinGenerator
 from Tools.TDStructure.Prediction.esm_predictor import ESM_Predictor
@@ -92,9 +91,9 @@ class PipelineController:
             if model == "esm":
                 prediction = self.esm_predictor.predict_structure(sequence)
             elif model == "alphafold2":
-                prediction = self.af2_predictor.predict_structure(sequence)
+                prediction = self.af2_predictor.predict_structure(sequence, params)
             elif model == "openfold":
-                prediction = self.openfold_predictor.predict_structure(sequence)
+                prediction = self.openfold_predictor.predict_structure(sequence, params)
             else:
                 return {"success": False, "error": f"Unknown model: {model}"}
                 
@@ -137,9 +136,9 @@ class PipelineController:
                 return {"success": False, "error": "No sequence provided"}
                 
             if search_type == "ncbi":
-                result = self.ncbi_blast_searcher.search(sequence)
+                result = self.ncbi_blast_searcher.search(sequence, params)
             elif search_type == "colabfold":
-                result = self.colabfold_msa_searcher.search(sequence)
+                result = self.colabfold_msa_searcher.search(sequence, params)
             elif search_type == "local":
                 # Get local BLAST specific parameters
                 fasta_path = params.get("fasta_file", None)

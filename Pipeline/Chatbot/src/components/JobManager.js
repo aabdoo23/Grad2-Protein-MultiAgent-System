@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'http://localhost:5000',
-  timeout: 900000, // 15 minutes timeout to accommodate AlphaFold2 predictions
+  timeout: 900000,
   headers: {
     'Content-Type': 'application/json'
   }

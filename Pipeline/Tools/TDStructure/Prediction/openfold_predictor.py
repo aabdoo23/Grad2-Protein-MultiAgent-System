@@ -19,15 +19,31 @@ class OpenFold_Predictor(BaseStructurePredictor):
             "NVCF-POLL-SECONDS": "300",
         }
 
-    def predict_structure(self, sequence: str) -> Dict[str, Any]:
+    #selected_models
+    #The models to use for structure prediction.
+    #Defaults to [1, 2, 3, 4, 5]
+    #The models to use for structure prediction.
+    selected_models = [1, 2, 3, 4, 5]
+    
+    #relax_prediction
+    #Defaults to false
+    #Run structural relaxation after prediction
+    relax_prediction = False
+    
+    
+    def predict_structure(self, sequence: str, parameters: Dict[str, Any] = None) -> Dict[str, Any]:
         if not self.validate_sequence(sequence):
             return {"success": False, "error": "Invalid protein sequence."}
             
         try:
+            # Use parameters from the job if provided, otherwise use defaults
+            selected_models = parameters.get("selected_models", [1, 2, 3, 4, 5]) if parameters else [1, 2, 3, 4, 5]
+            relax_prediction = parameters.get("relax_prediction", False) if parameters else False
+
             data = {
                 "sequence": sequence,
-                "selected_models": [1, 2, 3, 4, 5],
-                "relax_prediction": False,
+                "selected_models": selected_models,
+                "relax_prediction": relax_prediction,
             }
 
             print("Making request...")
