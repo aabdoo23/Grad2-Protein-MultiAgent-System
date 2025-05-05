@@ -122,12 +122,12 @@ class PipelineController:
             else:
                 result = {"success": False, "error": "No PDB file provided"}
         elif name == PipelineFunction.EVALUATE_STRUCTURE.value:
-            structure = params.get("structure", "")
-            if structure:
-                result = self.evaluator.evaluate_3d(structure)
-        elif name == PipelineFunction.EVALUATE_SEQUENCE.value:
-            seq = params.get("sequence", "")
-            result = self.evaluator.evaluate_sequence(seq)
+            pdb_file1 = params.get("pdb_file1", "")
+            pdb_file2 = params.get("pdb_file2", "")
+            if pdb_file1 and pdb_file2:
+                result = self.evaluator.evaluate_with_usalign(pdb_file1, pdb_file2)
+            else:
+                result = {"success": False, "error": "No PDB file provided"}
         elif name == PipelineFunction.SEARCH_SIMILARITY.value:
             sequence = params.get("sequence", "")
             search_type = params.get("search_type", "ncbi")  # Default to NCBI BLAST
@@ -170,7 +170,6 @@ class PipelineController:
             PipelineFunction.PREDICT_STRUCTURE.value: PipelineFunction.GENERATE_PROTEIN.value,
             PipelineFunction.SEARCH_STRUCTURE.value: PipelineFunction.PREDICT_STRUCTURE.value,
             PipelineFunction.EVALUATE_STRUCTURE.value: PipelineFunction.PREDICT_STRUCTURE.value,
-            PipelineFunction.EVALUATE_SEQUENCE.value: PipelineFunction.GENERATE_PROTEIN.value,
             PipelineFunction.SEARCH_SIMILARITY.value: PipelineFunction.GENERATE_PROTEIN.value
         }
         return dependencies.get(function_name)
@@ -220,8 +219,6 @@ class PipelineController:
             return f"Search for similar structures in the database"
         elif func["name"] == PipelineFunction.EVALUATE_STRUCTURE.value:
             return f"Evaluate the 3D structure quality and properties"
-        elif func["name"] == PipelineFunction.EVALUATE_SEQUENCE.value:
-            return f"Analyze sequence properties and characteristics"
         elif func["name"] == PipelineFunction.SEARCH_SIMILARITY.value:
             search_type = params.get("search_type", "colabfold")
             if search_type == "colabfold":

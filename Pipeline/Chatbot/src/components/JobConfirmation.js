@@ -9,10 +9,6 @@ const JobConfirmation = ({ job, onConfirm, onReject }) => {
   // Check job type
   const isStructurePrediction = job.function_name === "predict_structure";
   const isBlastSearch = job.function_name === "search_similarity";
-  const isStructureSearch = job.function_name === "search_structure";
-  const isStructureEvaluation = job.function_name === "evaluate_structure";
-  const isSequenceEvaluation = job.function_name === "evaluate_sequence";
-  const isProteinGeneration = job.function_name === "generate_protein";
 
   // Model-specific parameters
   const [openfoldParams, setOpenfoldParams] = useState({

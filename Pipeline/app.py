@@ -59,14 +59,31 @@ def confirm_job():
     if not job_id:
         return jsonify({"success": False, "message": "Job ID is required."})
     
+    # Check if job exists
     job = job_manager.get_job(job_id)
+    
+    # If job doesn't exist but we have job_data, create it
+    if not job and job_data:
+        # Create a new job from the provided data
+        job = job_manager.create_job(
+            job_id=job_id,
+            function_name=job_data.get('function_name'),
+            parameters=job_data.get('parameters', {}),
+            description=job_data.get('description', 'Sandbox job')
+        )
+    
+    # Still no job? Return error
     if not job:
         return jsonify({"success": False, "message": "Job not found."})
     
-    # Update job parameters if job_data is provided (for model selection)
+    # Update job parameters if job_data is provided
     if job_data and 'parameters' in job_data:
         # Update job parameters with the ones from the frontend
         job.parameters.update(job_data['parameters'])
+    
+    # For sandbox jobs, store the block_id if provided
+    if job_data and 'block_id' in job_data:
+        job.block_id = job_data['block_id']
     
     # Queue the job
     job_manager.queue_job(job_id)

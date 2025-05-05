@@ -8,8 +8,8 @@ class JobStatus(Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 class Job:
-    def __init__(self, title: str, description: str, function_name: str, parameters: Dict[str, Any]):
-        self.id = str(uuid.uuid4())
+    def __init__(self, title: str, description: str, function_name: str, parameters: Dict[str, Any], job_id: str = None):
+        self.id = job_id if job_id else str(uuid.uuid4())
         self.title = title
         self.description = description
         self.function_name = function_name
@@ -19,6 +19,7 @@ class Job:
         self.error = None
         self.progress = 0
         self.depends_on = None
+        self.block_id = None  # Added for Sandbox integration
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -31,7 +32,8 @@ class Job:
             "result": self.result,
             "error": self.error,
             "progress": self.progress,
-            "depends_on": self.depends_on
+            "depends_on": self.depends_on,
+            "block_id": self.block_id
         }
 
 class JobManager:
@@ -40,13 +42,26 @@ class JobManager:
         self.job_queue = []
         self.pending_confirmations = []
 
-    def create_job(self, title: str, description: str, function_name: str, parameters: Dict[str, Any]) -> Job:
-        job = Job(title, description, function_name, parameters)
+    def create_job(self, job_id: str = None, function_name: str = None, parameters: Dict[str, Any] = None, 
+                  description: str = None, title: str = None) -> Job:
+        """Create a new job with optional custom ID."""
+        parameters = parameters or {}
+        
+        if not title:
+            title = f"Job {function_name}" if function_name else f"Job {job_id}"
+            
+        if not description:
+            description = "Sandbox job"
+        
+        job = Job(title, description, function_name, parameters, job_id)
         self.jobs[job.id] = job
         return job
 
     def get_job(self, job_id: str) -> Optional[Job]:
-        return self.jobs.get(job_id)
+        print(f"Getting job {job_id}")
+        job = self.jobs.get(job_id)
+        print(f"Job: {job}")
+        return job
 
     def queue_job(self, job_id: str) -> bool:
         job = self.get_job(job_id)

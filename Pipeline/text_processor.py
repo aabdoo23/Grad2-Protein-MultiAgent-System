@@ -2,11 +2,14 @@ import json
 from enum import Enum
 from typing import Dict, Any
 from groq import Groq
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class PipelineFunction(Enum):
     GENERATE_PROTEIN = "generate_protein"
     PREDICT_STRUCTURE = "predict_structure"
-    EVALUATE_SEQUENCE = "evaluate_sequence"
     SEARCH_SIMILARITY = "search_similarity"
     SEARCH_STRUCTURE = "search_structure"
     EVALUATE_STRUCTURE = "evaluate_structure"
@@ -16,7 +19,6 @@ class PipelineFunction(Enum):
         descriptions = {
             cls.GENERATE_PROTEIN.value: "Generate a protein sequence with specific properties",
             cls.PREDICT_STRUCTURE.value: "Predict the 3D structure of a protein sequence",
-            cls.EVALUATE_SEQUENCE.value: "Evaluate properties of a protein sequence",
             cls.SEARCH_SIMILARITY.value: "Search for similar protein sequences",
             cls.SEARCH_STRUCTURE.value: "Search for similar protein structures using FoldSeek",
             cls.EVALUATE_STRUCTURE.value: "Evaluate the quality and properties of a predicted 3D structure"
@@ -25,7 +27,7 @@ class PipelineFunction(Enum):
 
 class TextProcessor:
     def __init__(self):
-        self.client = Groq(api_key="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") #invalidate on production
+        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
     def process_input(self, text: str) -> Dict[str, Any]:
         system_prompt = """
@@ -45,10 +47,10 @@ Return a JSON object with two fields:
 Valid function names and their purposes:
 - generate_protein: Generate a new protein sequence
 - predict_structure: Predict 3D structure of a protein sequence
-- evaluate_sequence: Analyze properties of a protein sequence
 - search_similarity: Search for similar protein sequences using BLAST or ColabFold MSA
 - search_structure: Search for similar protein structures using FoldSeek
-- evaluate_structure: Evaluate quality of a protein structure
+
+IMPORTANT: Every function in the chain MUST include a "parameters" field, even if it's an empty object {}.
 
 For predict_structure, include a "model" parameter with one of these values ONLY IF the model is explicitly specified in the user's request:
 - "esm": Use ESM model
@@ -94,20 +96,19 @@ Rules:
 1. For chained operations, only include required parameters in the first function
 2. Subsequent functions in the chain will automatically receive their parameters from previous functions
 3. Extract any protein sequence from the input text
-4. Only include generate_protein if explicitly requested
-5. Only include predict_structure if structure prediction is explicitly requested
-6. Only include evaluate_sequence if sequence evaluation is explicitly requested
+4. Every function MUST include a "parameters" field, even if empty
+5. Only include generate_protein if explicitly requested
+6. Only include predict_structure if structure prediction is explicitly requested
 7. Only include search_structure if FoldSeek search is explicitly requested
-8. Only include evaluate_structure if structure evaluation is explicitly requested
-9. When generating proteins, include specific requirements in the prompt
-10. Do not automatically add additional functions - only include what is explicitly requested
-11. For predict_structure, if it follows generate_protein, do not include sequence parameter
-12. For search_structure, if it follows predict_structure, do not include pdb_file parameter
-13. IMPORTANT: Use EXACTLY the function names listed above - do not use variations like 'blast_search'
-14. The explanation should be clear, concise, and explain what each function will do
-15. For predict_structure, ONLY include the model parameter if EXPLICITLY mentioned in the request
-16. For search_similarity, ONLY include the search_type parameter if EXPLICITLY mentioned in the request
-17. If a model or search type is not explicitly specified, DO NOT include the corresponding parameter
+8. When generating proteins, include specific requirements in the prompt
+9. Do not automatically add additional functions - only include what is explicitly requested
+10. For predict_structure, if it follows generate_protein, do not include sequence parameter
+11. For search_structure, if it follows predict_structure, do not include pdb_file parameter
+12. IMPORTANT: Use EXACTLY the function names listed above - do not use variations like 'blast_search'
+13. The explanation should be clear, concise, and explain what each function will do
+14. For predict_structure, ONLY include the model parameter if EXPLICITLY mentioned in the request
+15. For search_similarity, ONLY include the search_type parameter if EXPLICITLY mentioned in the request
+16. If a model or search type is not explicitly specified, DO NOT include the corresponding parameter
 """
         try:
             response = self.client.chat.completions.create(
@@ -160,7 +161,6 @@ Rules:
                 first_func = parsed["functions"][0] if parsed["functions"] else None
                 if first_func and first_func["name"] in [
                     PipelineFunction.PREDICT_STRUCTURE.value,
-                    PipelineFunction.EVALUATE_SEQUENCE.value,
                     PipelineFunction.SEARCH_SIMILARITY.value
                 ]:
                     if "sequence" not in first_func["parameters"] or not first_func["parameters"]["sequence"]:
@@ -174,14 +174,24 @@ Rules:
 
     def validate(self, data: Dict[str, Any]) -> bool:
         if "explanation" not in data or not isinstance(data["explanation"], str):
+            print("Missing or invalid explanation field")
             return False
         if "functions" not in data or not isinstance(data["functions"], list):
+            print("Missing or invalid functions field")
             return False
         valid = {f.value for f in PipelineFunction}
         for func in data["functions"]:
-            if not isinstance(func, dict) or "name" not in func or "parameters" not in func:
+            if not isinstance(func, dict):
+                print("Function must be a dictionary")
+                return False
+            if "name" not in func:
+                print("Missing name field in function")
+                return False
+            if "parameters" not in func:
+                print("Missing parameters field in function")
                 return False
             if func["name"] not in valid:
+                print(f"Invalid function name: {func['name']}")
                 return False
             # Validate model parameter for predict_structure if it exists
             if func["name"] == PipelineFunction.PREDICT_STRUCTURE.value and "model" in func["parameters"]:
