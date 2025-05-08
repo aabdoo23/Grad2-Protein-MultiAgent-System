@@ -74,6 +74,11 @@ const JobBlock = ({
     db_name: "",
     interpro_ids: []
   });
+
+  // Sequence iterator state
+  const [sequenceList, setSequenceList] = useState(block.parameters.sequences || []);
+  const [currentSequenceIndex, setCurrentSequenceIndex] = useState(block.parameters.currentIndex || 0);
+
   const viewerRefs = useRef({});
   const initViewer = (jobId, pdbPath) => {
     if (!viewerRefs.current[jobId]) {
@@ -121,6 +126,14 @@ const JobBlock = ({
     localBlastParams
   ]);
 
+  // Update local parameters when block parameters change
+  useEffect(() => {
+    if (blockType.id === 'sequence_iterator') {
+      setSequenceList(block.parameters.sequences || []);
+      setCurrentSequenceIndex(block.parameters.currentIndex || 0);
+    }
+  }, [block.parameters, blockType.id]);
+
   // Handle parameter changes
   const handleParameterChange = (paramType, paramName, value) => {
     switch (paramType) {
@@ -139,6 +152,12 @@ const JobBlock = ({
       case "local":
         setLocalBlastParams(prev => ({ ...prev, [paramName]: value }));
         break;
+      case "sequence_iterator":
+        if (paramName === "sequences") {
+          setSequenceList(value);
+          setCurrentSequenceIndex(0); // Reset index when sequences change
+        }
+        break;
       default:
         setLocalParams(prev => ({ ...prev, [paramName]: value }));
     }
@@ -146,7 +165,14 @@ const JobBlock = ({
 
   // Apply parameter changes
   const handleApplyParameters = () => {
-    onUpdateParameters(localParams);
+    if (blockType.id === 'sequence_iterator') {
+      onUpdateParameters({
+        sequences: sequenceList,
+        currentIndex: 0 // Reset index when applying new sequences
+      });
+    } else {
+      onUpdateParameters(localParams);
+    }
     setIsConfigOpen(false);
   };
 
@@ -251,7 +277,9 @@ const JobBlock = ({
 
   // Check if block has configurable options
   const hasConfigurableOptions = () => {
-    return blockType.id === 'predict_structure' || blockType.id === 'search_similarity';
+    return blockType.id === 'predict_structure' || 
+           blockType.id === 'search_similarity' || 
+           blockType.id === 'sequence_iterator';
   };
 
   // Render appropriate results based on block type
@@ -259,6 +287,19 @@ const JobBlock = ({
     if (!blockOutput) return null;
 
     switch (blockType.id) {
+      case 'sequence_iterator':
+        return (
+          <div className="bg-[#1a2b34] rounded-lg p-3">
+            <div className="text-white text-sm mb-2">Current Sequence:</div>
+            <div className="text-[#13a4ec] text-sm font-mono break-all">
+              {blockOutput.sequence}
+            </div>
+            <div className="text-gray-400 text-xs mt-2">
+              {currentSequenceIndex + 1} of {sequenceList.length} sequences
+            </div>
+          </div>
+        );
+
       case 'generate_protein':
         return <SequenceGenerationResults sequence={blockOutput.sequence} info={blockOutput.info} />;
 
@@ -321,6 +362,28 @@ const JobBlock = ({
     let parameterInputs = null;
 
     switch (blockType.id) {
+      case 'sequence_iterator':
+        parameterInputs = (
+          <div className="space-y-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Enter sequences (one per line):
+              </label>
+              <textarea
+                value={sequenceList.join('\n')}
+                onChange={(e) => {
+                  const sequences = e.target.value.split('\n').filter(s => s.trim());
+                  setSequenceList(sequences);
+                  setLocalParams({ sequences });
+                }}
+                className="w-full h-32 p-2 rounded bg-[#1a2a33] text-white border border-[#344854] focus:outline-none focus:ring-1 focus:ring-[#13a4ec] font-mono text-sm"
+                placeholder="Enter sequences here, one per line..."
+              />
+            </div>
+          </div>
+        );
+        break;
+
       case 'predict_structure':
         parameterInputs = (
           <>
@@ -573,6 +636,32 @@ const JobBlock = ({
     );
   };
 
+  // Handle running the block
+  const handleRunBlock = () => {
+    if (blockType.id === 'sequence_iterator') {
+      if (sequenceList.length === 0) {
+        // No sequences to iterate through
+        return;
+      }
+      
+      // Get the current sequence
+      const currentSequence = sequenceList[currentSequenceIndex];
+      
+      // Update the output
+      onRunBlock({
+        sequence: currentSequence,
+        info: `Sequence ${currentSequenceIndex + 1} of ${sequenceList.length}`
+      });
+      
+      // Move to the next sequence for the next run
+      setCurrentSequenceIndex((prevIndex) => 
+        prevIndex + 1 >= sequenceList.length ? 0 : prevIndex + 1
+      );
+    } else {
+      onRunBlock();
+    }
+  };
+
   return (
     <Draggable
       nodeRef={nodeRef}
@@ -654,7 +743,7 @@ const JobBlock = ({
                   </button>
                 )}
                 <button
-                  onClick={onRunBlock}
+                  onClick={handleRunBlock}
                   disabled={block.status === 'running'}
                   className="px-2 py-1 bg-white bg-opacity-20 text-white rounded text-xs hover:bg-opacity-30 disabled:opacity-50"
                 >

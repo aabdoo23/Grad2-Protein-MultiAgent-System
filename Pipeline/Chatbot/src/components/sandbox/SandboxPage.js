@@ -31,19 +31,19 @@ const SandboxPage = () => {
   // Available job types
   const blockTypes = [
     {
-      id: 'trigger',
-      name: 'Trigger',
-      description: 'Trigger the pipeline',
-      color: '#bbb000',
-      inputs: ['*'],
-      outputs: ['*']
-    },
-    {
       id: 'generate_protein',
       name: 'Generate Protein',
       description: 'Generate a protein sequence with specific properties',
       color: '#E74C3C',
       inputs: ['*'],
+      outputs: ['sequence']
+    },
+    {
+      id: 'sequence_iterator',
+      name: 'Sequence Iterator',
+      description: 'Iterate through a list of sequences one at a time',
+      color: '#2ECC71',
+      inputs: [],
       outputs: ['sequence']
     },
     {
@@ -69,14 +69,6 @@ const SandboxPage = () => {
       color: '#9B59B6',
       inputs: ['structure'],
       outputs: ['results']
-    },
-    {
-      id: 'end',
-      name: 'End',
-      description: 'End the pipeline',
-      color: '#000000',
-      inputs: ['*'],
-      outputs: ['*']
     }
   ];
 
@@ -144,33 +136,9 @@ const SandboxPage = () => {
     }
   };
 
-  const runTrigger = async (blockId) => {
-    //run the trigger
-    const trigger = blocks.find(b => b.id === blockId);
-    if (!trigger) return;
-    setBlocks(prevBlocks => 
-      prevBlocks.map(b => 
-        b.id === trigger.id ? { ...b, status: 'completed' } : b
-      )
-    );
-    //get all the blocks that are connected to the trigger, and run them
-    const triggerConnections = connections[trigger.id];
-    if (!triggerConnections) return;
-    //run all the blocks that are connected to the trigger
-    for (const [inputType, connection] of Object.entries(triggerConnections)) {
-      runBlock(connection.blockId);
-    }
-  };
-
-  // Run a specific block
   const runBlock = async (blockId) => {
     const block = blocks.find(b => b.id === blockId);
     if (!block) return;
-
-    if (block.type === 'trigger') {
-      runTrigger(blockId);
-      return;
-    }
 
     // Update block status
     setBlocks(prevBlocks => 
@@ -178,6 +146,50 @@ const SandboxPage = () => {
         b.id === blockId ? { ...b, status: 'running' } : b
       )
     );
+
+    // Special handling for sequence_iterator block type
+    if (block.type === 'sequence_iterator') {
+      const sequences = block.parameters.sequences || [];
+      const currentIndex = block.parameters.currentIndex || 0;
+      
+      if (sequences.length === 0) {
+        // No sequences to iterate through
+        setBlocks(prevBlocks => 
+          prevBlocks.map(b => 
+            b.id === blockId ? { ...b, status: 'failed' } : b
+          )
+        );
+        return;
+      }
+
+      // Get the current sequence
+      const currentSequence = sequences[currentIndex];
+      
+      // Update block status and output
+      setBlocks(prevBlocks => 
+        prevBlocks.map(b => 
+          b.id === blockId ? { 
+            ...b, 
+            status: 'completed',
+            parameters: {
+              ...b.parameters,
+              currentIndex: (currentIndex + 1) % sequences.length
+            }
+          } : b
+        )
+      );
+
+      // Store block output
+      setBlockOutputs(prev => ({
+        ...prev,
+        [blockId]: {
+          sequence: currentSequence,
+          info: `Sequence ${currentIndex + 1} of ${sequences.length}`
+        }
+      }));
+      
+      return;
+    }
 
     // Get input data from connected blocks
     const blockInputs = {};
