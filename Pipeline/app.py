@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, session, send_from_directory
+from flask import Flask, request, jsonify, session, send_from_directory, send_file
 from flask_cors import CORS
 from pipeline_controller import PipelineController
 from conversation_memory import ConversationMemory
@@ -8,9 +8,21 @@ from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 import os
 import threading
+import zipfile
+import io
+import json
+from datetime import datetime
 
 app = Flask(__name__)
-CORS(app)
+# Configure CORS to allow credentials and specific headers
+CORS(app, supports_credentials=True, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Disposition"]
+    }
+})
 app.secret_key = "YOUR_SECRET_KEY"  # Needed for session management
 
 # Configure static file serving
@@ -188,6 +200,157 @@ def check_blast_results(rid):
             "status": "failed",
             "error": str(e)
         }), 500
+
+@app.route('/download-sequence', methods=['POST'])
+def download_sequence():
+    """Download a sequence as a FASTA file."""
+    data = request.json
+    sequence = data.get('sequence')
+    sequence_name = data.get('sequence_name', 'sequence')
+    
+    if not sequence:
+        return jsonify({'success': False, 'error': 'No sequence provided'}), 400
+    
+    # Create FASTA content
+    fasta_content = f">{sequence_name}\n{sequence}"
+    
+    # Create response with FASTA file
+    response = io.BytesIO()
+    response.write(fasta_content.encode())
+    response.seek(0)
+    
+    filename = f"{sequence_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.fasta"
+    return send_file(
+        response,
+        mimetype='text/plain',
+        as_attachment=True,
+        download_name=filename
+    )
+
+@app.route('/download-structure', methods=['POST'])
+def download_structure():
+    """Download a PDB structure file."""
+    data = request.json
+    pdb_file = data.get('pdb_file')
+    
+    if not pdb_file:
+        return jsonify({'success': False, 'error': 'No PDB file provided'}), 400
+    
+    # Get the full path to the PDB file
+    pdb_path = os.path.join(STATIC_PDB_DIR, os.path.basename(pdb_file))
+    
+    if not os.path.exists(pdb_path):
+        return jsonify({'success': False, 'error': 'PDB file not found'}), 404
+    
+    return send_file(
+        pdb_path,
+        mimetype='chemical/x-pdb',
+        as_attachment=True,
+        download_name=os.path.basename(pdb_file)
+    )
+
+@app.route('/download-search-results', methods=['POST'])
+def download_search_results():
+    """Download search results as a zip file containing FASTA files for each database."""
+    data = request.json
+    results = data.get('results')
+    search_type = data.get('search_type')
+    
+    if not results or not search_type:
+        return jsonify({'success': False, 'error': 'Missing results or search type'}), 400
+    
+    # Create a zip file in memory
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        if search_type == 'similarity':
+            # For BLAST search results, create a FASTA file with all hits
+            fasta_content = ""
+            for hit in results.get('hits', []):
+                print(hit)
+                # Get the sequence from the first HSP
+                if hit.get('hsps') and len(hit['hsps']) > 0:
+                    hsp = hit['hsps'][0]
+                    # Use the hit sequence from the HSP
+                    sequence = hsp.get('hseq', '')
+                    if sequence:
+                        # Clean up the ID to make it FASTA-compatible
+                        hit_id = hit.get('id', '').replace('|', '_')
+                        fasta_content += f">{hit_id}\n{sequence}\n"
+            
+            # Add the FASTA file to the zip
+            if fasta_content:
+                zip_file.writestr("blast_results.fasta", fasta_content)
+            
+            # Add the original results as JSON for reference
+            results_json = json.dumps(results, indent=2)
+            zip_file.writestr("blast_results.json", results_json)
+        
+        elif search_type == 'structure':
+            # For structure search, create a JSON file with results and download PDBs
+            results_json = json.dumps(results, indent=2)
+            zip_file.writestr("search_results.json", results_json)
+            
+            # Add PDB files if available
+            for hit in results.get('hits', []):
+                pdb_file = hit.get('pdb_file')
+                if pdb_file:
+                    pdb_path = os.path.join(STATIC_PDB_DIR, os.path.basename(pdb_file))
+                    if os.path.exists(pdb_path):
+                        zip_file.write(pdb_path, os.path.basename(pdb_file))
+    
+    # Prepare the zip file for download
+    zip_buffer.seek(0)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"search_results_{timestamp}.zip"
+    
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=filename
+    )
+@app.route('/download-multiple', methods=['POST'])
+def download_multiple():
+    """
+    Expects JSON:
+      { items: [ { outputType: str, data: {...} }, ... ] }
+    Each item.data must contain whatever fields are needed to reconstruct
+    a downloadable file (e.g. sequence text, pdb filename, results array, etc).
+    """
+    payload = request.get_json(force=True)
+    items = payload.get('items', [])
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for idx, item in enumerate(items, start=1):
+            typ = item.get('outputType')
+            data = item.get('data') or {}
+            # customize how you serialize each type:
+            if typ == 'sequence' and data.get('sequence'):
+                name = f"sequence_{idx}.fasta"
+                sequence_name = data.get('sequence_name') or f'seq{str(idx)}'
+                fasta = f">{sequence_name}\n{data.get('sequence')}\n"
+                zipf.writestr(name, fasta)
+            elif typ == 'structure' and data.get('pdb_file'):
+                pdb_path = os.path.join(STATIC_PDB_DIR, os.path.basename(data.get('pdb_file')))
+                if os.path.exists(pdb_path):
+                    zipf.write(pdb_path, f"structure_{idx}.pdb")
+            elif typ == 'results' and isinstance(data.get('results'), dict):
+                # JSON dump
+                name = f"results_{idx}.json"
+                zipf.writestr(name, json.dumps(data.get('results'), indent=2))
+            else:
+                # fallback: JSON
+                name = f"item_{idx}.json"
+                zipf.writestr(name, json.dumps(data, indent=2))
+
+    zip_buffer.seek(0)
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+    )
 
 if __name__ == '__main__':
     import uuid

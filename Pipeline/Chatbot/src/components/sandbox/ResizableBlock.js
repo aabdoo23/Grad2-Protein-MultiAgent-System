@@ -75,8 +75,6 @@ const ResizableBlock = ({ children, width, height, onResize }) => {
 
   const resizeHandleStyle = {
     position: 'absolute',
-    // backgroundColor: 'rgba(255, 255, 255, 0)',
-    // border: '2px solid rgba(255, 255, 255, 0)'
   };
 
   return (

@@ -1,6 +1,7 @@
 import os
 import time
 import requests
+import json
 from typing import Dict, Any
 
 class FoldseekSearcher:
@@ -84,12 +85,24 @@ class FoldseekSearcher:
         return {"success": False, "error": "Timeout waiting for results."}
 
     def get_results(self, ticket_id: str) -> Dict[str, Any]:
-        res = requests.get(f"{self.base_url}/result/{ticket_id}/0").json()
-        print(res)
-        
-        res = self._process_results(res)
-        print(res)
-        return {"success": True, "results": res}
+        try:
+            response = requests.get(f"{self.base_url}/result/{ticket_id}/0")
+            # Check if response is successful and not empty
+            if response.status_code != 200:
+                return {"success": False, "error": f"API returned error code: {response.status_code}"}
+            if not response.text:
+                return {"success": False, "error": "Empty response from FoldSeek API"}
+            
+            # Try to parse JSON
+            res = response.json()
+            processed_results = self._process_results(res)
+            return {"success": True, "results": processed_results}
+        except requests.exceptions.RequestException as e:
+            return {"success": False, "error": f"Request error: {str(e)}"}
+        except json.JSONDecodeError as e:
+            return {"success": False, "error": f"JSON parsing error: {str(e)}, Response content: {response.text[:100]}..."}
+        except Exception as e:
+            return {"success": False, "error": f"Unexpected error: {str(e)}"}
 
     def download_pdb(self, target_id: str, database: str) -> Dict[str, Any]:
         """Download PDB file from either RCSB or AlphaFold database.

@@ -101,7 +101,19 @@ const WorkspaceSurface = ({
       
       if (!sourceBlockType || !targetBlockType) return;
       
-      // Make sure the output and input types match
+      // For multi-download block, we allow any output type to connect to any input
+      if (targetBlockType.id === 'multi_download') {
+        connectBlocks(
+          connecting.sourceBlockId,
+          targetBlockId,
+          connecting.outputType,
+          inputType
+        );
+        setConnecting(null);
+        return;
+      }
+      
+      // For other blocks, make sure the output and input types match
       if (connecting.outputType !== inputType && connecting.outputType !== '*' && inputType !== '*') {
         console.warn(`Type mismatch: trying to connect ${connecting.outputType} to ${inputType}`);
         setConnecting(null);
@@ -151,13 +163,33 @@ const WorkspaceSurface = ({
     const outputIndex = sourceBlockType.outputs.indexOf(outputType);
     const sourceY = blockPositions[sourceBlockId]?.y + 60 + (outputIndex * 24) || 0;
     
-    // Calculate input port position (left side of target block)
-    const inputIndex = targetBlockType.inputs.indexOf(inputType);
-    const targetY = blockPositions[targetBlockId]?.y + 60 + (inputIndex * 24) || 0;
+    // For multi_download block, add a small offset to each connection to the same input
+    // This helps visualize multiple connections to the same input point
+    let targetY = 0;
+    
+    if (targetBlockType.id === 'multi_download') {
+      // Get the base input position
+      const inputIndex = targetBlockType.inputs.indexOf(inputType.split('_')[0]);
+      const baseY = blockPositions[targetBlockId]?.y + 60 + (inputIndex * 24) || 0;
+      
+      // Get all connections to this target block
+      const targetConnections = connections[targetBlockId] || {};
+      
+      // Find the index of this specific connection
+      const connectionKeys = Object.keys(targetConnections);
+      const currentIndex = connectionKeys.indexOf(inputType);
+      
+      // Apply a small offset based on the connection index
+      targetY = baseY + (currentIndex * 4);
+    } else {
+      // For regular blocks, use the normal input port position
+      const inputIndex = targetBlockType.inputs.indexOf(inputType);
+      targetY = blockPositions[targetBlockId]?.y + 60 + (inputIndex * 24) || 0;
+    }
     
     return {
       start: { 
-        x: blockPositions[sourceBlockId]?.x + 200 || 0, 
+        x: blockPositions[sourceBlockId]?.x + (blockDimensions[sourceBlockId]?.width || 200) || 0, 
         y: sourceY 
       },
       end: { 
@@ -262,6 +294,7 @@ const WorkspaceSurface = ({
           onPositionUpdate={handleBlockPositionUpdate}
           onResize={handleBlockResize}
           onDeleteBlock={onDeleteBlock}
+          connections={connections}
         />
       ))}
     </div>
