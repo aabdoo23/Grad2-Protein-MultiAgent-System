@@ -18,22 +18,26 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
 
   if (!results || !results.databases) return null;
 
-  const initViewer = (hitId, pdbPath) => {
-    if (!viewerRefs.current[hitId]) {
-      const stage = new NGL.Stage(`viewer-${hitId}`, { backgroundColor: '#1a2b34' });
-      viewerRefs.current[hitId] = stage;
+  const initViewer = (jobId, pdbPath) => {
+    // if (!viewerRefs.current[jobId]) {
+    const stage = new NGL.Stage(`viewer-${jobId}`, { backgroundColor: '#1a2b34' });
+    viewerRefs.current[jobId] = stage;
 
-      // Load and display the PDB structure
-      const filename = pdbPath.split('\\').pop();
-      stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
-        component.addRepresentation('cartoon', {
-          color: '#13a4ec',
-          roughness: 1.0,
-          metalness: 0.0
-        });
-        component.autoView();
+    // Load and display the PDB structure
+    const filename = pdbPath.split('\\').pop();
+    stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
+      component.addRepresentation('cartoon', {
+        color: 'bfactor',
+        colorScale: 'RdYlBu',
+        colorScaleReverse: true,
+        colorDomain: [0, 100],
+        roughness: 1.0,
+        metalness: 0.0
       });
-    }
+      component.autoView();
+
+    });
+    // }
   };
 
   const handleVisualize = async (hit, dbName) => {
@@ -147,19 +151,32 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
                 </div>
 
                 {visualizedHits[hitKey] && (
-                  <div
-                    id={`viewer-${hitKey}`}
-                    className="w-full h-[300px] rounded-lg mt-3 bg-[#1a2b34]"
-                    ref={(el) => {
-                      if (el) {
-                        if (viewerRefs.current[hitKey]) {
-                          viewerRefs.current[hitKey].dispose();
-                          delete viewerRefs.current[hitKey];
-                        }
-                        initViewer(hitKey, visualizedHits[hitKey]);
-                      }
-                    }}
-                  />
+                  <div className="bg-[#1a2b34] rounded-lg p-3">
+                    <>
+                      <div
+                        id={`viewer-${hitKey}`}
+                        className="w-full h-[300px] rounded-lg mb-3 bg-[#1a2b34]"
+                        ref={(el) => {
+                          if (el) {
+                            initViewer(hitKey, visualizedHits[hitKey]);
+                          }
+                        }}
+                      />
+                      <div className="mt-2 text-xs text-gray-300">
+                        <div className="w-full h-2 rounded overflow-hidden"
+                          style={{
+                            background: 'linear-gradient(to left, #313695, #ffffbf, #a50026)'
+                          }} />
+                        <div className="flex justify-between mt-1">
+                          <span>0</span>
+                          <span>50</span>
+                          <span>100</span>
+                        </div>
+                        <div className="text-center mt-0.5">pLDDT score</div>
+                      </div>
+                      
+                    </>
+                  </div>
                 )}
 
                 {evaluationResults[hitKey] && (

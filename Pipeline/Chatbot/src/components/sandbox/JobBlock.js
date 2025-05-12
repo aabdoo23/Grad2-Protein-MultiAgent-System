@@ -5,13 +5,12 @@ import BlastResults from '../BlastResults';
 import ResizableBlock from './ResizableBlock';
 import FoldSeekResults from '../result-viewers/FoldSeekResults';
 import SequenceGenerationResults from '../result-viewers/SequenceGenerationResults';
-import EvaluationResults from '../result-viewers/EvaluationResults';
+import { downloadService } from '../../services/api';
 
-
-const JobBlock = ({ 
-  block, 
-  blockType, 
-  onStartConnection, 
+const JobBlock = ({
+  block,
+  blockType,
+  onStartConnection,
   onCompleteConnection,
   onInputPortHover,
   onRunBlock,
@@ -20,7 +19,10 @@ const JobBlock = ({
   isConnecting,
   onPositionUpdate,
   onResize,
-  onDeleteBlock
+  onDeleteBlock,
+  connections,
+  loopConfig,
+  setLoopConfig
 }) => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isResultsOpen, setIsResultsOpen] = useState(false);
@@ -29,8 +31,8 @@ const JobBlock = ({
   const viewerRef = useRef(null);
   const contentRef = useRef(null);
   const [dimensions, setDimensions] = useState({
-    width: block.width || 350,
-    height: block.height || 200
+    width: block.width || 450,
+    height: block.height || 300
   });
 
   // Model and search type states
@@ -65,7 +67,7 @@ const JobBlock = ({
   const [colabfoldParams, setColabfoldParams] = useState({
     e_value: 0.0001,
     iterations: 1,
-    databases: ["Uniref30_2302","PDB70_220313","colabfold_envdb_202108"],
+    databases: ["Uniref30_2302", "PDB70_220313", "colabfold_envdb_202108"],
     output_alignment_formats: ["fasta"]
   });
 
@@ -74,22 +76,32 @@ const JobBlock = ({
     db_name: "",
     interpro_ids: []
   });
+
+  // Sequence iterator state
+  const [sequenceList, setSequenceList] = useState(block.parameters.sequences || []);
+  const [currentSequenceIndex, setCurrentSequenceIndex] = useState(block.parameters.currentIndex || 0);
+
   const viewerRefs = useRef({});
   const initViewer = (jobId, pdbPath) => {
     if (!viewerRefs.current[jobId]) {
-      const stage = new NGL.Stage(`viewer-${jobId}`, { backgroundColor: '#1a2b34' });
-      viewerRefs.current[jobId] = stage;
-  
-      // Load and display the PDB structure
-      const filename = pdbPath.split('\\').pop();
-      stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
-        component.addRepresentation('cartoon', {
-          color: '#13a4ec',
-          roughness: 1.0,
-          metalness: 0.0
-        });
-        component.autoView();
+    const stage = new NGL.Stage(`viewer-${jobId}`, { backgroundColor: '#1a2b34' });
+    viewerRefs.current[jobId] = stage;
+
+    // Load and display the PDB structure
+    const filename = pdbPath.split('\\').pop();
+    stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
+      component.addRepresentation('cartoon', {
+        color: 'bfactor',
+        // choose a color map and domain – pLDDT ranges 0–100
+        colorScale: 'RdYlBu',
+        colorScaleReverse: true,
+        colorDomain: [0, 100],
+        roughness: 1.0,
+        metalness: 0.0
       });
+      component.autoView();
+
+    });
     }
   };
 
@@ -121,6 +133,14 @@ const JobBlock = ({
     localBlastParams
   ]);
 
+  // Update local parameters when block parameters change
+  useEffect(() => {
+    if (blockType.id === 'sequence_iterator') {
+      setSequenceList(block.parameters.sequences || []);
+      setCurrentSequenceIndex(block.parameters.currentIndex || 0);
+    }
+  }, [block.parameters, blockType.id]);
+
   // Handle parameter changes
   const handleParameterChange = (paramType, paramName, value) => {
     switch (paramType) {
@@ -139,6 +159,12 @@ const JobBlock = ({
       case "local":
         setLocalBlastParams(prev => ({ ...prev, [paramName]: value }));
         break;
+      case "sequence_iterator":
+        if (paramName === "sequences") {
+          setSequenceList(value);
+          setCurrentSequenceIndex(0); // Reset index when sequences change
+        }
+        break;
       default:
         setLocalParams(prev => ({ ...prev, [paramName]: value }));
     }
@@ -146,7 +172,14 @@ const JobBlock = ({
 
   // Apply parameter changes
   const handleApplyParameters = () => {
-    onUpdateParameters(localParams);
+    if (blockType.id === 'sequence_iterator') {
+      onUpdateParameters({
+        sequences: sequenceList,
+        currentIndex: 0 // Reset index when applying new sequences
+      });
+    } else {
+      onUpdateParameters(localParams);
+    }
     setIsConfigOpen(false);
   };
 
@@ -165,7 +198,7 @@ const JobBlock = ({
     if (isResultsOpen && blockOutput && blockOutput.pdb_file && viewerRef.current) {
       try {
         const stage = new NGL.Stage(viewerRef.current, { backgroundColor: '#1a2b34' });
-        
+
         // Load and display the PDB structure
         const filename = blockOutput.pdb_file.split('\\').pop();
         stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
@@ -203,12 +236,12 @@ const JobBlock = ({
   // Calculate content height
   const calculateContentHeight = () => {
     if (!contentRef.current) return 200;
-    
+
     const baseHeight = 200; // Minimum height
     const contentHeight = contentRef.current.scrollHeight;
     const configHeight = isConfigOpen ? 300 : 0; // Approximate config panel height
     const resultsHeight = isResultsOpen ? 400 : 0; // Approximate results height
-    
+
     return Math.max(baseHeight, contentHeight + configHeight + resultsHeight);
   };
 
@@ -226,6 +259,7 @@ const JobBlock = ({
 
   // Toggle results view
   const toggleResults = () => {
+    viewerRefs.current[blockOutput.id] = null;
     setIsResultsOpen(!isResultsOpen);
   };
 
@@ -251,66 +285,217 @@ const JobBlock = ({
 
   // Check if block has configurable options
   const hasConfigurableOptions = () => {
-    return blockType.id === 'predict_structure' || blockType.id === 'search_similarity';
+    return blockType.id === 'predict_structure' ||
+      blockType.id === 'search_similarity' ||
+      blockType.id === 'sequence_iterator';
   };
 
-  // Render appropriate results based on block type
+  // Add loop block selection handlers
+  const handleLoopBlockSelect = (type) => {
+    if (type === 'start') {
+      setLoopConfig(prev => ({
+        ...prev,
+        startBlockId: block.id
+      }));
+    } else if (type === 'end') {
+      setLoopConfig(prev => ({
+        ...prev,
+        endBlockId: block.id
+      }));
+    }
+  };
+
+  // Add loop block selection UI
+  const renderLoopControls = () => {
+    if (!loopConfig) return null;
+
+    const isStartBlock = loopConfig.startBlockId === block.id;
+    const isEndBlock = loopConfig.endBlockId === block.id;
+
+    return (
+      <div className="flex items-center gap-2 mt-2">
+        <button
+          onClick={() => handleLoopBlockSelect('start')}
+          className={`px-2 py-1 text-xs rounded ${
+            isStartBlock 
+              ? 'bg-green-500 text-white' 
+              : 'bg-[#233c48] text-white border border-[#13a4ec] hover:bg-[#2a4a5a]'
+          }`}
+        >
+          {isStartBlock ? 'Start Block ✓' : 'Set as Start'}
+        </button>
+        <button
+          onClick={() => handleLoopBlockSelect('end')}
+          className={`px-2 py-1 text-xs rounded ${
+            isEndBlock 
+              ? 'bg-green-500 text-white' 
+              : 'bg-[#233c48] text-white border border-[#13a4ec] hover:bg-[#2a4a5a]'
+          }`}
+        >
+          {isEndBlock ? 'End Block ✓' : 'Set as End'}
+        </button>
+      </div>
+    );
+  };
+
   const renderResults = () => {
     if (!blockOutput) return null;
 
+    const renderDownloadButton = () => {
+      if (!blockOutput) return null;
+
+      const handleDownload = async () => {
+        try {
+          let response;
+
+          switch (blockType.id) {
+            case 'generate_protein':
+            case 'sequence_iterator':
+              response = await downloadService.downloadSequence(
+                blockOutput.sequence,
+                `sequence_${block.id}`
+              );
+              break;
+
+            case 'predict_structure':
+              response = await downloadService.downloadStructure(blockOutput.pdb_file);
+              break;
+
+            case 'search_similarity':
+            case 'search_structure':
+              response = await downloadService.downloadSearchResults(
+                blockOutput.results,
+                blockType.id === 'search_similarity' ? 'similarity' : 'structure'
+              );
+              break;
+
+            default:
+              console.error('Unknown block type for download:', blockType.id);
+              return;
+          }
+
+          downloadService.handleFileDownload(response);
+        } catch (error) {
+          console.error('Error downloading file:', error);
+          if (error.response) {
+            console.error('Error response:', error.response.data);
+          }
+        }
+      };
+
+      return (
+        <button
+          onClick={handleDownload}
+          className="mt-2 px-3 py-1 bg-[#13a4ec] text-white rounded text-sm hover:bg-[#0f8fd1]"
+        >
+          Download Results
+        </button>
+      );
+    };
+
     switch (blockType.id) {
+      case 'sequence_iterator':
+        return (
+          <div className="p-4">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-white mb-2">Sequence Iterator Results</h3>
+              {blockOutput.progress && (
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm text-gray-300 mb-1">
+                    <span>Progress: {blockOutput.progress.completed} of {blockOutput.progress.total} sequences</span>
+                    <span>{blockOutput.progress.remaining} remaining</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2.5">
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                      style={{ width: `${(blockOutput.progress.completed / blockOutput.progress.total) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+              <div className="bg-[#1a2a33] p-3 rounded-lg">
+                <div className="text-sm text-gray-300 mb-2">{blockOutput.info}</div>
+                <div className="font-mono text-sm text-white whitespace-pre-wrap break-all">
+                  {blockOutput.sequence}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              {renderDownloadButton()}
+            </div>
+          </div>
+        );
+
       case 'generate_protein':
-        return <SequenceGenerationResults sequence={blockOutput.sequence} info={blockOutput.info} />;
+        return (
+          <div className="bg-[#1a2b34] rounded-lg p-3">
+            <SequenceGenerationResults sequence={blockOutput.sequence} info={blockOutput.info} />
+            {renderDownloadButton()}
+          </div>
+        );
 
       case 'predict_structure':
         return (
-          <>
-            <div
-              id={`viewer-${blockOutput.id}`}
-              className="w-full h-[300px] rounded-lg mb-3 bg-[#1a2b34]"
-              ref={(el) => {
-                if (el) {
-                  initViewer(blockOutput.id, blockOutput.pdb_file);
-                }
-              }}
-            />
-            {blockOutput.metrics && (
-              <div className="grid grid-cols-2 gap-3 bg-[#1a2b34] p-3 rounded-lg">
-                {Object.entries(blockOutput.metrics).map(([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="text-gray-300 text-sm capitalize">{key}:</span>
-                    <span className="text-[#13a4ec] text-sm font-medium">{formatMetric(value)}</span>
-                  </div>
-                ))}
+          <div className="bg-[#1a2b34] rounded-lg p-3">
+            <>
+              <div
+                id={`viewer-${blockOutput.id}`}
+                className="w-full h-[300px] rounded-lg mb-3 bg-[#1a2b34]"
+                ref={(el) => {
+                  if (el) {
+                    initViewer(blockOutput.id, blockOutput.pdb_file);
+                  }
+                }}
+              />
+              <div className="mt-2 text-xs text-gray-300">
+                <div className="w-full h-2 rounded overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(to left, #313695, #ffffbf, #a50026)'
+                  }} />
+                <div className="flex justify-between mt-1">
+                  <span>0</span>
+                  <span>50</span>
+                  <span>100</span>
+                </div>
+                <div className="text-center mt-0.5">pLDDT score</div>
               </div>
-            )}
-          </>
-        );
+              {blockOutput.metrics && (
+                <div className="grid grid-cols-2 gap-3 bg-[#1a2b34] p-3 rounded-lg">
+                  {Object.entries(blockOutput.metrics).map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="text-gray-300 text-sm capitalize">{key}:</span>
+                      <span className="text-[#13a4ec] text-sm font-medium">{formatMetric(value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
 
-      case 'evaluate_sequence':
-      case 'evaluate_structure':
-        return <EvaluationResults metrics={blockOutput.metrics} />;
+            {renderDownloadButton()}
+          </div>
+        );
 
       case 'search_similarity':
         return blockOutput.results ? (
-          <div className="bg-[#1a2b34] rounded-lg p-2 text-xs">
+          <div className="flex flex-col bg-[#1a2b34] rounded-lg ">
+            <div className="flex justify-center">
+              {renderDownloadButton()}
+            </div>
             <BlastResults results={blockOutput.results} />
           </div>
         ) : null;
 
       case 'search_structure':
         return blockOutput.results ? (
-          <div className="bg-[#1a2b34] rounded-lg p-2 text-xs">
+          <div className="bg-[#1a2b34] rounded-lg p-3">
+            <div className="text-white text-sm mb-2">Search Results:</div>
             <FoldSeekResults results={blockOutput.results} originalPdbPath={blockOutput.pdb_file} />
+            {renderDownloadButton()}
           </div>
         ) : null;
 
       default:
-        return (
-          <div className="text-xs text-gray-300 p-2">
-            {blockOutput.info || 'No detailed results available'}
-          </div>
-        );
+        return null;
     }
   };
 
@@ -321,6 +506,28 @@ const JobBlock = ({
     let parameterInputs = null;
 
     switch (blockType.id) {
+      case 'sequence_iterator':
+        parameterInputs = (
+          <div className="space-y-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Enter sequences (one per line):
+              </label>
+              <textarea
+                value={sequenceList.join('\n')}
+                onChange={(e) => {
+                  const sequences = e.target.value.split('\n').filter(s => s.trim());
+                  setSequenceList(sequences);
+                  setLocalParams({ sequences });
+                }}
+                className="w-full h-32 p-2 rounded bg-[#1a2a33] text-white border border-[#344854] focus:outline-none focus:ring-1 focus:ring-[#13a4ec] font-mono text-sm"
+                placeholder="Enter sequences here, one per line..."
+              />
+            </div>
+          </div>
+        );
+        break;
+
       case 'predict_structure':
         parameterInputs = (
           <>
@@ -328,7 +535,7 @@ const JobBlock = ({
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Select structure prediction model:
               </label>
-              <select 
+              <select
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
                 className="w-full p-2 rounded bg-[#1a2a33] text-white border border-[#344854] focus:outline-none focus:ring-1 focus:ring-[#13a4ec]"
@@ -573,6 +780,32 @@ const JobBlock = ({
     );
   };
 
+  // Handle running the block
+  const handleRunBlock = () => {
+    if (blockType.id === 'sequence_iterator') {
+      if (sequenceList.length === 0) {
+        // No sequences to iterate through
+        return;
+      }
+
+      // Get the current sequence
+      const currentSequence = sequenceList[currentSequenceIndex];
+
+      // Update the output
+      onRunBlock({
+        sequence: currentSequence,
+        info: `Sequence ${currentSequenceIndex + 1} of ${sequenceList.length}`
+      });
+
+      // Move to the next sequence for the next run
+      setCurrentSequenceIndex((prevIndex) =>
+        prevIndex + 1 >= sequenceList.length ? 0 : prevIndex + 1
+      );
+    } else {
+      onRunBlock();
+    }
+  };
+
   return (
     <Draggable
       nodeRef={nodeRef}
@@ -592,10 +825,10 @@ const JobBlock = ({
         >
           <div
             className="rounded shadow-md"
-            style={{ 
-              width: '100%', 
+            style={{
+              width: '100%',
               height: '100%',
-              backgroundColor: blockType.color 
+              backgroundColor: blockType.color
             }}
           >
             {/* Block header */}
@@ -616,19 +849,19 @@ const JobBlock = ({
             </div>
 
             {/* Block content */}
-            <div 
+            <div
               ref={contentRef}
               className="p-2 bg-opacity-20 bg-black h-[calc(100%-40px)] overflow-auto"
             >
               {/* Input ports on the left side */}
               <div className="mb-2">
                 {blockType.inputs.map((input, index) => (
-                  <div 
+                  <div
                     key={`input-${input}`}
                     className="flex items-center my-3"
                   >
                     <div
-                      className={`w-4 h-4 rounded-full cursor-pointer border-2 flex items-center justify-center
+                      className={`w-4 h-4 rounded-full cursor-pointer border-2 flex items-center justify-center relative
                         ${isConnecting ? 'border-white hover:bg-white hover:bg-opacity-30' : 'border-gray-400'}
                       `}
                       style={{ marginLeft: 0 }}
@@ -637,32 +870,62 @@ const JobBlock = ({
                       onMouseLeave={() => handleInputPortHover(input, false)}
                     >
                       <div className="w-2 h-2 bg-white rounded-full"></div>
+
+                      {/* Show connection count badge for multi_download block */}
+                      {blockType.id === 'multi_download' && connections && connections[block.id] && (
+                        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                          {Object.keys(connections[block.id] || {}).length}
+                        </div>
+                      )}
                     </div>
-                    <span className="text-white text-xs ml-2">{input}</span>
+                    <span className="text-white text-xs ml-2">
+                      {input}
+                      {blockType.id === 'multi_download' && " (multiple)"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {/* Output ports on the right side */}
+              <div className="mt-2">
+                {blockType.outputs.map((output, index) => (
+                  <div
+                    key={`output-${output}`}
+                    className="flex items-center justify-end my-3"
+                  >
+                    <span className="text-white text-xs mr-2">{output}</span>
+                    <div
+                      className="w-4 h-4 rounded-full border-2 border-white cursor-pointer hover:bg-white hover:bg-opacity-30 flex items-center justify-center"
+                      style={{ marginRight: 0 }}
+                      onClick={() => onStartConnection(block.id, output)}
+                    >
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
                   </div>
                 ))}
               </div>
 
+              {/* Loop controls */}
+              {renderLoopControls()}
+
               {/* Block actions */}
-              <div className="flex justify-between mt-2 mb-1">
+              <div className="flex flex-col justify-between mt-2 mb-2 space-y-2">
                 {hasConfigurableOptions() && (
                   <button
                     onClick={toggleConfig}
-                    className="px-2 py-1 bg-white bg-opacity-20 text-white rounded text-xs hover:bg-opacity-30"
+                    className="px-2 py-1 bg-white bg-opacity-20 text-white rounded w-full text-xs hover:bg-opacity-30"
                   >
                     {isConfigOpen ? 'Close Config' : 'Configure'}
                   </button>
                 )}
                 <button
-                  onClick={onRunBlock}
+                  onClick={handleRunBlock}
                   disabled={block.status === 'running'}
-                  className="px-2 py-1 bg-white bg-opacity-20 text-white rounded text-xs hover:bg-opacity-30 disabled:opacity-50"
+                  className="px-2 py-1 bg-white bg-opacity-20 text-white rounded text-xs hover:bg-opacity-30 w-full disabled:opacity-50"
                 >
                   {block.status === 'running' ? 'Running...' : 'Run'}
                 </button>
               </div>
 
-              {/* Configuration Panel (now inside the card horizontally) */}
               {isConfigOpen && (
                 <div className="w-full">
                   {renderConfigPanel()}
@@ -687,25 +950,6 @@ const JobBlock = ({
                   {renderResults()}
                 </div>
               )}
-
-              {/* Output ports on the right side */}
-              <div className="mt-2">
-                {blockType.outputs.map((output, index) => (
-                  <div 
-                    key={`output-${output}`}
-                    className="flex items-center justify-end my-3"
-                  >
-                    <span className="text-white text-xs mr-2">{output}</span>
-                    <div
-                      className="w-4 h-4 rounded-full border-2 border-white cursor-pointer hover:bg-white hover:bg-opacity-30 flex items-center justify-center"
-                      style={{ marginRight: 0 }}
-                      onClick={() => onStartConnection(block.id, output)}
-                    >
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </ResizableBlock>
