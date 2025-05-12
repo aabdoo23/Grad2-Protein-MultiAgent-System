@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import BlockPalette from './BlockPalette';
@@ -9,10 +9,30 @@ import { blockTypes } from './config/blockTypes';
 
 const SandboxPage = () => {
   const [blocks, setBlocks] = useState([]);
+  const blocksRef = useRef(blocks);
   const [connections, setConnections] = useState({});
   const [blockOutputs, setBlockOutputs] = useState({});
+  const blockOutputsRef = useRef(blockOutputs);
   const [isAutomate, setIsAutomate] = useState(false);
+  const [loopConfig, setLoopConfig] = useState({
+    isEnabled: false,
+    startBlockId: null,
+    endBlockId: null,
+    iterationType: 'count', // 'count' or 'sequence'
+    iterationCount: 1,
+    sequenceBlockId: null,
+    currentIteration: 0
+  });
   const jobManager = useRef(new JobManager());
+
+  // Update refs whenever their corresponding states change
+  useEffect(() => {
+    blocksRef.current = blocks;
+  }, [blocks]);
+
+  useEffect(() => {
+    blockOutputsRef.current = blockOutputs;
+  }, [blockOutputs]);
 
   // Add a new block to the workspace
   const addBlock = (blockType, position) => {
@@ -119,7 +139,7 @@ const SandboxPage = () => {
   };
 
   const runBlock = async (blockId, params = null) => {
-    const block = blocks.find(b => b.id === blockId);
+    const block = blocksRef.current.find(b => b.id === blockId);
     if (!block) return;
     console.log('Running block:', block.type);
 
@@ -143,7 +163,7 @@ const SandboxPage = () => {
       
       // wait until every source block is status 'completed'
       const pending = Object.values(conns).filter(c =>
-        blocks.find(b => b.id === c.blockId)?.status !== 'completed'
+        blocksRef.current.find(b => b.id === c.blockId)?.status !== 'completed'
       );
       if (pending.length) {
         console.log('Waiting on inputs for multi_download:', pending);
@@ -152,9 +172,9 @@ const SandboxPage = () => {
 
       // collect every source block's output as a downloadable descriptor
       const downloadItems = Object.entries(conns).map(([inputType, c]) => {
-        const sourceBlock = blocks.find(b => b.id === c.blockId);
+        const sourceBlock = blocksRef.current.find(b => b.id === c.blockId);
         const sourceBlockType = blockTypes.find(bt => bt.id === sourceBlock?.type);
-        const output = blockOutputs[c.blockId];
+        const output = blockOutputsRef.current[c.blockId];
         
         console.log('Processing output for multi-download:', {
           blockId: c.blockId,
@@ -162,12 +182,24 @@ const SandboxPage = () => {
           blockType: sourceBlockType?.id,
           output
         });
+
+        if (!output) {
+          console.warn(`No output found for block ${c.blockId} with type ${c.outputType}`);
+        }
         
         return {
           outputType: c.outputType,
           data: output
         };
       });
+
+      // Verify we have all required data
+      const missingData = downloadItems.filter(item => !item.data);
+      if (missingData.length > 0) {
+        console.error('Missing data for multi-download:', missingData);
+        setBlocks(bs => bs.map(b => b.id === blockId ? { ...b, status: 'failed' } : b));
+        return;
+      }
 
       // mark running
       setBlocks(bs => bs.map(b => b.id === blockId ? { ...b, status: 'running' } : b));
@@ -179,7 +211,7 @@ const SandboxPage = () => {
           // trigger browser download
           const a = document.createElement('a');
           a.href = resp.zipUrl;
-          a.download = 'batch_download.zip';
+          a.download = `batch_download_${Date.now()}.zip`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -380,19 +412,15 @@ const SandboxPage = () => {
             ...prev,
             [blockId]: jobStatus.result
           }));
-          console.log('Block outputs:', blockOutputs[blockId]);
-          console.log('isAutomate:', isAutomate);
+
+          // Handle normal automation first
           if (isAutomate) {
             console.log('Running next blocks in chain');
-            // Find and run all next blocks in the chain
             const nextBlocks = getNextBlocksInChain(blockId);
             if (nextBlocks.length > 0) {
-              // Use a longer timeout to ensure state updates are completed
               setTimeout(() => {
-                // Run all connected blocks with the job results
                 nextBlocks.forEach(nextBlock => {
                   if (nextBlock && nextBlock.id) {
-                    // Store the output in blockOutputs before running the next block
                     setBlockOutputs(prev => ({
                       ...prev,
                       [nextBlock.id]: jobStatus.result
@@ -403,35 +431,96 @@ const SandboxPage = () => {
               }, 5000);
             } else {
               console.log('Pipeline sequence completed');
+              
+              // After sequence completes, handle loop logic if enabled
+              if (loopConfig.isEnabled && blockId === loopConfig.endBlockId) {
+                console.log('Loop logic enabled and end block reached');
+                // Check if we should continue based on iteration type
+                const shouldContinue = loopConfig.iterationType === 'count' 
+                  ? loopConfig.currentIteration < loopConfig.iterationCount
+                  : blocksRef.current.find(b => b.id === loopConfig.sequenceBlockId)?.parameters?.sequences?.length > 0;
+
+                if (shouldContinue) {
+                  console.log('Should continue with next iteration');
+                  // Wait for a short delay to ensure state updates
+                  setTimeout(() => {
+                    // Reset all blocks between start and end to idle state
+                    const startIndex = blocksRef.current.findIndex(b => b.id === loopConfig.startBlockId);
+                    const endIndex = blocksRef.current.findIndex(b => b.id === loopConfig.endBlockId);
+                    
+                    if (startIndex !== -1 && endIndex !== -1) {
+                      setBlocks(prevBlocks => 
+                        prevBlocks.map((block, index) => {
+                          if (index >= startIndex && index <= endIndex) {
+                            return { ...block, status: 'idle' };
+                          }
+                          return block;
+                        })
+                      );
+                    }
+
+                    // Clear outputs for blocks in the loop
+                    setBlockOutputs(prev => {
+                      const newOutputs = { ...prev };
+                      const startIndex = blocksRef.current.findIndex(b => b.id === loopConfig.startBlockId);
+                      const endIndex = blocksRef.current.findIndex(b => b.id === loopConfig.endBlockId);
+                      
+                      if (startIndex !== -1 && endIndex !== -1) {
+                        blocksRef.current.forEach((block, index) => {
+                          if (index >= startIndex && index <= endIndex) {
+                            delete newOutputs[block.id];
+                          }
+                        });
+                      }
+                      return newOutputs;
+                    });
+
+                    // Increment iteration counter and start next iteration
+                    setLoopConfig(prev => {
+                      const newConfig = {
+                        ...prev,
+                        currentIteration: prev.currentIteration + 1
+                      };
+                      console.log(`Starting loop iteration ${newConfig.currentIteration} of ${newConfig.iterationCount}`);
+                      runBlock(loopConfig.startBlockId);
+                      return newConfig;
+                    });
+                  }, 1000);
+                } else {
+                  console.log('Loop completed - no more iterations');
+                  stopLoop();
+                }
+              }
             }
           }
-
         } else if (jobStatus.status === 'failed') {
           clearInterval(pollingInterval);
-
-          // Update block status to failed
           setBlocks(prevBlocks =>
             prevBlocks.map(b =>
               b.id === blockId ? { ...b, status: 'failed' } : b
             )
           );
+          if (loopConfig.isEnabled) {
+            console.log('Loop stopped due to block failure');
+            stopLoop();
+          }
         }
       } catch (error) {
         console.error('Error polling job status:', error);
         clearInterval(pollingInterval);
-
-        // Update block status to failed
         setBlocks(prevBlocks =>
           prevBlocks.map(b =>
             b.id === blockId ? { ...b, status: 'failed' } : b
           )
         );
+        if (loopConfig.isEnabled) {
+          console.log('Loop stopped due to error');
+          stopLoop();
+        }
       }
     };
 
-    // Start polling
     pollingInterval = setInterval(checkStatus, 5000);
-    // Run once immediately
     checkStatus();
   };
 
@@ -492,6 +581,107 @@ const SandboxPage = () => {
     console.log('All block outputs cleared and statuses reset');
   };
 
+  // Add loop control functions
+  const startLoop = () => {
+    if (!loopConfig.startBlockId || !loopConfig.endBlockId) {
+      console.error('Start and end blocks must be selected for loop');
+      return;
+    }
+
+    if (loopConfig.iterationType === 'count' && loopConfig.iterationCount < 1) {
+      console.error('Iteration count must be at least 1');
+      return;
+    }
+
+    if (loopConfig.iterationType === 'sequence' && !loopConfig.sequenceBlockId) {
+      console.error('Sequence block must be selected for sequence-based iteration');
+      return;
+    }
+
+    setLoopConfig(prev => ({
+      ...prev,
+      isEnabled: true,
+      currentIteration: 0
+    }));
+
+    // Start the loop by running the start block
+    runBlock(loopConfig.startBlockId);
+  };
+
+  const stopLoop = () => {
+    setLoopConfig(prev => ({
+      ...prev,
+      isEnabled: false,
+      currentIteration: 0
+    }));
+  };
+
+  // Add loop configuration UI
+  const renderLoopControls = () => (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
+        <span className="text-white text-sm">Loop</span>
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input 
+            type="checkbox" 
+            className="sr-only peer" 
+            checked={loopConfig.isEnabled} 
+            onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))} 
+          />
+          <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+        </label>
+      </div>
+      {loopConfig.isEnabled && (
+        <div className="flex items-center gap-2">
+          <select
+            className="bg-[#233c48] text-white text-sm rounded px-2 py-1 border border-[#13a4ec]"
+            value={loopConfig.iterationType}
+            onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationType: e.target.value }))}
+          >
+            <option value="count">Count</option>
+            <option value="sequence">Sequence</option>
+          </select>
+          {loopConfig.iterationType === 'count' ? (
+            <input
+              type="number"
+              min="1"
+              value={loopConfig.iterationCount}
+              onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationCount: parseInt(e.target.value) }))}
+              className="bg-[#233c48] text-white text-sm rounded px-2 py-1 border border-[#13a4ec] w-20"
+            />
+          ) : (
+            <select
+              className="bg-[#233c48] text-white text-sm rounded px-2 py-1 border border-[#13a4ec]"
+              value={loopConfig.sequenceBlockId || ''}
+              onChange={(e) => setLoopConfig(prev => ({ ...prev, sequenceBlockId: e.target.value }))}
+            >
+              <option value="">Select Sequence Block</option>
+              {blocks
+                .filter(b => b.type === 'sequence_iterator')
+                .map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.id}
+                  </option>
+                ))}
+            </select>
+          )}
+          <button
+            onClick={startLoop}
+            className="px-3 py-1 bg-[#13a4ec] text-white rounded text-sm hover:bg-[#0f8fd1]"
+          >
+            Start Loop
+          </button>
+          <button
+            onClick={stopLoop}
+            className="px-3 py-1 bg-[#233c48] text-white border border-[#13a4ec] rounded text-sm hover:bg-[#2a4a5a]"
+          >
+            Stop Loop
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="flex flex-col h-screen bg-[#111c22]">
       <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#233c48] px-10 py-3 shrink-0">
@@ -506,6 +696,7 @@ const SandboxPage = () => {
           >
             Clear Outputs
           </button>
+          {renderLoopControls()}
           <div className="flex items-center gap-2">
             <span className="text-white text-sm">Automate</span>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -535,6 +726,8 @@ const SandboxPage = () => {
               blockOutputs={blockOutputs}
               updateBlock={updateBlock}
               onDeleteBlock={deleteBlock}
+              loopConfig={loopConfig}
+              setLoopConfig={setLoopConfig}
             />
           </div>
         </div>

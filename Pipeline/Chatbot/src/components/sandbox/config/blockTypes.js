@@ -12,7 +12,7 @@ export const blockTypes = [
       name: 'Generate Protein',
       description: 'Generate a protein sequence with specific properties',
       color: '#005f73',
-      inputs: ['*'],
+      inputs: [],
       outputs: ['sequence']
     },
     {
@@ -20,7 +20,7 @@ export const blockTypes = [
       name: 'Sequence Iterator',
       description: 'Iterate through a list of sequences one at a time',
       color: '#073b4c',
-      inputs: ['*'],
+      inputs: [],
       outputs: ['sequence']
     },
     {

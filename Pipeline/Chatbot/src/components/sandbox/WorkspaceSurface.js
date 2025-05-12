@@ -13,7 +13,9 @@ const WorkspaceSurface = ({
   updateBlockParameters,
   blockOutputs,
   updateBlock,
-  onDeleteBlock
+  onDeleteBlock,
+  loopConfig,
+  setLoopConfig
 }) => {
   const surfaceRef = useRef(null);
   const [connecting, setConnecting] = useState(null);
@@ -295,6 +297,8 @@ const WorkspaceSurface = ({
           onResize={handleBlockResize}
           onDeleteBlock={onDeleteBlock}
           connections={connections}
+          loopConfig={loopConfig}
+          setLoopConfig={setLoopConfig}
         />
       ))}
     </div>

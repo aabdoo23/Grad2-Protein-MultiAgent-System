@@ -21,16 +21,16 @@ const calculateIdentity = (querySeq, targetSeq) => {
       if (querySeq[i].toUpperCase() === targetSeq[i].toUpperCase()) matches++;
     }
   }
-  return total > 0 ? (matches / total) * 100 : 0;
+  return total > 0 ? Number(((matches / total) * 100).toFixed(2)) : 0;
 };
 
 const formatSequenceHeader = (name, identity, isQuery = false) => {
   name = name.split('|')[0];
   let identityStr = '';
   if (typeof identity === 'string') {
-    identityStr = parseFloat(identity);
+    identityStr = Number(parseFloat(identity).toFixed(2));
   } else {
-    identityStr = identity;
+    identityStr = Number(identity.toFixed(2));
   }
   return isQuery ? `>${name}` : `>[${identityStr}] ${name}`;
 };
@@ -157,7 +157,7 @@ const BlastResults = ({ results }) => {
       .map(s => ({
         ...s,
         // Use provided identity for local BLAST results, calculate for others
-        identity: s.identity !== undefined ? s.identity : calculateIdentity(querySequence.seq, s.seq)
+        identity: s.identity !== undefined ? Number(s.identity.toFixed(2)) : calculateIdentity(querySequence.seq, s.seq)
       }));
 
     // Filter and sort sequences
@@ -167,7 +167,7 @@ const BlastResults = ({ results }) => {
 
     // Combine query with filtered sequences
     const finalSequences = [
-      { ...querySequence, identity: 100 },
+      { ...querySequence, identity: 100.00 },
       ...filteredSequences
     ];
 
@@ -372,7 +372,7 @@ const BlastResults = ({ results }) => {
                         </div>
                         <div>
                           <span className="text-gray-400 text-sm">Identity: </span>
-                          <span className="text-[#13a4ec] text-sm">{hsp.identity}</span>
+                          <span className="text-[#13a4ec] text-sm">{Number(hsp.identity).toFixed(2)}</span>
                         </div>
                         <div>
                           <span className="text-gray-400 text-sm">Gaps: </span>

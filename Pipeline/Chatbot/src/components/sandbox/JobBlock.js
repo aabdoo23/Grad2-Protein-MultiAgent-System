@@ -20,7 +20,9 @@ const JobBlock = ({
   onPositionUpdate,
   onResize,
   onDeleteBlock,
-  connections
+  connections,
+  loopConfig,
+  setLoopConfig
 }) => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isResultsOpen, setIsResultsOpen] = useState(false);
@@ -81,21 +83,26 @@ const JobBlock = ({
 
   const viewerRefs = useRef({});
   const initViewer = (jobId, pdbPath) => {
-    // if (!viewerRefs.current[jobId]) {
-      const stage = new NGL.Stage(`viewer-${jobId}`, { backgroundColor: '#1a2b34' });
-      viewerRefs.current[jobId] = stage;
+    if (!viewerRefs.current[jobId]) {
+    const stage = new NGL.Stage(`viewer-${jobId}`, { backgroundColor: '#1a2b34' });
+    viewerRefs.current[jobId] = stage;
 
-      // Load and display the PDB structure
-      const filename = pdbPath.split('\\').pop();
-      stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
-        component.addRepresentation('cartoon', {
-          color: '#13a4ec',
-          roughness: 1.0,
-          metalness: 0.0
-        });
-        component.autoView();
+    // Load and display the PDB structure
+    const filename = pdbPath.split('\\').pop();
+    stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
+      component.addRepresentation('cartoon', {
+        color: 'bfactor',
+        // choose a color map and domain – pLDDT ranges 0–100
+        colorScale: 'RdYlBu',
+        colorScaleReverse: true,
+        colorDomain: [0, 100],
+        roughness: 1.0,
+        metalness: 0.0
       });
-    // }
+      component.autoView();
+
+    });
+    }
   };
 
   // Update job parameters when model or search type changes
@@ -252,6 +259,7 @@ const JobBlock = ({
 
   // Toggle results view
   const toggleResults = () => {
+    viewerRefs.current[blockOutput.id] = null;
     setIsResultsOpen(!isResultsOpen);
   };
 
@@ -280,6 +288,54 @@ const JobBlock = ({
     return blockType.id === 'predict_structure' ||
       blockType.id === 'search_similarity' ||
       blockType.id === 'sequence_iterator';
+  };
+
+  // Add loop block selection handlers
+  const handleLoopBlockSelect = (type) => {
+    if (type === 'start') {
+      setLoopConfig(prev => ({
+        ...prev,
+        startBlockId: block.id
+      }));
+    } else if (type === 'end') {
+      setLoopConfig(prev => ({
+        ...prev,
+        endBlockId: block.id
+      }));
+    }
+  };
+
+  // Add loop block selection UI
+  const renderLoopControls = () => {
+    if (!loopConfig) return null;
+
+    const isStartBlock = loopConfig.startBlockId === block.id;
+    const isEndBlock = loopConfig.endBlockId === block.id;
+
+    return (
+      <div className="flex items-center gap-2 mt-2">
+        <button
+          onClick={() => handleLoopBlockSelect('start')}
+          className={`px-2 py-1 text-xs rounded ${
+            isStartBlock 
+              ? 'bg-green-500 text-white' 
+              : 'bg-[#233c48] text-white border border-[#13a4ec] hover:bg-[#2a4a5a]'
+          }`}
+        >
+          {isStartBlock ? 'Start Block ✓' : 'Set as Start'}
+        </button>
+        <button
+          onClick={() => handleLoopBlockSelect('end')}
+          className={`px-2 py-1 text-xs rounded ${
+            isEndBlock 
+              ? 'bg-green-500 text-white' 
+              : 'bg-[#233c48] text-white border border-[#13a4ec] hover:bg-[#2a4a5a]'
+          }`}
+        >
+          {isEndBlock ? 'End Block ✓' : 'Set as End'}
+        </button>
+      </div>
+    );
   };
 
   const renderResults = () => {
@@ -350,8 +406,8 @@ const JobBlock = ({
                     <span>{blockOutput.progress.remaining} remaining</span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-2.5">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
                       style={{ width: `${(blockOutput.progress.completed / blockOutput.progress.total) * 100}%` }}
                     ></div>
                   </div>
@@ -391,6 +447,18 @@ const JobBlock = ({
                   }
                 }}
               />
+              <div className="mt-2 text-xs text-gray-300">
+                <div className="w-full h-2 rounded overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(to left, #313695, #ffffbf, #a50026)'
+                  }} />
+                <div className="flex justify-between mt-1">
+                  <span>0</span>
+                  <span>50</span>
+                  <span>100</span>
+                </div>
+                <div className="text-center mt-0.5">pLDDT score</div>
+              </div>
               {blockOutput.metrics && (
                 <div className="grid grid-cols-2 gap-3 bg-[#1a2b34] p-3 rounded-lg">
                   {Object.entries(blockOutput.metrics).map(([key, value]) => (
@@ -802,7 +870,7 @@ const JobBlock = ({
                       onMouseLeave={() => handleInputPortHover(input, false)}
                     >
                       <div className="w-2 h-2 bg-white rounded-full"></div>
-                      
+
                       {/* Show connection count badge for multi_download block */}
                       {blockType.id === 'multi_download' && connections && connections[block.id] && (
                         <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -835,6 +903,9 @@ const JobBlock = ({
                   </div>
                 ))}
               </div>
+
+              {/* Loop controls */}
+              {renderLoopControls()}
 
               {/* Block actions */}
               <div className="flex flex-col justify-between mt-2 mb-2 space-y-2">
