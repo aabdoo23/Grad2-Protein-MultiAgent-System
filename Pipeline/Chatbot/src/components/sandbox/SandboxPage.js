@@ -14,6 +14,7 @@ const SandboxPage = () => {
   const [blockOutputs, setBlockOutputs] = useState({});
   const blockOutputsRef = useRef(blockOutputs);
   const [isAutomate, setIsAutomate] = useState(false);
+  const loopQueuedRef = useRef(false);
   const [loopConfig, setLoopConfig] = useState({
     isEnabled: false,
     startBlockId: null,
@@ -216,6 +217,41 @@ const SandboxPage = () => {
           a.click();
           document.body.removeChild(a);
           setBlocks(bs => bs.map(b => b.id === blockId ? { ...b, status: 'completed' } : b));
+          
+          // Handle loop continuation if this is the end block
+          if (loopConfig.isEnabled && blockId === loopConfig.endBlockId) {
+            setLoopConfig(prev => {
+              const nextIteration = prev.currentIteration + 1;
+              const shouldContinue = prev.iterationType === 'count'
+                ? nextIteration < prev.iterationCount
+                : blocksRef.current
+                    .find(b => b.id === prev.sequenceBlockId)
+                    ?.parameters?.sequences?.length > 0;
+
+              if (!shouldContinue) {
+                console.log('Loop completed - no more iterations');
+                stopLoop();
+                return prev;
+              }
+
+              // Reset block statuses and outputs
+              resetBlocksBetween(prev.startBlockId, prev.endBlockId);
+              resetOutputsBetween(prev.startBlockId, prev.endBlockId);
+
+              console.log(`Starting loop iteration ${nextIteration} of ${prev.iterationCount}`);
+
+              // Schedule exactly one re-run
+              if (!loopQueuedRef.current) {
+                loopQueuedRef.current = true;
+                setTimeout(() => {
+                  loopQueuedRef.current = false;
+                  runBlock(prev.startBlockId);
+                }, 1000);
+              }
+
+              return { ...prev, currentIteration: nextIteration };
+            });
+          }
         } else {
           setBlocks(bs => bs.map(b => b.id === blockId ? { ...b, status: 'failed' } : b));
           console.error('Multi-download failed', resp.error);
@@ -681,6 +717,40 @@ const SandboxPage = () => {
       )}
     </div>
   );
+
+  // Add helper functions for resetting blocks and outputs
+  const resetBlocksBetween = (startBlockId, endBlockId) => {
+    const startIndex = blocksRef.current.findIndex(b => b.id === startBlockId);
+    const endIndex = blocksRef.current.findIndex(b => b.id === endBlockId);
+    
+    if (startIndex !== -1 && endIndex !== -1) {
+      setBlocks(prevBlocks => 
+        prevBlocks.map((block, index) => {
+          if (index >= startIndex && index <= endIndex) {
+            return { ...block, status: 'idle' };
+          }
+          return block;
+        })
+      );
+    }
+  };
+
+  const resetOutputsBetween = (startBlockId, endBlockId) => {
+    const startIndex = blocksRef.current.findIndex(b => b.id === startBlockId);
+    const endIndex = blocksRef.current.findIndex(b => b.id === endBlockId);
+    
+    if (startIndex !== -1 && endIndex !== -1) {
+      setBlockOutputs(prev => {
+        const newOutputs = { ...prev };
+        blocksRef.current.forEach((block, index) => {
+          if (index >= startIndex && index <= endIndex) {
+            delete newOutputs[block.id];
+          }
+        });
+        return newOutputs;
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen bg-[#111c22]">
