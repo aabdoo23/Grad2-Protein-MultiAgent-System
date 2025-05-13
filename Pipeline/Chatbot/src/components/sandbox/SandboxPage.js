@@ -142,6 +142,10 @@ const SandboxPage = () => {
   const runBlock = async (blockId, params = null) => {
     const block = blocksRef.current.find(b => b.id === blockId);
     if (!block) return;
+    setBlockOutputs(prev => ({
+      ...prev,
+      [blockId]: null
+    }));    
     console.log('Running block:', block.type);
 
     // Update block status
@@ -654,9 +658,9 @@ const SandboxPage = () => {
 
   // Add loop configuration UI
   const renderLoopControls = () => (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-2">
-        <span className="text-white text-sm">Loop</span>
+    <div className="flex items-center gap-4 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
+      <div className="flex items-center gap-3">
+        <span className="text-white text-sm font-medium">Loop</span>
         <label className="relative inline-flex items-center cursor-pointer">
           <input 
             type="checkbox" 
@@ -664,13 +668,13 @@ const SandboxPage = () => {
             checked={loopConfig.isEnabled} 
             onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))} 
           />
-          <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
         </label>
       </div>
       {loopConfig.isEnabled && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <select
-            className="bg-[#233c48] text-white text-sm rounded px-2 py-1 border border-[#13a4ec]"
+            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
             value={loopConfig.iterationType}
             onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationType: e.target.value }))}
           >
@@ -683,11 +687,11 @@ const SandboxPage = () => {
               min="1"
               value={loopConfig.iterationCount}
               onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationCount: parseInt(e.target.value) }))}
-              className="bg-[#233c48] text-white text-sm rounded px-2 py-1 border border-[#13a4ec] w-20"
+              className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-20"
             />
           ) : (
             <select
-              className="bg-[#233c48] text-white text-sm rounded px-2 py-1 border border-[#13a4ec]"
+              className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
               value={loopConfig.sequenceBlockId || ''}
               onChange={(e) => setLoopConfig(prev => ({ ...prev, sequenceBlockId: e.target.value }))}
             >
@@ -703,14 +707,22 @@ const SandboxPage = () => {
           )}
           <button
             onClick={startLoop}
-            className="px-3 py-1 bg-[#13a4ec] text-white rounded text-sm hover:bg-[#0f8fd1]"
+            className="px-4 py-1.5 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1] transition-colors duration-200 flex items-center gap-2"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             Start Loop
           </button>
           <button
             onClick={stopLoop}
-            className="px-3 py-1 bg-[#233c48] text-white border border-[#13a4ec] rounded text-sm hover:bg-[#2a4a5a]"
+            className="px-4 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200 flex items-center gap-2"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 15l4-4m0" />
+            </svg>
             Stop Loop
           </button>
         </div>
@@ -754,24 +766,32 @@ const SandboxPage = () => {
 
   return (
     <div className="flex flex-col h-screen bg-[#111c22]">
-      <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#233c48] px-10 py-3 shrink-0">
-        <div className="flex items-center gap-4 text-white">
-          <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Protein Pipeline Sandbox</h2>
+      <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#233c48] px-8 py-4 shrink-0 bg-[#111c22]/95 backdrop-blur-sm">
+        <div className="flex items-center gap-6">
+          <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em] flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#13a4ec]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+            Protein Pipeline Sandbox
+          </h2>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <button
             onClick={clearOutputs}
-            className="px-3 py-1 bg-[#233c48] text-white border border-[#13a4ec] rounded text-sm hover:bg-[#2a4a5a]"
+            className="px-4 py-2 bg-[#233c48] text-white border border-[#13a4ec] rounded-lg text-sm hover:bg-[#2a4a5a] transition-all duration-200 flex items-center gap-2 group"
             title="Clear all outputs and reset blocks"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#13a4ec] group-hover:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
             Clear Outputs
           </button>
           {renderLoopControls()}
-          <div className="flex items-center gap-2">
-            <span className="text-white text-sm">Automate</span>
+          <div className="flex items-center gap-3 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
+            <span className="text-white text-sm font-medium">Automate</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" checked={isAutomate} onChange={() => setIsAutomate(!isAutomate)} />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
             </label>
           </div>
         </div>
@@ -779,8 +799,7 @@ const SandboxPage = () => {
 
       <DndProvider backend={HTML5Backend}>
         <div className="flex flex-1 overflow-hidden">
-          <div className="w-64 bg-[#1a2b34] border-r border-[#233c48] overflow-y-auto p-4">
-            <h3 className="text-white text-md font-bold mb-4">Job Blocks</h3>
+          <div className="bg-[#1a2b34] border-r border-[#233c48] overflow-y-auto p-4 transition-all duration-100 ease-in-out">
             <BlockPalette blockTypes={blockTypes} />
           </div>
 

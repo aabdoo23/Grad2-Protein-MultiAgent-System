@@ -86,13 +86,13 @@ class PipelineController:
             result = self.protein_generator.generate(params.get("prompt", ""))
         elif name == PipelineFunction.PREDICT_STRUCTURE.value:
             sequence = params.get("sequence", "")
-            model = params.get("model", "openfold")  # Default to OpenFold if not specified
+            model = params.get("model_type", "openfold")  # Default to OpenFold if not specified
             
-            if model == "esm":
+            if model == "esmfold_predict":
                 prediction = self.esm_predictor.predict_structure(sequence)
-            elif model == "alphafold2":
+            elif model == "alphafold2_predict":
                 prediction = self.af2_predictor.predict_structure(sequence, params)
-            elif model == "openfold":
+            elif model == "openfold_predict":
                 prediction = self.openfold_predictor.predict_structure(sequence, params)
             else:
                 return {"success": False, "error": f"Unknown model: {model}"}
@@ -130,16 +130,16 @@ class PipelineController:
                 result = {"success": False, "error": "No PDB file provided"}
         elif name == PipelineFunction.SEARCH_SIMILARITY.value:
             sequence = params.get("sequence", "")
-            search_type = params.get("search_type", "ncbi")  # Default to NCBI BLAST
+            search_type = params.get("model_type", "ncbi")  # Default to NCBI BLAST
             
             if not sequence:
                 return {"success": False, "error": "No sequence provided"}
                 
-            if search_type == "ncbi":
+            if search_type == "ncbi_blast_search":
                 result = self.ncbi_blast_searcher.search(sequence, params)
-            elif search_type == "colabfold":
+            elif search_type == "colabfold_search":
                 result = self.colabfold_msa_searcher.search(sequence, params)
-            elif search_type == "local":
+            elif search_type == "local_blast_search":
                 # Get local BLAST specific parameters
                 fasta_path = params.get("fasta_file", None)
                 custom_db = params.get("db_name", None)

@@ -17,45 +17,106 @@ const WorkspaceSurface = ({
   loopConfig,
   setLoopConfig
 }) => {
-  const surfaceRef = useRef(null);
+  const containerRef = useRef(null);       // outer container for events
+  const contentRef = useRef(null);         // inner transformed content
   const [connecting, setConnecting] = useState(null);
   const [hoverTarget, setHoverTarget] = useState(null);
   const [blockPositions, setBlockPositions] = useState({});
   const [blockDimensions, setBlockDimensions] = useState({});
 
-  // Update block positions when blocks change
+  // zoom & pan state
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const isPanning = useRef(false);
+  const panStart = useRef({ x: 0, y: 0 });
+
+  // Update block positions and dimensions when blocks change
   useEffect(() => {
     const newPositions = {};
     const newDimensions = {};
     blocks.forEach(block => {
       newPositions[block.id] = block.position;
       newDimensions[block.id] = {
-        width: block.width || 200,
-        height: block.height || 200
+        width: block.width || 300,
+        height: block.height || 250
       };
     });
     setBlockPositions(newPositions);
     setBlockDimensions(newDimensions);
   }, [blocks]);
 
-  // Handle dropping a block onto the workspace
+  // Enable drop on content container
   const [, drop] = useDrop({
     accept: 'BLOCK_TYPE',
     drop: (item, monitor) => {
-      const offset = monitor.getSourceClientOffset();
-      const surfaceRect = surfaceRef.current.getBoundingClientRect();
-      
-      const position = {
-        x: offset.x - surfaceRect.left,
-        y: offset.y - surfaceRect.top
-      };
-      
-      addBlock(item.blockType, position);
+      const client = monitor.getClientOffset();
+      const rect = contentRef.current.getBoundingClientRect();
+      // convert screen coords to content coords
+      const x = (client.x - rect.left - offset.x) / scale;
+      const y = (client.y - rect.top - offset.y) / scale;
+      addBlock(item.blockType, { x, y });
     },
-    collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
-    }),
+    collect: monitor => ({ isOver: !!monitor.isOver() })
   });
+
+  // Handle wheel zoom only when not over a block
+  const handleWheel = e => {
+    if (e.target.closest('.job-block')) return;  // inside block: skip
+    e.preventDefault();
+    const rect = contentRef.current.getBoundingClientRect();
+    const cx = (e.clientX - rect.left - offset.x) / scale;
+    const cy = (e.clientY - rect.top - offset.y) / scale;
+    const delta = e.deltaY < 0 ? 1.1 : 0.9;
+    const newScale = Math.min(Math.max(scale * delta, 0.5), 2);
+    setScale(newScale);
+    setOffset(prev => ({
+      x: prev.x - cx * (delta - 1) * scale,
+      y: prev.y - cy * (delta - 1) * scale
+    }));
+  };
+
+  // Pan with right mouse button
+  const handleMouseDown = e => {
+    if (e.button === 2 && !e.target.closest('.job-block')) {
+      e.preventDefault();
+      isPanning.current = true;
+      panStart.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
+      document.body.style.cursor = 'grabbing';
+    }
+  };
+
+  const handleMouseMove = e => {
+    if (isPanning.current) {
+      setOffset({ x: e.clientX - panStart.current.x, y: e.clientY - panStart.current.y });
+    }
+    if (connecting) {
+      const rect = contentRef.current.getBoundingClientRect();
+      setConnecting({
+        ...connecting,
+        cursorPosition: {
+          x: (e.clientX - rect.left - offset.x) / scale,
+          y: (e.clientY - rect.top - offset.y) / scale
+        }
+      });
+    }
+  };
+
+  const handleMouseUp = e => {
+    if (e.button === 2 && isPanning.current) {
+      isPanning.current = false;
+      document.body.style.cursor = 'default';
+    }
+    if (connecting && !hoverTarget) {
+      setConnecting(null);
+    }
+  };
+
+  // Prevent default context menu on container
+  const handleContextMenu = e => {
+    if (containerRef.current.contains(e.target)) {
+      e.preventDefault();
+    }
+  };
 
   // Start connecting blocks (from an output port)
   const handleStartConnection = (blockId, outputType) => {
@@ -64,20 +125,6 @@ const WorkspaceSurface = ({
       outputType,
       cursorPosition: { x: 0, y: 0 }
     });
-  };
-
-  // Update the connection line while dragging
-  const handleMouseMove = (e) => {
-    if (connecting) {
-      const rect = surfaceRef.current.getBoundingClientRect();
-      setConnecting({
-        ...connecting,
-        cursorPosition: {
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top
-        }
-      });
-    }
   };
 
   // Set hover target when over an input port
@@ -133,13 +180,6 @@ const WorkspaceSurface = ({
     }
   };
 
-  // Cancel the connection on mouse up anywhere (except on input ports)
-  const handleMouseUp = (e) => {
-    if (connecting && !hoverTarget) {
-      setConnecting(null);
-    }
-  };
-
   // Get block of a specific type
   const getBlockTypeById = (typeId) => {
     return blockTypes.find(bt => bt.id === typeId);
@@ -166,32 +206,23 @@ const WorkspaceSurface = ({
     const sourceY = blockPositions[sourceBlockId]?.y + 60 + (outputIndex * 24) || 0;
     
     // For multi_download block, add a small offset to each connection to the same input
-    // This helps visualize multiple connections to the same input point
     let targetY = 0;
     
     if (targetBlockType.id === 'multi_download') {
-      // Get the base input position
       const inputIndex = targetBlockType.inputs.indexOf(inputType.split('_')[0]);
       const baseY = blockPositions[targetBlockId]?.y + 60 + (inputIndex * 24) || 0;
-      
-      // Get all connections to this target block
       const targetConnections = connections[targetBlockId] || {};
-      
-      // Find the index of this specific connection
       const connectionKeys = Object.keys(targetConnections);
       const currentIndex = connectionKeys.indexOf(inputType);
-      
-      // Apply a small offset based on the connection index
       targetY = baseY + (currentIndex * 4);
     } else {
-      // For regular blocks, use the normal input port position
       const inputIndex = targetBlockType.inputs.indexOf(inputType);
       targetY = blockPositions[targetBlockId]?.y + 60 + (inputIndex * 24) || 0;
     }
     
     return {
       start: { 
-        x: blockPositions[sourceBlockId]?.x + (blockDimensions[sourceBlockId]?.width || 200) || 0, 
+        x: blockPositions[sourceBlockId]?.x + (blockDimensions[sourceBlockId]?.width || 250) || 0, 
         y: sourceY 
       },
       end: { 
@@ -220,87 +251,96 @@ const WorkspaceSurface = ({
     }
   };
 
-  // DEBUG: Log connections when they change
-  useEffect(() => {
-    console.log('Current connections:', connections);
-  }, [connections]);
-
   return (
-    <div 
-      ref={(el) => {
-        drop(el);
-        surfaceRef.current = el;
-      }}
-      className="h-full w-full bg-[#0a1218] p-4"
+    <div
+      ref={containerRef}
+      className="h-full w-full bg-[#0a1218] p-4 overflow-hidden"
+      onWheel={handleWheel}
+      onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      style={{ position: 'relative', minHeight: '100%', minWidth: '100%' }}
+      onContextMenu={handleContextMenu}
+      style={{ position: 'relative' }}
     >
-      {/* Connection Lines - Render these first so they appear below blocks */}
-      {Object.entries(connections).map(([targetBlockId, inputConnections]) => 
-        Object.entries(inputConnections).map(([inputType, connection]) => {
-          const points = getConnectionPoints(
-            connection.blockId,
-            targetBlockId,
-            connection.outputType,
-            inputType
-          );
-          
-          return (
-            <ConnectionLine
-              key={`${connection.blockId}-${targetBlockId}-${inputType}`}
-              start={points.start}
-              end={points.end}
-              color={getBlockTypeById(blocks.find(b => b.id === connection.blockId)?.type)?.color || '#ffffff'}
-            />
-          );
-        })
-      )}
-      
-      {/* Dragging Connection Line */}
-      {connecting && (
-        <ConnectionLine
-          start={{
-            x: blockPositions[connecting.sourceBlockId]?.x + 200 || 0,
-            y: blockPositions[connecting.sourceBlockId]?.y + 60 + 
-              (getBlockTypeById(blocks.find(b => b.id === connecting.sourceBlockId)?.type)?.outputs.indexOf(connecting.outputType) * 24 || 0)
-          }}
-          end={
-            hoverTarget ? 
-            getConnectionPoints(
-              connecting.sourceBlockId, 
-              hoverTarget.blockId, 
-              connecting.outputType, 
-              hoverTarget.inputType
-            ).end :
-            connecting.cursorPosition
-          }
-          color={getBlockTypeById(blocks.find(b => b.id === connecting.sourceBlockId)?.type)?.color || '#ffffff'}
-          dashed={true}
-        />
-      )}
-      
-      {/* Blocks */}
-      {blocks.map(block => (
-        <JobBlock
-          key={block.id}
-          block={block}
-          blockType={getBlockTypeById(block.type)}
-          onStartConnection={handleStartConnection}
-          onCompleteConnection={handleCompleteConnection}
-          onInputPortHover={handleInputPortHover}
-          onRunBlock={() => runBlock(block.id)}
-          onUpdateParameters={(parameters) => updateBlockParameters(block.id, parameters)}
-          blockOutput={blockOutputs[block.id]}
-          isConnecting={connecting !== null}
-          onPositionUpdate={handleBlockPositionUpdate}
-          onResize={handleBlockResize}
-          onDeleteBlock={onDeleteBlock}
-          connections={connections}
-          loopConfig={loopConfig}
-          setLoopConfig={setLoopConfig}
-        />
-      ))}
+      <div
+        ref={el => { drop(el); contentRef.current = el; }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+          transformOrigin: '0 0',
+          minWidth: '200%',
+          minHeight: '200%'
+        }}
+      >
+        {/* Connection Lines */}
+        {Object.entries(connections).map(([targetBlockId, inputConnections]) => 
+          Object.entries(inputConnections).map(([inputType, connection]) => {
+            const points = getConnectionPoints(
+              connection.blockId,
+              targetBlockId,
+              connection.outputType,
+              inputType
+            );
+            
+            return (
+              <ConnectionLine
+                key={`${connection.blockId}-${targetBlockId}-${inputType}`}
+                start={points.start}
+                end={points.end}
+                color={getBlockTypeById(blocks.find(b => b.id === connection.blockId)?.type)?.color || '#ffffff'}
+              />
+            );
+          })
+        )}
+        
+        {/* Dragging Connection Line */}
+        {connecting && (
+          <ConnectionLine
+            start={{
+              x: blockPositions[connecting.sourceBlockId]?.x + 250 || 0,
+              y: blockPositions[connecting.sourceBlockId]?.y + 60 + 
+                (getBlockTypeById(blocks.find(b => b.id === connecting.sourceBlockId)?.type)?.outputs.indexOf(connecting.outputType) * 24 || 0)
+            }}
+            end={
+              hoverTarget ? 
+              getConnectionPoints(
+                connecting.sourceBlockId, 
+                hoverTarget.blockId, 
+                connecting.outputType, 
+                hoverTarget.inputType
+              ).end :
+              connecting.cursorPosition
+            }
+            color={getBlockTypeById(blocks.find(b => b.id === connecting.sourceBlockId)?.type)?.color || '#ffffff'}
+            dashed={true}
+          />
+        )}
+        
+        {/* Blocks */}
+        {blocks.map(block => (
+          <JobBlock
+            key={block.id}
+            block={block}
+            blockType={getBlockTypeById(block.type)}
+            onStartConnection={handleStartConnection}
+            onCompleteConnection={handleCompleteConnection}
+            onInputPortHover={handleInputPortHover}
+            onRunBlock={() => runBlock(block.id)}
+            onUpdateParameters={(parameters) => updateBlockParameters(block.id, parameters)}
+            blockOutput={blockOutputs[block.id]}
+            isConnecting={connecting !== null}
+            onPositionUpdate={handleBlockPositionUpdate}
+            onResize={handleBlockResize}
+            setDimensions={setBlockDimensions}
+            onDeleteBlock={onDeleteBlock}
+            connections={connections}
+            loopConfig={loopConfig}
+            setLoopConfig={setLoopConfig}
+          />
+        ))}
+      </div>
     </div>
   );
 };

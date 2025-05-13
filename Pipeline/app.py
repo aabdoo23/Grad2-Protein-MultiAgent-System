@@ -76,11 +76,28 @@ def confirm_job():
     
     # If job doesn't exist but we have job_data, create it
     if not job and job_data:
+        # Map the specialized block types to their backend function names
+        function_mapping = {
+            'openfold_predict': 'predict_structure',
+            'alphafold2_predict': 'predict_structure',
+            'esmfold_predict': 'predict_structure',
+            'colabfold_search': 'search_similarity',
+            'ncbi_blast_search': 'search_similarity',
+            'local_blast_search': 'search_similarity'
+        }
+        
+        # Get the base function name from the mapping, or use the original if not found
+        function_name = function_mapping.get(job_data.get('function_name'), job_data.get('function_name'))
+        
         # Create a new job from the provided data
         job = job_manager.create_job(
             job_id=job_id,
-            function_name=job_data.get('function_name'),
-            parameters=job_data.get('parameters', {}),
+            function_name=function_name,
+            parameters={
+                **job_data.get('parameters', {}),
+                # Add the specific model/type as a parameter
+                'model_type': job_data.get('function_name')
+            },
             description=job_data.get('description', 'Sandbox job')
         )
     
@@ -92,6 +109,10 @@ def confirm_job():
     if job_data and 'parameters' in job_data:
         # Update job parameters with the ones from the frontend
         job.parameters.update(job_data['parameters'])
+        # Ensure model_type is set for specialized blocks
+        if job_data.get('function_name') in ['openfold_predict', 'alphafold2_predict', 'esmfold_predict', 
+                                           'colabfold_search', 'ncbi_blast_search', 'local_blast_search']:
+            job.parameters['model_type'] = job_data.get('function_name')
     
     # For sandbox jobs, store the block_id if provided
     if job_data and 'block_id' in job_data:

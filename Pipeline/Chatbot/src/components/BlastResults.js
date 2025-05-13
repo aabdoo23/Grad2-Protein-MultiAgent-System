@@ -30,7 +30,7 @@ const formatSequenceHeader = (name, identity, isQuery = false) => {
   if (typeof identity === 'string') {
     identityStr = Number(parseFloat(identity).toFixed(2));
   } else {
-    identityStr = Number(identity.toFixed(2));
+    identityStr = Number(Number(identity).toFixed(2));
   }
   return isQuery ? `>${name}` : `>[${identityStr}] ${name}`;
 };
@@ -157,7 +157,7 @@ const BlastResults = ({ results }) => {
       .map(s => ({
         ...s,
         // Use provided identity for local BLAST results, calculate for others
-        identity: s.identity !== undefined ? Number(s.identity.toFixed(2)) : calculateIdentity(querySequence.seq, s.seq)
+        identity: s.identity !== undefined ? Number(Number(s.identity).toFixed(2)) : calculateIdentity(querySequence.seq, s.seq)
       }));
 
     // Filter and sort sequences

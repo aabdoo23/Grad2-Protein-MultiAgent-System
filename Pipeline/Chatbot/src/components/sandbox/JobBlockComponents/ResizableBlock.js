@@ -6,6 +6,8 @@ const ResizableBlock = ({ children, width, height, onResize }) => {
   const [resizeDirection, setResizeDirection] = useState(null);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [startSize, setStartSize] = useState({ width: 0, height: 0 });
+  const minHeight = 300;
+  const minWidth = 350;
   let resizeFrameHeight = 5;
   const handleMouseDown = (e, direction) => {
     setIsResizing(true);
@@ -25,29 +27,29 @@ const ResizableBlock = ({ children, width, height, onResize }) => {
 
     switch (resizeDirection) {
       case 's':
-        newHeight = Math.max(200, Math.min(800, startSize.height + deltaY));
+        newHeight = Math.max(minHeight, Math.min(800, startSize.height + deltaY));
         break;
       case 'e':
-        newWidth = Math.max(350, Math.min(800, startSize.width + deltaX));
+        newWidth = Math.max(minWidth, Math.min(800, startSize.width + deltaX));
         break;
       case 'w':
-        newWidth = Math.max(350, Math.min(800, startSize.width - deltaX));
+        newWidth = Math.max(minWidth, Math.min(800, startSize.width - deltaX));
         break;
       case 'ne':
-        newWidth = Math.max(350, Math.min(800, startSize.width + deltaX));
-        newHeight = Math.max(200, Math.min(800, startSize.height - deltaY));
+        newWidth = Math.max(minWidth, Math.min(800, startSize.width + deltaX));
+        newHeight = Math.max(minHeight, Math.min(800, startSize.height - deltaY));
         break;
       case 'nw':
-        newWidth = Math.max(350, Math.min(800, startSize.width - deltaX));
-        newHeight = Math.max(200, Math.min(800, startSize.height - deltaY));
+        newWidth = Math.max(minWidth, Math.min(800, startSize.width - deltaX));
+        newHeight = Math.max(minHeight, Math.min(800, startSize.height - deltaY));
         break;
       case 'se':
-        newWidth = Math.max(350, Math.min(800, startSize.width + deltaX));
-        newHeight = Math.max(200, Math.min(800, startSize.height + deltaY));
+        newWidth = Math.max(minWidth, Math.min(800, startSize.width + deltaX));
+        newHeight = Math.max(minHeight, Math.min(800, startSize.height + deltaY));
         break;
       case 'sw':
-        newWidth = Math.max(350, Math.min(800, startSize.width - deltaX));
-        newHeight = Math.max(200, Math.min(800, startSize.height + deltaY));
+        newWidth = Math.max(minWidth, Math.min(800, startSize.width - deltaX));
+        newHeight = Math.max(minHeight, Math.min(800, startSize.height + deltaY));
         break;
     }
 
