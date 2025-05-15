@@ -60,8 +60,8 @@ class OpenFold_Predictor(BaseStructurePredictor):
                     structure = best_structure["structure"]
                     pdb_file = self.save_structure(structure)
                     metrics = {
-                        "plddt": best_structure.get("confidence", 0),
-                        "model_param_set": best_structure.get("model_param_set", 0)
+                        "Average pLDDT": best_structure.get("confidence", 0),
+                        "Model Parameter Set": best_structure.get("model_param_set", 0)
                     }
                     return {"success": True, "structure": structure, "pdb_file": pdb_file, "metrics": metrics}
                 else:

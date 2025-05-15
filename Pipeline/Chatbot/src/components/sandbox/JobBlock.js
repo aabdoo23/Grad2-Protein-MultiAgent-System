@@ -28,7 +28,6 @@ const JobBlock = ({
 }) => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isResultsOpen, setIsResultsOpen] = useState(false);
-  const [localParams, setLocalParams] = useState(blockType.config || {});
   const nodeRef = useRef(null);
   const contentRef = useRef(null);
   const viewerRefs = useRef({});
@@ -200,7 +199,7 @@ const JobBlock = ({
                 isConfigOpen={isConfigOpen}
                 onClose={() => setIsConfigOpen(false)}
                 onApply={handleApplyParameters}
-                initialParams={localParams}
+                initialParams={blockType.config || {}}
               />
 
               {/* Loop controls */}

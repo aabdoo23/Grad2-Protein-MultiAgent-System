@@ -103,8 +103,9 @@ const BlastResults = ({ results }) => {
     return sequences.filter(seq => seq.dbName === dbName);
   };
 
-  const getUniqueDbs = (sequences) => {
-    const dbs = new Set(sequences.map(seq => seq.dbName));
+  const getUniqueDbs = () => {
+    if (!results?.msa?.sequences) return ['all'];
+    const dbs = new Set(results.msa.sequences.map(seq => seq.database));
     return ['all', ...Array.from(dbs)];
   };
 
@@ -144,128 +145,30 @@ const BlastResults = ({ results }) => {
   );
 
   // Sequence Processing
-  const processSequences = (sequences) => {
-    if (!sequences || sequences.length === 0) return null;
+  const processSequences = () => {
+    if (!results?.msa?.sequences) return null;
 
-    // Find the query sequence (it should be the first one with dbName 'query')
-    const querySequence = sequences.find(s => s.dbName === 'query');
-    if (!querySequence) return null;
+    // Filter sequences by selected database
+    const filteredSequences = selectedDb === 'all' 
+      ? results.msa.sequences 
+      : results.msa.sequences.filter(seq => seq.database === selectedDb);
 
-    // Process all sequences except the query
-    const sequencesWithIdentity = sequences
-      .filter(s => s.dbName !== 'query')
-      .map(s => ({
-        ...s,
-        // Use provided identity for local BLAST results, calculate for others
-        identity: s.identity !== undefined ? Number(Number(s.identity).toFixed(2)) : calculateIdentity(querySequence.seq, s.seq)
-      }));
-
-    // Filter and sort sequences
-    const filteredSequences = filterSequencesByDb(sequencesWithIdentity, selectedDb)
+    // Sort by identity and limit to maxSequences
+    const sortedSequences = filteredSequences
       .sort((a, b) => b.identity - a.identity)
       .slice(0, maxSequences);
 
-    // Combine query with filtered sequences
-    const finalSequences = [
-      { ...querySequence, identity: 100.00 },
-      ...filteredSequences
-    ];
-
-    return finalSequences.map((s, idx) => 
-      `${formatSequenceHeader(s.name, s.identity, idx === 0)}\n${s.seq}`
+    // Format sequences for MSA viewer
+    return sortedSequences.map(seq => 
+      `${formatSequenceHeader(seq.name || seq.id, seq.identity, seq.id === 'query')}\n${seq.sequence}`
     ).join('\n');
   };
 
   // Main render logic
   if (!results) return null;
 
-  const isColabFold = results.metrics?.search_type === 'colabfold';
-  let sequences = [];
-  let databases = ['all', 'ncbi', 'local'];
-
-  if (isColabFold) {
-    // Process ColabFold sequences
-    if (results.alignments) {
-      // First, find the query sequence
-      let querySequence = null;
-      for (const dbName in results.alignments) {
-        if (results.alignments[dbName]?.fasta?.alignment) {
-          const lines = results.alignments[dbName].fasta.alignment.split(/\r?\n/);
-          let current = { name: '', seq: '', dbName };
-          
-          for (const line of lines) {
-            if (line.startsWith('>')) {
-              if (current.name && current.name.includes('Query')) {
-                querySequence = { ...current, dbName: 'query' };
-                break;
-              }
-              current = { name: `${line.slice(1).split('|')[0]} [${dbName}]`, seq: '', dbName };
-            } else {
-              current.seq += line.trim();
-            }
-          }
-          if (current.name && current.name.includes('Query')) {
-            querySequence = { ...current, dbName: 'query' };
-          }
-          if (querySequence) break;
-        }
-      }
-
-      // Add query sequence if found
-      if (querySequence) {
-        sequences.push(querySequence);
-      }
-
-      // Process other sequences
-      for (const dbName in results.alignments) {
-        if (results.alignments[dbName]?.fasta?.alignment) {
-          const lines = results.alignments[dbName].fasta.alignment.split(/\r?\n/);
-          let current = { name: '', seq: '', dbName };
-          
-          for (const line of lines) {
-            if (line.startsWith('>')) {
-              if (current.name && !current.name.includes('Query')) {
-                sequences.push(current);
-              }
-              current = { name: `${line.slice(1).split('|')[0]} [${dbName}]`, seq: '', dbName };
-            } else {
-              current.seq += line.trim();
-            }
-          }
-          if (current.name && !current.name.includes('Query')) {
-            sequences.push(current);
-          }
-        }
-      }
-    }
-    databases = getUniqueDbs(sequences);
-  } else if (results.hits) {
-    // Process NCBI BLAST sequences
-    let queryAligned = null;
-    for (const hit of results.hits) {
-      if (hit.hsps && hit.hsps.length > 0 && hit.hsps[0].qseq) {
-        queryAligned = hit.hsps[0].qseq;
-        break;
-      }
-    }
-
-    if (queryAligned) {
-      sequences.push({ name: 'Query', seq: queryAligned, dbName: 'query' });
-    }
-
-    for (const hit of results.hits) {
-      if (hit.hsps && hit.hsps.length > 0 && hit.hsps[0].hseq) {
-        sequences.push({
-          name: hit.accession || hit.id || 'Hit',
-          seq: hit.hsps[0].hseq,
-          dbName: hit.db || 'ncbi',
-          identity: hit.hsps[0].identity
-        });
-      }
-    }
-  }
-
-  const processedAlignment = processSequences(sequences);
+  const databases = getUniqueDbs();
+  const processedAlignment = processSequences();
 
   return (
     <div className="space-y-4">
@@ -324,9 +227,11 @@ const BlastResults = ({ results }) => {
         </div>
       )}
 
-      {!isColabFold && results.hits && (
-        <div className="space-y-4">
-          {results.hits.map((hit, index) => (
+      {/* Display hits from all databases */}
+      {Object.entries(results.alignments?.databases || {}).map(([dbName, dbData]) => (
+        <div key={dbName} className="p-2 space-y-4">
+          <h5 className="text-white text-sm font-medium">{dbName.toUpperCase()} Hits</h5>
+          {dbData.hits.map((hit, index) => (
             <div key={index} className="border border-[#344752] rounded-lg p-3">
               <button
                 onClick={() => toggleHit(hit.id)}
@@ -334,7 +239,7 @@ const BlastResults = ({ results }) => {
               >
                 <div className="flex items-center space-x-2">
                   <h6 className="text-white font-medium flex items-center space-x-2">
-                    <span>{hit.def}</span>
+                    <span>{hit.description}</span>
                     <span className="text-xs px-2 py-0.5 bg-[#344752] rounded-full text-gray-300">
                       {hit.accession}
                     </span>
@@ -355,43 +260,36 @@ const BlastResults = ({ results }) => {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <span className="text-gray-400 text-sm">Length: </span>
-                      <span className="text-[#13a4ec] text-sm">{hit.len}</span>
+                      <span className="text-[#13a4ec] text-sm">{hit.length}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">Identity: </span>
+                      <span className="text-[#13a4ec] text-sm">{hit.identity.toFixed(2)}%</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">Score: </span>
+                      <span className="text-[#13a4ec] text-sm">{hit.score}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">E-value: </span>
+                      <span className="text-[#13a4ec] text-sm">{hit.evalue}</span>
                     </div>
                   </div>
 
-                  {hit.hsps.map((hsp, hspIndex) => (
-                    <div key={hspIndex} className="bg-[#1d333d] p-3 rounded text-sm font-mono">
-                      <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <span className="text-gray-400 text-sm">Score: </span>
-                          <span className="text-[#13a4ec] text-sm">{hsp.score}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-400 text-sm">E-value: </span>
-                          <span className="text-[#13a4ec] text-sm">{hsp.evalue}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-400 text-sm">Identity: </span>
-                          <span className="text-[#13a4ec] text-sm">{Number(hsp.identity).toFixed(2)}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-400 text-sm">Gaps: </span>
-                          <span className="text-[#13a4ec] text-sm">{hsp.gaps}</span>
-                        </div>
-                      </div>
-
+                  {hit.alignments.map((alignment, alignIndex) => (
+                    <div key={alignIndex} className="bg-[#1d333d] p-3 rounded text-sm font-mono">
                       <div className="space-y-2">
                         <div className="whitespace-nowrap">
                           <span className="text-gray-400 mr-2 inline-block w-16">Query:</span>
-                          <span className="text-[#13a4ec]">{hsp.qseq}</span>
+                          <span className="text-[#13a4ec]">{alignment.query_seq}</span>
                         </div>
                         <div className="whitespace-nowrap">
                           <span className="text-gray-400 mr-2 inline-block w-16">Match:</span>
-                          <span className="text-[#13a4ec]">{hsp.midline}</span>
+                          <span className="text-[#13a4ec]">{alignment.midline}</span>
                         </div>
                         <div className="whitespace-nowrap">
                           <span className="text-gray-400 mr-2 inline-block w-16">Subject:</span>
-                          <span className="text-[#13a4ec]">{hsp.hseq}</span>
+                          <span className="text-[#13a4ec]">{alignment.target_seq}</span>
                         </div>
                       </div>
                     </div>
@@ -401,7 +299,7 @@ const BlastResults = ({ results }) => {
             </div>
           ))}
         </div>
-      )}
+      ))}
     </div>
   );
 };

@@ -26,4 +26,4 @@ class BaseStructurePredictor(ABC):
     def calculate_metrics(self, structure: str) -> Dict[str, float]:
         scores = [float(line[60:66].strip()) for line in structure.splitlines() if line.startswith("ATOM")]
         avg_plddt = sum(scores)/len(scores) if scores else 0.0
-        return {"plddt": avg_plddt} 
+        return {"Average pLDDT": avg_plddt} 

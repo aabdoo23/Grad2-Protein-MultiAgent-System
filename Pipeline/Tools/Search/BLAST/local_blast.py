@@ -9,6 +9,7 @@ import time
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+from .schema_normalizer import MSASchemaNormalizer
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -28,6 +29,7 @@ class LocalBlastSearcher:
         self.default_e_value = 0.0001
         self.default_iterations = 1
         self.active_databases = {}  # Store active database paths
+        self.schema_normalizer = MSASchemaNormalizer()
 
     def _check_blast_installation(self) -> bool:
         """Check if local BLAST executables are available."""
@@ -379,9 +381,12 @@ class LocalBlastSearcher:
                 }
             }
             
+            # Normalize results using the schema normalizer
+            normalized_results = self.schema_normalizer.normalize_blast_results(formatted_results, sequence)
+            
             return {
                 "success": True,
-                "results": formatted_results
+                "results": normalized_results
             }
             
         except Exception as e:

@@ -5,6 +5,7 @@ from typing import Dict, Any
 from bs4 import BeautifulSoup
 import logging
 from .phylogenetic_analyzer import PhylogeneticAnalyzer
+from .schema_normalizer import MSASchemaNormalizer
 import json
 
 # Set up logging
@@ -19,6 +20,7 @@ class NCBI_BLAST_Searcher:
         self.max_wait_time = 600  # 10 minutes
         self.poll_interval = 15   # 15 seconds
         self.phylogenetic_analyzer = PhylogeneticAnalyzer(email="aabdoo2304@gmail.com")
+        self.schema_normalizer = MSASchemaNormalizer()
 
     def submit_search(self, sequence: str) -> Dict[str, Any]:
         """Submit a BLAST search and return the RID (Request ID).
@@ -255,7 +257,9 @@ class NCBI_BLAST_Searcher:
                     # Get the results using the existing get_results method
                     results = self.get_results(rid)
                     if results["success"]:
-                        return results
+                        # Normalize results using the schema normalizer
+                        normalized_results = self.schema_normalizer.normalize_blast_results(results["results"], sequence)
+                        return {"success": True, "results": normalized_results}
                     else:
                         return {"success": False, "error": results.get("error", "Failed to get results")}
                 elif status_result["status"] == "FAILED":
@@ -301,10 +305,13 @@ class NCBI_BLAST_Searcher:
                             tree_content = f.read()
                         results['results']['phylogenetic_tree'] = tree_content
                     
+                    # Normalize results using the schema normalizer
+                    normalized_results = self.schema_normalizer.normalize_blast_results(results['results'], results['results'].get('query', ''))
+                    
                     return {
                         "success": True,
                         "status": "completed",
-                        "results": results['results']
+                        "results": normalized_results
                     }
                 else:
                     return {

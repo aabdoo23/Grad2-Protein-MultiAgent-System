@@ -4,10 +4,9 @@ from typing import Dict, Any, Optional
 from fastapi import HTTPException
 import httpx
 import os
-from pathlib import Path
 import logging
 from .phylogenetic_analyzer import PhylogeneticAnalyzer
-import requests
+from .schema_normalizer import MSASchemaNormalizer
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +21,7 @@ class ColabFold_MSA_Searcher:
         self.default_database = "Uniref30_2302"
         self.default_e_value = 0.0001
         self.default_iterations = 1
+        self.schema_normalizer = MSASchemaNormalizer()
 
     def _acquire_key(self) -> str:
         """Acquire the NVCF Run Key from the environment."""
@@ -94,7 +94,9 @@ class ColabFold_MSA_Searcher:
             if code == 200:
                 try:
                     results = response.json()
-                    return {"success": True, "results": results}
+                    # Normalize results using the schema normalizer
+                    normalized_results = self.schema_normalizer.normalize_colabfold_results(results, sequence)
+                    return {"success": True, "results": normalized_results}
                 except json.JSONDecodeError:
                     return {"success": False, "error": "Failed to parse MSA results"}
             else:

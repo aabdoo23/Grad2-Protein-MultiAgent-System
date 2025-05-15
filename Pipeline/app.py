@@ -6,6 +6,7 @@ from job_manager import JobManager, JobStatus
 from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
 from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
+from util.modules.download_handler import DownloadHandler
 import os
 import threading
 import zipfile
@@ -34,6 +35,7 @@ memory = ConversationMemory()
 job_manager = JobManager()
 controller = PipelineController(conversation_memory=memory, job_manager=job_manager)
 blast_searcher = NCBI_BLAST_Searcher()
+download_handler = DownloadHandler()
 
 # Function to execute a job in a background thread
 def execute_job_in_background(job_id):
@@ -200,18 +202,7 @@ def evaluate_structures():
 
 @app.route('/check-blast-results/<rid>', methods=['GET'])
 def check_blast_results(rid):
-    """Check the status and get results of a BLAST search.
-    
-    Args:
-        rid (str): The Request ID from BLAST
-        
-    Returns:
-        Dict[str, Any]: Dictionary containing:
-            - success: bool indicating if check was successful
-            - status: Current status ('running', 'completed', 'failed')
-            - results: Processed BLAST results if completed
-            - error: Error message if unsuccessful
-    """
+    """Check the status and get results of a BLAST search."""
     try:
         result = blast_searcher.check_results(rid)
         return jsonify(result)
@@ -272,7 +263,7 @@ def download_structure():
 
 @app.route('/download-search-results', methods=['POST'])
 def download_search_results():
-    """Download search results as a zip file containing FASTA files for each database."""
+    """Download search results as a zip file containing organized results and reports."""
     data = request.json
     results = data.get('results')
     search_type = data.get('search_type')
@@ -280,98 +271,34 @@ def download_search_results():
     if not results or not search_type:
         return jsonify({'success': False, 'error': 'Missing results or search type'}), 400
     
-    # Create a zip file in memory
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        if search_type == 'similarity':
-            # For BLAST search results, create a FASTA file with all hits
-            fasta_content = ""
-            for hit in results.get('hits', []):
-                print(hit)
-                # Get the sequence from the first HSP
-                if hit.get('hsps') and len(hit['hsps']) > 0:
-                    hsp = hit['hsps'][0]
-                    # Use the hit sequence from the HSP
-                    sequence = hsp.get('hseq', '')
-                    if sequence:
-                        # Clean up the ID to make it FASTA-compatible
-                        hit_id = hit.get('id', '').replace('|', '_')
-                        fasta_content += f">{hit_id}\n{sequence}\n"
-            
-            # Add the FASTA file to the zip
-            if fasta_content:
-                zip_file.writestr("blast_results.fasta", fasta_content)
-            
-            # Add the original results as JSON for reference
-            results_json = json.dumps(results, indent=2)
-            zip_file.writestr("blast_results.json", results_json)
-        
-        elif search_type == 'structure':
-            # For structure search, create a JSON file with results and download PDBs
-            results_json = json.dumps(results, indent=2)
-            zip_file.writestr("search_results.json", results_json)
-            
-            # Add PDB files if available
-            for hit in results.get('hits', []):
-                pdb_file = hit.get('pdb_file')
-                if pdb_file:
-                    pdb_path = os.path.join(STATIC_PDB_DIR, os.path.basename(pdb_file))
-                    if os.path.exists(pdb_path):
-                        zip_file.write(pdb_path, os.path.basename(pdb_file))
+    # Create zip file using the download handler
+    zip_buffer = download_handler.create_search_results_zip(results, search_type)
     
-    # Prepare the zip file for download
-    zip_buffer.seek(0)
+    # Generate filename with timestamp
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"search_results_{timestamp}.zip"
     
-    return send_file(
-        zip_buffer,
-        mimetype='application/zip',
-        as_attachment=True,
-        download_name=filename
-    )
+    # Send the zip file
+    return download_handler.send_zip_file(zip_buffer, filename)
+
 @app.route('/download-multiple', methods=['POST'])
 def download_multiple():
-    """
-    Expects JSON:
-      { items: [ { outputType: str, data: {...} }, ... ] }
-    Each item.data must contain whatever fields are needed to reconstruct
-    a downloadable file (e.g. sequence text, pdb filename, results array, etc).
-    """
+    """Download multiple items with improved organization and reporting."""
     payload = request.get_json(force=True)
     items = payload.get('items', [])
-
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for idx, item in enumerate(items, start=1):
-            typ = item.get('outputType')
-            data = item.get('data') or {}
-            # customize how you serialize each type:
-            if typ == 'sequence' and data.get('sequence'):
-                name = f"sequence_{idx}.fasta"
-                sequence_name = data.get('sequence_name') or f'seq{str(idx)}'
-                fasta = f">{sequence_name}\n{data.get('sequence')}\n"
-                zipf.writestr(name, fasta)
-            elif typ == 'structure' and data.get('pdb_file'):
-                pdb_path = os.path.join(STATIC_PDB_DIR, os.path.basename(data.get('pdb_file')))
-                if os.path.exists(pdb_path):
-                    zipf.write(pdb_path, f"structure_{idx}.pdb")
-            elif typ == 'results' and isinstance(data.get('results'), dict):
-                # JSON dump
-                name = f"results_{idx}.json"
-                zipf.writestr(name, json.dumps(data.get('results'), indent=2))
-            else:
-                # fallback: JSON
-                name = f"item_{idx}.json"
-                zipf.writestr(name, json.dumps(data, indent=2))
-
-    zip_buffer.seek(0)
-    return send_file(
-        zip_buffer,
-        mimetype='application/zip',
-        as_attachment=True,
-        download_name=f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
-    )
+    
+    if not items:
+        return jsonify({'success': False, 'error': 'No items provided'}), 400
+    
+    # Create zip file using the download handler
+    zip_buffer = download_handler.create_multiple_items_zip(items)
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"batch_{timestamp}.zip"
+    
+    # Send the zip file
+    return download_handler.send_zip_file(zip_buffer, filename)
 
 if __name__ == '__main__':
     import uuid
