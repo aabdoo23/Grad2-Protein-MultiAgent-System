@@ -267,6 +267,7 @@ def download_search_results():
     data = request.json
     results = data.get('results')
     search_type = data.get('search_type')
+    download_settings = data.get('downloadSettings')
     
     if not results or not search_type:
         return jsonify({'success': False, 'error': 'Missing results or search type'}), 400
@@ -279,13 +280,14 @@ def download_search_results():
     filename = f"search_results_{timestamp}.zip"
     
     # Send the zip file
-    return download_handler.send_zip_file(zip_buffer, filename)
+    return download_handler.send_zip_file(zip_buffer, filename, download_settings)
 
 @app.route('/download-multiple', methods=['POST'])
 def download_multiple():
     """Download multiple items with improved organization and reporting."""
     payload = request.get_json(force=True)
     items = payload.get('items', [])
+    download_settings = payload.get('downloadSettings')
     
     if not items:
         return jsonify({'success': False, 'error': 'No items provided'}), 400
@@ -298,7 +300,7 @@ def download_multiple():
     filename = f"batch_{timestamp}.zip"
     
     # Send the zip file
-    return download_handler.send_zip_file(zip_buffer, filename)
+    return download_handler.send_zip_file(zip_buffer, filename, download_settings)
 
 if __name__ == '__main__':
     import uuid

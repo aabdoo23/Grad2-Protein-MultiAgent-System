@@ -14,6 +14,10 @@ const SandboxPage = () => {
   const [blockOutputs, setBlockOutputs] = useState({});
   const blockOutputsRef = useRef(blockOutputs);
   const [isAutomate, setIsAutomate] = useState(false);
+  const [downloadSettings, setDownloadSettings] = useState(() => {
+    const saved = localStorage.getItem('downloadSettings');
+    return saved ? JSON.parse(saved) : { autoSave: false, location: '' };
+  });
   const loopQueuedRef = useRef(false);
   const [loopConfig, setLoopConfig] = useState({
     isEnabled: false,
@@ -211,16 +215,37 @@ const SandboxPage = () => {
 
       try {
         // POST to backend to assemble ZIP
-        const resp = await downloadService.multiDownload({ items: downloadItems });
+        const resp = await downloadService.multiDownload({ 
+          items: downloadItems,
+          downloadSettings 
+        });
         if (resp.success && resp.zipUrl) {
-          // trigger browser download
-          const a = document.createElement('a');
-          a.href = resp.zipUrl;
-          a.download = `batch_download_${Date.now()}.zip`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+          // Only trigger browser download if auto-save is disabled
+          if (!downloadSettings.autoSave) {
+            const a = document.createElement('a');
+            a.href = resp.zipUrl;
+            a.download = `batch_download_${Date.now()}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }
+          
+          // Update block status and output with download information
           setBlocks(bs => bs.map(b => b.id === blockId ? { ...b, status: 'completed' } : b));
+          setBlockOutputs(prev => ({
+            ...prev,
+            [blockId]: {
+              ...prev[blockId],
+              downloadInfo: downloadSettings.autoSave ? {
+                saved: true,
+                path: downloadSettings.location,
+                filename: `batch_download_${Date.now()}.zip`
+              } : {
+                saved: false,
+                downloaded: true
+              }
+            }
+          }));
           
           // Handle loop continuation if this is the end block
           if (loopConfig.isEnabled && blockId === loopConfig.endBlockId) {
@@ -764,6 +789,67 @@ const SandboxPage = () => {
     }
   };
 
+  // Add this function after the stopLoop function
+  const handleDownloadSettingsChange = (settings) => {
+    setDownloadSettings(settings);
+    localStorage.setItem('downloadSettings', JSON.stringify(settings));
+  };
+
+  // Add this function after the renderLoopControls function
+  const renderDownloadSettings = () => (
+    <div className="flex items-center gap-4 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
+      <div className="flex items-center gap-3">
+        <span className="text-white text-sm font-medium">Auto-save Downloads</span>
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input 
+            type="checkbox" 
+            className="sr-only peer" 
+            checked={downloadSettings.autoSave} 
+            onChange={(e) => handleDownloadSettingsChange({
+              ...downloadSettings,
+              autoSave: e.target.checked
+            })} 
+          />
+          <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
+        </label>
+      </div>
+      {downloadSettings.autoSave && (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={downloadSettings.location}
+            onChange={(e) => handleDownloadSettingsChange({
+              ...downloadSettings,
+              location: e.target.value
+            })}
+            placeholder="Download location..."
+            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-64"
+          />
+          <button
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.webkitdirectory = true;
+              input.onchange = (e) => {
+                const path = e.target.files[0]?.path;
+                if (path) {
+                  handleDownloadSettingsChange({
+                    ...downloadSettings,
+                    location: path
+                  });
+                }
+              };
+              input.click();
+            }}
+            className="px-3 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200"
+          >
+            Browse
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="flex flex-col h-screen bg-[#111c22]">
       <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#233c48] px-8 py-4 shrink-0 bg-[#111c22]/95 backdrop-blur-sm">
@@ -787,6 +873,7 @@ const SandboxPage = () => {
             Clear Outputs
           </button>
           {renderLoopControls()}
+          {renderDownloadSettings()}
           <div className="flex items-center gap-3 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
             <span className="text-white text-sm font-medium">Automate</span>
             <label className="relative inline-flex items-center cursor-pointer">

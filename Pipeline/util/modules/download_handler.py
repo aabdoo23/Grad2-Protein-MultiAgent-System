@@ -1,9 +1,11 @@
 import io
 import json
 import zipfile
+import shutil
 from datetime import datetime
 from typing import Dict, Any, List
 from flask import send_file
+import os
 
 from util.reports.report_generator import ReportGenerator
 from util.utils.file_formatter import FileFormatter
@@ -12,6 +14,7 @@ class DownloadHandler:
     def __init__(self):
         self.report_generator = ReportGenerator()
         self.file_formatter = FileFormatter()
+        self.STATIC_PDB_DIR = os.path.join(os.path.dirname(__file__), '..', 'static', 'pdb_files')
 
     def create_search_results_zip(self, results: Dict[str, Any], search_type: str) -> io.BytesIO:
         """Create a zip file containing search results and reports."""
@@ -78,12 +81,12 @@ class DownloadHandler:
             
             # Process each item
             for idx, item in enumerate(items, start=1):
-                # Create item-specific directory
-                item_dir = f"item_{idx}"
+                # Create item-specific directory based on the item type
                 
                 # Get item type and data
                 typ = item.get('outputType')
                 data = item.get('data', {})
+                item_dir = f"item_{idx}_{typ}"
                 
                 if typ == 'sequence':
                     # Handle sequence data
@@ -100,7 +103,7 @@ class DownloadHandler:
                 elif typ == 'structure':
                     # Handle structure data
                     if data.get('pdb_file'):
-                        pdb_path = os.path.join(STATIC_PDB_DIR, os.path.basename(data.get('pdb_file')))
+                        pdb_path = data.get('pdb_file')
                         if os.path.exists(pdb_path):
                             zipf.write(pdb_path, f"{item_dir}/structure.pdb")
                             
@@ -145,8 +148,23 @@ class DownloadHandler:
         zip_buffer.seek(0)
         return zip_buffer
 
-    def send_zip_file(self, zip_buffer: io.BytesIO, filename: str) -> Any:
-        """Send a zip file as a download response."""
+    def send_zip_file(self, zip_buffer: io.BytesIO, filename: str, download_settings: Dict[str, Any] = None) -> Any:
+        """Send a zip file as a download response and optionally save it to a specified location."""
+        if download_settings and download_settings.get('autoSave') and download_settings.get('location'):
+            try:
+                # Ensure the download directory exists
+                os.makedirs(download_settings['location'], exist_ok=True)
+                
+                # Save the zip file to the specified location
+                save_path = os.path.join(download_settings['location'], filename)
+                with open(save_path, 'wb') as f:
+                    f.write(zip_buffer.getvalue())
+                
+                # Reset the buffer position for the response
+                zip_buffer.seek(0)
+            except Exception as e:
+                print(f"Error saving file to {download_settings['location']}: {str(e)}")
+        
         return send_file(
             zip_buffer,
             mimetype='application/zip',

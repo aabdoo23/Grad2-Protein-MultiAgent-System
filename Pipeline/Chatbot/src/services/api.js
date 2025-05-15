@@ -118,12 +118,12 @@ export const downloadService = {
     }
   },
   
-  multiDownload: async ({ items }) => {
+  multiDownload: async ({ items, downloadSettings }) => {
     try {
       console.log('Multi-download items:', items);
       const r = await downloadApi.post(
         '/download-multiple',
-        { items }
+        { items, downloadSettings }
       );
       // create a URL for the blob
       const blobUrl = window.URL.createObjectURL(new Blob([r.data], { type: 'application/zip' }));

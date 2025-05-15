@@ -104,7 +104,7 @@ class ReportGenerator:
         report.append("\n")
         
         for idx, item in enumerate(items, start=1):
-            report.append(f"Item {idx}:")
+            report.append(f"Item {idx} {item.get('outputType')}:")
             report.append("-" * 40)
             
             # Get item type and data
@@ -194,5 +194,5 @@ class ReportGenerator:
         report.append("Structure Report")
         report.append("=" * 80)
         report.append(f"File: {data.get('pdb_file', 'Unknown')}")
-        report.append(f"Description: {data.get('description', 'No description available')}")
+        report.append(f"Description: {data.get('metrics', 'No description available')}")
         return "\n".join(report) 
