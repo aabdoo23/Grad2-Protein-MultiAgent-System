@@ -17,7 +17,7 @@ app = Flask(__name__)
 # Configure CORS to allow credentials and specific headers
 CORS(app, supports_credentials=True, resources={
     r"/*": {
-        "origins": ["http://localhost:3000"],
+        "origins": ["http://localhost:3000", "https://grad2-protein-multi-agent-system.vercel.app", "https://protein-pipeline.vercel.app"],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "expose_headers": ["Content-Disposition"]
