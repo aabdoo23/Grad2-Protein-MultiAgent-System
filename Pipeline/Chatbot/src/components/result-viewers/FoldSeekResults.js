@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import * as NGL from 'ngl';
 import axios from 'axios';
+import { BASE_URL } from '../../config/config';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000',
+  baseURL: BASE_URL,
   timeout: 900000,
   headers: {
     'Content-Type': 'application/json'
@@ -25,7 +26,7 @@ const FoldSeekResults = ({ results, originalPdbPath }) => {
 
     // Load and display the PDB structure
     const filename = pdbPath.split('\\').pop();
-    stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
+    stage.loadFile(`${BASE_URL}/pdb/${filename}`).then(component => {
       component.addRepresentation('cartoon', {
         color: 'bfactor',
         colorScale: 'RdYlBu',

@@ -9,10 +9,9 @@ from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 from util.modules.download_handler import DownloadHandler
 import os
 import threading
-import zipfile
 import io
-import json
 from datetime import datetime
+import uuid
 
 app = Flask(__name__)
 # Configure CORS to allow credentials and specific headers
@@ -303,5 +302,4 @@ def download_multiple():
     return download_handler.send_zip_file(zip_buffer, filename, download_settings)
 
 if __name__ == '__main__':
-    import uuid
     app.run(debug=True)

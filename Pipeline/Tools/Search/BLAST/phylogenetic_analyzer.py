@@ -1,16 +1,10 @@
-from Bio import Phylo
-from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
-from Bio import AlignIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import tempfile
 import os
 import logging
-import sys
-from .clustalo import serviceRun, serviceGetStatus, serviceGetResult, serviceGetResultTypes
+from .clustalo import serviceRun, serviceGetStatus, serviceGetResult
 import time
-from Bio import SeqIO
-from Bio.Align import MultipleSeqAlignment
 
 logger = logging.getLogger(__name__)
 

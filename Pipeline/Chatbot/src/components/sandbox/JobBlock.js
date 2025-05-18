@@ -8,6 +8,7 @@ import BlockLoopControls from './JobBlockComponents/BlockLoopControls';
 import BlockHeader from './JobBlockComponents/BlockHeader';
 import BlockActions from './JobBlockComponents/BlockActions';
 import BlockConfig from './JobBlockComponents/BlockConfig';
+import { BASE_URL } from '../../config/config';
 
 const JobBlock = ({
   block,
@@ -43,7 +44,7 @@ const JobBlock = ({
     viewerRefs.current[jobId] = stage;
 
     const filename = pdbPath.split('\\').pop();
-    stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
+    stage.loadFile(`${BASE_URL}/pdb/${filename}`).then(component => {
       component.addRepresentation('cartoon', {
         color: 'bfactor',
         colorScale: 'RdYlBu',

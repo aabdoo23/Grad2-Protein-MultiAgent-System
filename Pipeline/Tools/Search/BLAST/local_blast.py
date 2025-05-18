@@ -2,7 +2,6 @@ import os
 import subprocess
 import tempfile
 import pandas as pd
-from collections import defaultdict
 import io
 import requests
 import time

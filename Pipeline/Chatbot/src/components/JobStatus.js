@@ -5,7 +5,7 @@ import BlastResults from './BlastResults';
 import FoldSeekResults from './result-viewers/FoldSeekResults';
 import SequenceGenerationResults from './result-viewers/SequenceGenerationResults';
 import EvaluationResults from './result-viewers/EvaluationResults';
-
+import { BASE_URL } from '../config/config';
 
 const JobStatus = forwardRef((props, ref) => {
   const [jobs, setJobs] = useState([]);
@@ -15,7 +15,7 @@ const JobStatus = forwardRef((props, ref) => {
   const viewerRefs = useRef({});
 
   const api = axios.create({
-    baseURL: 'http://localhost:5000',
+    baseURL: BASE_URL,
     timeout: 900000, // 15 minutes timeout to accommodate AlphaFold2 predictions
     headers: {
       'Content-Type': 'application/json'
@@ -116,7 +116,7 @@ const JobStatus = forwardRef((props, ref) => {
 
       // Load and display the PDB structure
       const filename = pdbPath.split('\\').pop();
-      stage.loadFile(`http://localhost:5000/pdb/${filename}`).then(component => {
+      stage.loadFile(`${BASE_URL}/pdb/${filename}`).then(component => {
         component.addRepresentation('cartoon', {
           color: '#13a4ec',
           roughness: 1.0,

@@ -7,6 +7,7 @@ import JobConfirmation from './components/JobConfirmation';
 import PhylogeneticTreeViewer from './components/phylotree/PhylogeneticTreeViewer';
 import SandboxPage from './components/sandbox/SandboxPage';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BASE_URL } from './config/config';
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -17,7 +18,7 @@ function App() {
   const jobStatusRef = useRef(null);
 
   const api = axios.create({
-    baseURL: 'http://localhost:5000',
+    baseURL: BASE_URL,
     timeout: 900000,
     headers: {
       'Content-Type': 'application/json'
