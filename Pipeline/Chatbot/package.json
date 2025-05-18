@@ -16,6 +16,7 @@
     "d3": "^7.9.0",
     "d3-fetch": "^3.0.1",
     "d3-react-axis": "^0.0.3",
+    "molstar": "^3.0.0",
     "ngl": "^2.1.0",
     "phylotree": "^2.1.0",
     "plotly.js-dist-min": "^3.0.1",
@@ -26,13 +27,13 @@
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^18.2.0",
     "react-draggable": "^4.4.6",
+    "react-dropzone": "^14.3.8",
     "react-phylogeny-tree": "^0.0.4",
     "react-plotly.js": "^2.6.0",
     "react-scripts": "5.0.1",
     "react-split": "^2.0.14",
     "tailwindcss": "^3.4.1",
-    "web-vitals": "^2.1.4",
-    "molstar": "^3.0.0"
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",

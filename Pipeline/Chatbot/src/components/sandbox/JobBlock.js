@@ -8,6 +8,7 @@ import BlockLoopControls from './JobBlockComponents/BlockLoopControls';
 import BlockHeader from './JobBlockComponents/BlockHeader';
 import BlockActions from './JobBlockComponents/BlockActions';
 import BlockConfig from './JobBlockComponents/BlockConfig';
+import FileUploadBlock from './JobBlockComponents/FileUploadBlock';
 import { BASE_URL } from '../../config/config';
 
 const JobBlock = ({
@@ -121,6 +122,33 @@ const JobBlock = ({
     formatMetric
   };
 
+  const handleFileUpload = async (formData, outputType) => {
+    try {
+      const response = await fetch(`${BASE_URL}/upload-file`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const result = await response.json();
+      
+      // Update block output with the uploaded file info
+      onUpdateParameters({
+        filePath: result.filePath,
+        outputType: outputType
+      });
+
+      // Run the block to process the uploaded file
+      onRunBlock();
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      // Handle error state
+    }
+  };
+
   return (
     <Draggable
       nodeRef={nodeRef}
@@ -173,6 +201,14 @@ const JobBlock = ({
                   />
                 ))}
               </div>
+
+              {/* File Upload Block */}
+              {blockType.id === 'file_upload' && (
+                <FileUploadBlock
+                  onFileUpload={handleFileUpload}
+                  blockType={blockType}
+                />
+              )}
 
               {/* Output ports */}
               <div className="mt-4">

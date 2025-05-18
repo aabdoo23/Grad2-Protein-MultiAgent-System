@@ -10,6 +10,7 @@ from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 from Tools.Search.BLAST.colabfold_msa_search import ColabFold_MSA_Searcher
 from Tools.Search.BLAST.local_blast import LocalBlastSearcher
 from job_manager import Job
+import os
 
 class PipelineController:
     def __init__(self, conversation_memory, job_manager):
@@ -82,7 +83,37 @@ class PipelineController:
                 # Update parameters based on previous job's result
                 params = self._chain_job_parameters(previous_job.result, job)
         
-        if name == PipelineFunction.GENERATE_PROTEIN.value:
+        if name == 'file_upload':
+            # Get the file path and output type from parameters
+            file_path = params.get('filePath')
+            output_type = params.get('outputType')
+            
+            if not file_path or not output_type:
+                return {"success": False, "error": "Missing file path or output type"}
+            
+            # Construct the full file path
+            full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', file_path)
+            
+            if not os.path.exists(full_path):
+                return {"success": False, "error": "File not found"}
+            
+            # Return the appropriate output based on file type
+            if output_type == 'structure':
+                result = {
+                    "success": True,
+                    "pdb_file": file_path,
+                    "outputType": "structure"
+                }
+            elif output_type == 'molecule':
+                result = {
+                    "success": True,
+                    "molecule_file": file_path,
+                    "outputType": "molecule"
+                }
+            else:
+                return {"success": False, "error": "Invalid output type"}
+                
+        elif name == PipelineFunction.GENERATE_PROTEIN.value:
             result = self.protein_generator.generate(params.get("prompt", ""))
         elif name == PipelineFunction.PREDICT_STRUCTURE.value:
             sequence = params.get("sequence", "")

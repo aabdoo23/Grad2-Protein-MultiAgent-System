@@ -1,5 +1,20 @@
 export const blockTypes = [
     {
+      id: 'file_upload',
+      name: 'File Upload',
+      type: 'Input',
+      description: 'Upload PDB, SDF, or MOL2 files for structure or molecule analysis',
+      color: '#4a90e2',
+      inputs: [],
+      outputs: ['structure', 'molecule'],
+      config: {
+        acceptedFileTypes: {
+          structure: ['.pdb'],
+          molecule: ['.sdf', '.mol2']
+        }
+      }
+    },
+    {
       id: 'multi_download',
       name: 'Multi Download',
       type: 'Download',

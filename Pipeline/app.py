@@ -12,6 +12,8 @@ import threading
 import io
 from datetime import datetime
 import uuid
+import shutil
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 # Configure CORS to allow credentials and specific headers
@@ -27,7 +29,61 @@ app.secret_key = "YOUR_SECRET_KEY"  # Needed for session management
 
 # Configure static file serving
 STATIC_PDB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'pdb_files')
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
 os.makedirs(STATIC_PDB_DIR, exist_ok=True)
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Allowed file extensions
+ALLOWED_EXTENSIONS = {
+    'structure': ['.pdb'],
+    'molecule': ['.sdf', '.mol2']
+}
+
+def allowed_file(filename, output_type):
+    return any(filename.lower().endswith(ext) for ext in ALLOWED_EXTENSIONS[output_type])
+
+@app.route('/upload-file', methods=['POST'])
+def upload_file():
+    """Handle file uploads and store them temporarily."""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file provided'}), 400
+    
+    file = request.files['file']
+    output_type = request.form.get('outputType')
+    
+    if not file or not output_type:
+        return jsonify({'success': False, 'error': 'Missing file or output type'}), 400
+    
+    if not allowed_file(file.filename, output_type):
+        return jsonify({'success': False, 'error': 'Invalid file type'}), 400
+    
+    try:
+        # Create a unique filename
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4()}_{filename}"
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        
+        # Save the file
+        file.save(file_path)
+        
+        # Schedule file deletion after 1 hour
+        def delete_file():
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                print(f"Error deleting file {file_path}: {str(e)}")
+        
+        threading.Timer(3600, delete_file).start()
+        
+        return jsonify({
+            'success': True,
+            'filePath': file_path,
+            'outputType': output_type
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # Create global objects
 memory = ConversationMemory()
