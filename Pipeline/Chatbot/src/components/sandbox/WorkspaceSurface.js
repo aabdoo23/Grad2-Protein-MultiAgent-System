@@ -1,7 +1,20 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { useDrop } from 'react-dnd';
+import React, { useCallback, useEffect } from 'react';
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+
 import JobBlock from './JobBlock';
-import ConnectionLine from './ConnectionLine';
+import useWorkspaceStore from '../../store/workspaceStore';
+
+const nodeTypes = {
+  jobBlock: JobBlock,
+};
 
 const WorkspaceSurface = ({ 
   blocks, 
@@ -14,333 +27,195 @@ const WorkspaceSurface = ({
   blockOutputs,
   updateBlock,
   onDeleteBlock,
+  deleteConnection,
   loopConfig,
-  setLoopConfig
+  setLoopConfig,
+  formatMetric,
+  initViewer
 }) => {
-  const containerRef = useRef(null);       // outer container for events
-  const contentRef = useRef(null);         // inner transformed content
-  const [connecting, setConnecting] = useState(null);
-  const [hoverTarget, setHoverTarget] = useState(null);
-  const [blockPositions, setBlockPositions] = useState({});
-  const [blockDimensions, setBlockDimensions] = useState({});
+  const {
+    updateViewport,
+    setSelectedNodes,
+    setSelectedEdges,
+    layoutBlocks,
+  } = useWorkspaceStore();
 
-  // zoom & pan state
-  const [scale, setScale] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const isPanning = useRef(false);
-  const panStart = useRef({ x: 0, y: 0 });
-
-  // Update block positions and dimensions when blocks change
-  useEffect(() => {
-    const newPositions = {};
-    const newDimensions = {};
-    blocks.forEach(block => {
-      newPositions[block.id] = block.position;
-      newDimensions[block.id] = {
-        width: block.width || 300,
-        height: block.height || 250
-      };
+  const findBlockType = (typeId) => {
+    const foundType = blockTypes.find(bt => {
+      return bt.id === typeId;
     });
-    setBlockPositions(newPositions);
-    setBlockDimensions(newDimensions);
-  }, [blocks]);
-
-  // Enable drop on content container
-  const [, drop] = useDrop({
-    accept: 'BLOCK_TYPE',
-    drop: (item, monitor) => {
-      const client = monitor.getClientOffset();
-      const rect = contentRef.current.getBoundingClientRect();
-      // convert screen coords to content coords
-      const x = (client.x - rect.left - offset.x) / scale;
-      const y = (client.y - rect.top - offset.y) / scale;
-      addBlock(item.blockType, { x, y });
-    },
-    collect: monitor => ({ isOver: !!monitor.isOver() })
-  });
-
-  // Handle wheel zoom only when not over a block
-  const handleWheel = e => {
-    if (e.target.closest('.job-block')) return;  // inside block: skip
-    e.preventDefault();
-    const rect = contentRef.current.getBoundingClientRect();
-    const cx = (e.clientX - rect.left - offset.x) / scale;
-    const cy = (e.clientY - rect.top - offset.y) / scale;
-    const delta = e.deltaY < 0 ? 1.1 : 0.9;
-    const newScale = Math.min(Math.max(scale * delta, 0.5), 2);
-    setScale(newScale);
-    setOffset(prev => ({
-      x: prev.x - cx * (delta - 1) * scale,
-      y: prev.y - cy * (delta - 1) * scale
-    }));
-  };
-
-  // Pan with right mouse button
-  const handleMouseDown = e => {
-    if (e.button === 2 && !e.target.closest('.job-block')) {
-      e.preventDefault();
-      isPanning.current = true;
-      panStart.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
-      document.body.style.cursor = 'grabbing';
-    }
-  };
-
-  const handleMouseMove = e => {
-    if (isPanning.current) {
-      setOffset({ x: e.clientX - panStart.current.x, y: e.clientY - panStart.current.y });
-    }
-    if (connecting) {
-      const rect = contentRef.current.getBoundingClientRect();
-      setConnecting({
-        ...connecting,
-        cursorPosition: {
-          x: (e.clientX - rect.left - offset.x) / scale,
-          y: (e.clientY - rect.top - offset.y) / scale
-        }
-      });
-    }
-  };
-
-  const handleMouseUp = e => {
-    if (e.button === 2 && isPanning.current) {
-      isPanning.current = false;
-      document.body.style.cursor = 'default';
-    }
-    if (connecting && !hoverTarget) {
-      setConnecting(null);
-    }
-  };
-
-  // Prevent default context menu on container
-  const handleContextMenu = e => {
-    if (containerRef.current.contains(e.target)) {
-      e.preventDefault();
-    }
-  };
-
-  // Start connecting blocks (from an output port)
-  const handleStartConnection = (blockId, outputType) => {
-    setConnecting({
-      sourceBlockId: blockId,
-      outputType,
-      cursorPosition: { x: 0, y: 0 }
-    });
-  };
-
-  // Set hover target when over an input port
-  const handleInputPortHover = (blockId, inputType, isHovering) => {
-    if (connecting && isHovering) {
-      setHoverTarget({ blockId, inputType });
-    } else if (hoverTarget && hoverTarget.blockId === blockId && hoverTarget.inputType === inputType) {
-      setHoverTarget(null);
-    }
-  };
-
-  // Complete the connection when clicking on an input port
-  const handleCompleteConnection = (targetBlockId, inputType) => {
-    if (connecting) {
-      // Validate the connection: make sure output type matches input type
-      const sourceBlock = blocks.find(b => b.id === connecting.sourceBlockId);
-      const targetBlock = blocks.find(b => b.id === targetBlockId);
-      
-      if (!sourceBlock || !targetBlock) return;
-      
-      const sourceBlockType = getBlockTypeById(sourceBlock.type);
-      const targetBlockType = getBlockTypeById(targetBlock.type);
-      
-      if (!sourceBlockType || !targetBlockType) return;
-      
-      // For multi-download block, we allow any output type to connect to any input
-      if (targetBlockType.id === 'multi_download') {
-        connectBlocks(
-          connecting.sourceBlockId,
-          targetBlockId,
-          connecting.outputType,
-          inputType
-        );
-        setConnecting(null);
-        return;
-      }
-      
-      // For other blocks, make sure the output and input types match
-      if (connecting.outputType !== inputType && connecting.outputType !== '*' && inputType !== '*') {
-        console.warn(`Type mismatch: trying to connect ${connecting.outputType} to ${inputType}`);
-        setConnecting(null);
-        return;
-      }
-      
-      // All good, create the connection
-      connectBlocks(
-        connecting.sourceBlockId,
-        targetBlockId,
-        connecting.outputType,
-        inputType
-      );
-      setConnecting(null);
-    }
-  };
-
-  // Get block of a specific type
-  const getBlockTypeById = (typeId) => {
-    return blockTypes.find(bt => bt.id === typeId);
-  };
-
-  // Get source and target positions for connection lines
-  const getConnectionPoints = (sourceBlockId, targetBlockId, outputType, inputType) => {
-    const sourceBlock = blocks.find(b => b.id === sourceBlockId);
-    const targetBlock = blocks.find(b => b.id === targetBlockId);
-    
-    if (!sourceBlock || !targetBlock) {
-      return { start: { x: 0, y: 0 }, end: { x: 0, y: 0 } };
-    }
-    
-    const sourceBlockType = getBlockTypeById(sourceBlock.type);
-    const targetBlockType = getBlockTypeById(targetBlock.type);
-    
-    if (!sourceBlockType || !targetBlockType) {
-      return { start: { x: 0, y: 0 }, end: { x: 0, y: 0 } };
-    }
-    
-    // Calculate output port position (right side of source block)
-    const outputIndex = sourceBlockType.outputs.indexOf(outputType);
-    const sourceY = blockPositions[sourceBlockId]?.y + 60 + (outputIndex * 24) || 0;
-    
-    // For multi_download block, add a small offset to each connection to the same input
-    let targetY = 0;
-    
-    if (targetBlockType.id === 'multi_download') {
-      const inputIndex = targetBlockType.inputs.indexOf(inputType.split('_')[0]);
-      const baseY = blockPositions[targetBlockId]?.y + 60 + (inputIndex * 24) || 0;
-      const targetConnections = connections[targetBlockId] || {};
-      const connectionKeys = Object.keys(targetConnections);
-      const currentIndex = connectionKeys.indexOf(inputType);
-      targetY = baseY + (currentIndex * 4);
-    } else {
-      const inputIndex = targetBlockType.inputs.indexOf(inputType);
-      targetY = blockPositions[targetBlockId]?.y + 60 + (inputIndex * 24) || 0;
-    }
-    
-    return {
-      start: { 
-        x: blockPositions[sourceBlockId]?.x + (blockDimensions[sourceBlockId]?.width || 250) || 0, 
-        y: sourceY 
-      },
-      end: { 
-        x: blockPositions[targetBlockId]?.x || 0, 
-        y: targetY
-      }
+    return foundType || {
+      id: 'unknown',
+      name: 'Unknown Block',
+      color: '#4B5563',
+      inputs: [],
+      outputs: [],
+      config: null,
     };
   };
 
-  // Handle block position update
-  const handleBlockPositionUpdate = (blockId, position) => {
-    setBlockPositions(prev => ({
-      ...prev,
-      [blockId]: position
-    }));
+  const createNodeFromBlock = (block) => {
+    return {
+      id: block.id,
+      type: 'jobBlock',
+      position: block.position || { x: 0, y: 0 },
+      data: {
+        ...block,
+        blockType: findBlockType(block.blockTypeId || block.type),
+        onRunBlock: () => runBlock(block.id),
+        onUpdateParameters: (params) => updateBlockParameters(block.id, params),
+        onDeleteBlock: () => onDeleteBlock(block.id),
+        updateBlock: (updates) => updateBlock(block.id, updates),
+        blockOutput: blockOutputs[block.id],
+        loopConfig,
+        setLoopConfig,
+        formatMetric,
+        initViewer
+      },
+    };
   };
 
-  // Handle block resize
-  const handleBlockResize = (blockId, dimensions) => {
-    setBlockDimensions(prev => ({
-      ...prev,
-      [blockId]: dimensions
-    }));
-    if (updateBlock) {
-      updateBlock(blockId, { width: dimensions.width, height: dimensions.height });
-    }
-  };
+  const initialNodes = blocks.map(createNodeFromBlock);
+
+  // Generate edges from connections data
+  const initialEdges = React.useMemo(() => {
+    const edges = [];
+    Object.entries(connections).forEach(([targetId, targetConnections]) => {
+      Object.entries(targetConnections).forEach(([targetHandle, connection]) => {
+        if (connection) {
+          edges.push({
+            id: `e-${connection.source}-${targetId}-${targetHandle}`,
+            source: connection.source,
+            target: targetId,
+            sourceHandle: connection.sourceHandle,
+            targetHandle: targetHandle,
+          });
+        }
+      });
+    });
+    return edges;
+  }, [connections]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Update nodes and edges when blocks or connections change
+  useEffect(() => {
+    const newNodes = blocks.map(createNodeFromBlock);
+    setNodes(newNodes);
+
+    const newEdges = [];
+    Object.entries(connections).forEach(([targetId, targetConnections]) => {
+      Object.entries(targetConnections).forEach(([targetHandle, connection]) => {
+        if (connection) {
+          newEdges.push({
+            id: `e-${connection.source}-${targetId}-${targetHandle}`,
+            source: connection.source,
+            target: targetId,
+            sourceHandle: connection.sourceHandle,
+            targetHandle: targetHandle,
+          });
+        }
+      });
+    });
+    setEdges(newEdges);
+  }, [blocks, connections, blockOutputs, blockTypes, runBlock, updateBlockParameters, onDeleteBlock, loopConfig, setLoopConfig, setNodes, setEdges]);
+
+  const onNodeDragStop = useCallback((event, node) => {
+    updateBlock(node.id, { position: node.position });
+  }, [updateBlock]);
+
+  const onConnect = useCallback((params) => {
+    connectBlocks(params);
+    setEdges((eds) => addEdge(params, eds));
+  }, [connectBlocks, setEdges]);
+
+  const onEdgesDelete = useCallback((deletedEdges) => {
+    deletedEdges.forEach(edge => {
+      deleteConnection(edge.source, edge.target, edge.targetHandle);
+    });
+  }, [deleteConnection]);
+
+  const onNodesDelete = useCallback((nodesToDelete) => {
+    nodesToDelete.forEach(node => onDeleteBlock(node.id));
+  }, [onDeleteBlock]);
+
+  const onMove = useCallback((event, viewport) => {
+    updateViewport(viewport);
+  }, [updateViewport]);
+
+  const onSelectionChange = useCallback(({ nodes, edges }) => {
+    setSelectedNodes(nodes);
+    setSelectedEdges(edges);
+  }, [setSelectedNodes, setSelectedEdges]);
+
+  const onDragOver = useCallback((event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event) => {
+      event.preventDefault();
+
+      const reactFlowBounds = event.target.getBoundingClientRect();
+      const blockType = JSON.parse(event.dataTransfer.getData('application/reactflow'));
+
+      const position = {
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      };
+
+      const newBlock = {
+        id: `block-${Date.now()}`,
+        blockTypeId: blockType.id, // This should be the block type ID (e.g., 'sequence_iterator')
+        type: blockType.id, // Keep this for backwards compatibility
+        position,
+        parameters: {},
+        status: 'idle',
+      };
+
+      addBlock(newBlock);
+    },
+    [addBlock]
+  );
 
   return (
-    <div
-      ref={containerRef}
-      className="h-full w-full bg-[#0a1218] p-4 overflow-hidden"
-      onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onContextMenu={handleContextMenu}
-      style={{ position: 'relative' }}
-    >
-      <div
-        ref={el => { drop(el); contentRef.current = el; }}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-          transformOrigin: '0 0',
-          minWidth: '200%',
-          minHeight: '200%'
-        }}
+    <div className="h-full w-full">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeDragStop={onNodeDragStop}
+        onConnect={onConnect}
+        onNodesDelete={onNodesDelete}
+        onEdgesDelete={onEdgesDelete}
+        onMove={onMove}
+        onSelectionChange={onSelectionChange}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+        nodeTypes={nodeTypes}
+        fitView
+        attributionPosition="bottom-right"
+        snapToGrid
+        snapGrid={[15, 15]}
+        minZoom={0.5}
+        maxZoom={2}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
       >
-        {/* Connection Lines */}
-        {Object.entries(connections).map(([targetBlockId, inputConnections]) => 
-          Object.entries(inputConnections).map(([inputType, connection]) => {
-            const points = getConnectionPoints(
-              connection.blockId,
-              targetBlockId,
-              connection.outputType,
-              inputType
-            );
-            
-            return (
-              <ConnectionLine
-                key={`${connection.blockId}-${targetBlockId}-${inputType}`}
-                start={points.start}
-                end={points.end}
-                color={getBlockTypeById(blocks.find(b => b.id === connection.blockId)?.type)?.color || '#ffffff'}
-              />
-            );
-          })
-        )}
-        
-        {/* Dragging Connection Line */}
-        {connecting && (
-          <ConnectionLine
-            start={{
-              x: blockPositions[connecting.sourceBlockId]?.x + 250 || 0,
-              y: blockPositions[connecting.sourceBlockId]?.y + 60 + 
-                (getBlockTypeById(blocks.find(b => b.id === connecting.sourceBlockId)?.type)?.outputs.indexOf(connecting.outputType) * 24 || 0)
-            }}
-            end={
-              hoverTarget ? 
-              getConnectionPoints(
-                connecting.sourceBlockId, 
-                hoverTarget.blockId, 
-                connecting.outputType, 
-                hoverTarget.inputType
-              ).end :
-              connecting.cursorPosition
-            }
-            color={getBlockTypeById(blocks.find(b => b.id === connecting.sourceBlockId)?.type)?.color || '#ffffff'}
-            dashed={true}
-          />
-        )}
-        
-        {/* Blocks */}
-        {blocks.map(block => (
-          <JobBlock
-            key={block.id}
-            block={block}
-            blockType={getBlockTypeById(block.type)}
-            onStartConnection={handleStartConnection}
-            onCompleteConnection={handleCompleteConnection}
-            onInputPortHover={handleInputPortHover}
-            onRunBlock={() => runBlock(block.id)}
-            onUpdateParameters={(parameters) => updateBlockParameters(block.id, parameters)}
-            blockOutput={blockOutputs[block.id]}
-            isConnecting={connecting !== null}
-            onPositionUpdate={handleBlockPositionUpdate}
-            onResize={handleBlockResize}
-            setDimensions={setBlockDimensions}
-            onDeleteBlock={onDeleteBlock}
-            connections={connections}
-            loopConfig={loopConfig}
-            setLoopConfig={setLoopConfig}
-          />
-        ))}
-      </div>
+        <Background />
+        <Controls />
+        <MiniMap />
+        {/* <Panel position="top-right">
+          <button
+            onClick={layoutBlocks}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          >
+            Layout Blocks
+          </button>
+        </Panel> */}
+      </ReactFlow>
     </div>
   );
 };

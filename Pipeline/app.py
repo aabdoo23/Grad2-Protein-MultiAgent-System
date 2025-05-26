@@ -1,8 +1,8 @@
-from flask import Flask, request, jsonify, session, send_from_directory, send_file
+from flask import Flask, request, jsonify, session, send_from_directory, send_file, Response
 from flask_cors import CORS
-from pipeline_controller import PipelineController
-from conversation_memory import ConversationMemory
-from job_manager import JobManager, JobStatus
+from util.flow.pipeline_controller import PipelineController
+from util.chatbot.conversation_memory import ConversationMemory
+from util.flow.job_manager import JobManager, JobStatus
 from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
 from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
@@ -12,7 +12,6 @@ import threading
 import io
 from datetime import datetime
 import uuid
-import shutil
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -41,6 +40,48 @@ ALLOWED_EXTENSIONS = {
 
 def allowed_file(filename, output_type):
     return any(filename.lower().endswith(ext) for ext in ALLOWED_EXTENSIONS[output_type])
+
+@app.route('/api/pdb-content', methods=['GET'])
+def get_pdb_content():
+    file_path_param = request.args.get('filePath')
+    if not file_path_param:
+        app.logger.warning("API call to /api/pdb-content missing filePath parameter.")
+        return jsonify({'error': 'filePath parameter is required'}), 400
+
+    try:
+        # Normalize and get real absolute path for security check.
+        # os.path.realpath resolves symlinks and normalizes the path (e.g., handles '..')
+        requested_abs_path = os.path.realpath(file_path_param)
+        
+        # Get the real absolute path of the allowed base directory
+        allowed_base_dir_abs = os.path.realpath(STATIC_PDB_DIR)
+
+        # Security check: Ensure the requested path is within the allowed base directory.
+        # This prevents directory traversal attacks.
+        if not requested_abs_path.startswith(allowed_base_dir_abs):
+            app.logger.warning(
+                f"Forbidden access attempt to PDB path: '{file_path_param}' "
+                f"(resolved: '{requested_abs_path}'). "
+                f"It is not within allowed base: '{allowed_base_dir_abs}'."
+            )
+            return jsonify({'error': 'Access to the requested file path is forbidden.'}), 403
+
+        if not os.path.exists(requested_abs_path):
+            app.logger.info(f"PDB file not found at API request: {requested_abs_path}")
+            return jsonify({'error': 'PDB file not found.'}), 404
+        
+        if not os.path.isfile(requested_abs_path):
+            app.logger.warning(f"Requested PDB path via API is not a file: {requested_abs_path}")
+            return jsonify({'error': 'The specified path is not a file.'}), 400
+
+        with open(requested_abs_path, 'r', encoding='utf-8') as f:
+            pdb_content = f.read()
+        
+        return Response(pdb_content, mimetype='text/plain; charset=utf-8')
+
+    except Exception as e:
+        app.logger.error(f"Error serving PDB content for path '{file_path_param}': {str(e)}", exc_info=True)
+        return jsonify({'error': f'An internal error occurred while trying to read the PDB file.'}), 500
 
 @app.route('/upload-file', methods=['POST'])
 def upload_file():

@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from text_processor import TextProcessor, PipelineFunction
+from util.chatbot.text_processor import TextProcessor, PipelineFunction
 from Tools.DeNovo.protein_generator import ProteinGenerator
 from Tools.TDStructure.Prediction.esm_predictor import ESM_Predictor
 from Tools.TDStructure.Prediction.af2_predictor import AlphaFold2_Predictor
@@ -9,7 +9,7 @@ from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 from Tools.Search.BLAST.colabfold_msa_search import ColabFold_MSA_Searcher
 from Tools.Search.BLAST.local_blast import LocalBlastSearcher
-from job_manager import Job
+from util.flow.job_manager import Job
 import os
 
 class PipelineController:

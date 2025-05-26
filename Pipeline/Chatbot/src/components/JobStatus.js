@@ -5,7 +5,7 @@ import BlastResults from './BlastResults';
 import FoldSeekResults from './result-viewers/FoldSeekResults';
 import SequenceGenerationResults from './result-viewers/SequenceGenerationResults';
 import EvaluationResults from './result-viewers/EvaluationResults';
-import { BASE_URL } from '../config/config';
+import { AWAIT_TIME, BASE_URL } from '../config/config';
 
 const JobStatus = forwardRef((props, ref) => {
   const [jobs, setJobs] = useState([]);
@@ -209,7 +209,7 @@ const JobStatus = forwardRef((props, ref) => {
             });
           }
         }
-      }, 5000);
+      }, AWAIT_TIME);
 
       // Store the new interval
       pollingIntervals.current[jobId] = interval;

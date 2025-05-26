@@ -148,19 +148,27 @@ const BlastResults = ({ results }) => {
   const processSequences = () => {
     if (!results?.msa?.sequences) return null;
 
-    // Filter sequences by selected database
-    const filteredSequences = selectedDb === 'all' 
-      ? results.msa.sequences 
-      : results.msa.sequences.filter(seq => seq.database === selectedDb);
+    // Ensure we have a mutable copy for filtering and sorting
+    let sequencesToProcess = Array.from(results.msa.sequences);
 
-    // Sort by identity and limit to maxSequences
-    const sortedSequences = filteredSequences
-      .sort((a, b) => b.identity - a.identity)
+    // Filter sequences by selected database
+    if (selectedDb !== 'all') {
+      sequencesToProcess = sequencesToProcess.filter(seq => seq.database === selectedDb);
+    }
+
+    // Sort by identity (if identity exists) and limit to maxSequences
+    // Add a check for the existence of the 'identity' property before sorting
+    const sortedSequences = sequencesToProcess
+      .sort((a, b) => {
+        const identityA = a.identity || 0; // Default to 0 if identity is missing
+        const identityB = b.identity || 0; // Default to 0 if identity is missing
+        return identityB - identityA; // Sort descending
+      })
       .slice(0, maxSequences);
 
     // Format sequences for MSA viewer
     return sortedSequences.map(seq => 
-      `${formatSequenceHeader(seq.name || seq.id, seq.identity, seq.id === 'query')}\n${seq.sequence}`
+      `${formatSequenceHeader(seq.name || seq.id, seq.identity || 0, seq.id === 'Query' || seq.name === 'Query')}\n${seq.sequence}`
     ).join('\n');
   };
 

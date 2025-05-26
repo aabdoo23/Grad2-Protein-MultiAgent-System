@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
-import { useDrag } from 'react-dnd';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faChevronRight, faChevronLeft, faLayerGroup } from '@fortawesome/free-solid-svg-icons';
+import useWorkspaceStore from '../../store/workspaceStore';
 
 const BlockType = ({ blockType }) => {
-  const [{ isDragging }, drag] = useDrag({
-    type: 'BLOCK_TYPE',
-    item: { blockType },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  });
+  const addBlock = useWorkspaceStore(state => state.addBlock);
+
+  const onDragStart = (event, blockType) => { // Renamed nodeType to blockType for clarity
+    const data = JSON.stringify(blockType);
+    event.dataTransfer.setData('application/reactflow', data);
+    event.dataTransfer.effectAllowed = 'move';
+  };
 
   return (
     <div
-      ref={drag}
       className="p-3 mb-2 rounded-lg cursor-move transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
       style={{
-        opacity: isDragging ? 0.5 : 1,
         backgroundColor: blockType.color,
         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
       }}
+      draggable
+      onDragStart={(event) => onDragStart(event, blockType)}
     >
       <div className="flex items-center justify-between mb-1">
         <h4 className="text-white font-bold text-sm tracking-wide">{blockType.name}</h4>

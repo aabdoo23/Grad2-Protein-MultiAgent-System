@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
-const ResizableBlock = ({ children, width, height, onResize }) => {
+const ResizableBlock = ({ children, width, height, onResize, blockId }) => {
   const [size, setSize] = useState({ width, height });
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState(null);
@@ -8,61 +8,63 @@ const ResizableBlock = ({ children, width, height, onResize }) => {
   const [startSize, setStartSize] = useState({ width: 0, height: 0 });
   const minHeight = 300;
   const minWidth = 350;
-  let resizeFrameHeight = 5;
+  const resizeFrameHeight = 8; // Slightly larger for easier grabbing
+
+  useEffect(() => {
+    // Update internal size if parent dimensions change and not currently resizing
+    if (!isResizing) {
+      setSize({ width, height });
+    }
+  }, [width, height, isResizing]);
+
   const handleMouseDown = (e, direction) => {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent React Flow from dragging the node
     setIsResizing(true);
     setResizeDirection(direction);
     setStartPos({ x: e.clientX, y: e.clientY });
     setStartSize(size);
-    e.preventDefault();
   };
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!isResizing) return;
+    e.preventDefault();
+    e.stopPropagation();
 
     const deltaX = e.clientX - startPos.x;
     const deltaY = e.clientY - startPos.y;
-    let newWidth = size.width;
-    let newHeight = size.height;
+    let newWidth = startSize.width;
+    let newHeight = startSize.height;
 
-    switch (resizeDirection) {
-      case 's':
-        newHeight = Math.max(minHeight, Math.min(800, startSize.height + deltaY));
-        break;
-      case 'e':
-        newWidth = Math.max(minWidth, Math.min(800, startSize.width + deltaX));
-        break;
-      case 'w':
-        newWidth = Math.max(minWidth, Math.min(800, startSize.width - deltaX));
-        break;
-      case 'ne':
-        newWidth = Math.max(minWidth, Math.min(800, startSize.width + deltaX));
-        newHeight = Math.max(minHeight, Math.min(800, startSize.height - deltaY));
-        break;
-      case 'nw':
-        newWidth = Math.max(minWidth, Math.min(800, startSize.width - deltaX));
-        newHeight = Math.max(minHeight, Math.min(800, startSize.height - deltaY));
-        break;
-      case 'se':
-        newWidth = Math.max(minWidth, Math.min(800, startSize.width + deltaX));
-        newHeight = Math.max(minHeight, Math.min(800, startSize.height + deltaY));
-        break;
-      case 'sw':
-        newWidth = Math.max(minWidth, Math.min(800, startSize.width - deltaX));
-        newHeight = Math.max(minHeight, Math.min(800, startSize.height + deltaY));
-        break;
+    if (resizeDirection.includes('s')) {
+      newHeight = Math.max(minHeight, Math.min(800, startSize.height + deltaY));
     }
-
+    if (resizeDirection.includes('n')) {
+        newHeight = Math.max(minHeight, Math.min(800, startSize.height - deltaY));
+      // Note: Resizing from top/left also requires position adjustment, which is complex with React Flow nodes.
+      // For simplicity, top/left resize often omitted or handled by resizing bottom/right and then moving the node.
+      // Current implementation primarily supports bottom/right/corner resizing effectively changing size, not top/left position.
+    }
+    if (resizeDirection.includes('e')) {
+      newWidth = Math.max(minWidth, Math.min(800, startSize.width + deltaX));
+    }
+    if (resizeDirection.includes('w')) {
+      newWidth = Math.max(minWidth, Math.min(800, startSize.width - deltaX));
+    }
+    
     setSize({ width: newWidth, height: newHeight });
-  };
+  }, [isResizing, startPos, startSize, resizeDirection, minWidth, minHeight]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     if (isResizing) {
       setIsResizing(false);
       setResizeDirection(null);
-      onResize(size);
+      // Only call onResize if the size actually changed to avoid unnecessary updates
+      if (size.width !== startSize.width || size.height !== startSize.height) {
+        onResize({ width: size.width, height: size.height });
+      }
     }
-  };
+  }, [isResizing, size, startSize, onResize]);
 
   useEffect(() => {
     if (isResizing) {
@@ -73,106 +75,49 @@ const ResizableBlock = ({ children, width, height, onResize }) => {
         document.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isResizing, startPos, startSize, resizeDirection]);
+  }, [isResizing, handleMouseMove, handleMouseUp]);
 
-  const resizeHandleStyle = {
+  const resizeHandleBaseStyle = {
     position: 'absolute',
+    userSelect: 'none',
+    zIndex: 10, // Ensure handles are above content
   };
+
+  // Define styles for different handles
+  const handles = [
+    { direction: 's', style: { bottom: 0, left: `${resizeFrameHeight}px`, right: `${resizeFrameHeight}px`, height: resizeFrameHeight, cursor: 's-resize' } },
+    { direction: 'e', style: { right: 0, top: `${resizeFrameHeight}px`, bottom: `${resizeFrameHeight}px`, width: resizeFrameHeight, cursor: 'e-resize' } },
+    // { direction: 'n', style: { top: 0, left: `${resizeFrameHeight}px`, right: `${resizeFrameHeight}px`, height: resizeFrameHeight, cursor: 'n-resize' } }, // Top resize can be tricky with node positioning
+    // { direction: 'w', style: { left: 0, top: `${resizeFrameHeight}px`, bottom: `${resizeFrameHeight}px`, width: resizeFrameHeight, cursor: 'w-resize' } }, // Left resize also
+    // { direction: 'ne', style: { top: 0, right: 0, width: resizeFrameHeight, height: resizeFrameHeight, cursor: 'ne-resize' } },
+    // { direction: 'nw', style: { top: 0, left: 0, width: resizeFrameHeight, height: resizeFrameHeight, cursor: 'nw-resize' } },
+    { direction: 'se', style: { bottom: 0, right: 0, width: resizeFrameHeight, height: resizeFrameHeight, cursor: 'se-resize' } },
+    // { direction: 'sw', style: { bottom: 0, left: 0, width: resizeFrameHeight, height: resizeFrameHeight, cursor: 'sw-resize' } },
+  ];
 
   return (
     <div
       style={{
         width: size.width,
         height: size.height,
-        position: 'relative'
+        position: 'relative',
       }}
+      className="job-block-resizable-wrapper" // For potential global styling or identification
     >
       {children}
       
-      {/* South */}
-      <div
-        style={{
-          ...resizeHandleStyle,
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: resizeFrameHeight,
-          cursor: 's-resize'
-        }}
-        onMouseDown={(e) => handleMouseDown(e, 's')}
-      />
-      {/* East */}
-      <div
-        style={{
-          ...resizeHandleStyle,
-          right: 0,
-          top: 0,
-          bottom: 0,
-          width: resizeFrameHeight,
-          cursor: 'e-resize'
-        }}
-        onMouseDown={(e) => handleMouseDown(e, 'e')}
-      />
-      {/* West */}
-      <div
-        style={{
-          ...resizeHandleStyle,
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: resizeFrameHeight,
-          cursor: 'w-resize'
-        }}
-        onMouseDown={(e) => handleMouseDown(e, 'w')}
-      />
-      {/* North-East */}
-      <div
-        style={{
-          ...resizeHandleStyle,
-          top: 0,
-          right: 0,
-          width: resizeFrameHeight,
-          height: resizeFrameHeight,
-          cursor: 'ne-resize'
-        }}
-        onMouseDown={(e) => handleMouseDown(e, 'ne')}
-      />
-      {/* North-West */}
-      <div
-        style={{
-          ...resizeHandleStyle,
-          top: 0,
-          left: 0,
-          width: resizeFrameHeight,
-          height: resizeFrameHeight,
-          cursor: 'nw-resize'
-        }}
-        onMouseDown={(e) => handleMouseDown(e, 'nw')}
-      />
-      {/* South-East */}
-      <div
-        style={{
-          ...resizeHandleStyle,
-          bottom: 0,
-          right: 0,
-          width: resizeFrameHeight,
-          height: resizeFrameHeight,
-          cursor: 'se-resize'
-        }}
-        onMouseDown={(e) => handleMouseDown(e, 'se')}
-      />
-      {/* South-West */}
-      <div
-        style={{
-          ...resizeHandleStyle,
-          bottom: 0,
-          left: 0,
-          width: resizeFrameHeight,
-          height: resizeFrameHeight,
-          cursor: 'sw-resize'
-        }}
-        onMouseDown={(e) => handleMouseDown(e, 'sw')}
-      />
+      {handles.map(handle => (
+        <div
+          key={handle.direction}
+          className="nodrag" // Crucial for React Flow to ignore drag for node itself
+          style={{
+            ...resizeHandleBaseStyle,
+            ...handle.style,
+            // backgroundColor: 'rgba(0,0,255,0.1)' // For debugging handle visibility
+          }}
+          onMouseDown={(e) => handleMouseDown(e, handle.direction)}
+        />
+      ))}
     </div>
   );
 };
