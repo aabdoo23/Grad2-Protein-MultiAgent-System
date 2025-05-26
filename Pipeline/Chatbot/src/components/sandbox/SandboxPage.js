@@ -50,6 +50,14 @@ const SandboxPage = () => {
     currentIteration: 0
   });
 
+  // --- NEW: Track last completed block for automation chaining ---
+  const [lastCompletedBlockId, setLastCompletedBlockId] = useState(null);
+  const lastCompletedBlockIdRef = useRef(null);
+
+  useEffect(() => {
+    lastCompletedBlockIdRef.current = lastCompletedBlockId;
+  }, [lastCompletedBlockId]);
+
   useEffect(() => {
     if (loopConfig.isEnabled) {
       setIsAutomate(true);
@@ -87,7 +95,7 @@ const SandboxPage = () => {
       molstarPlugins.current[domElementId].dispose();
       delete molstarPlugins.current[domElementId];
     }
-    
+
     existingElement.innerHTML = ''; // Clear previous content (e.g., error messages or old viewer)
 
     if (errorMsg) {
@@ -116,11 +124,11 @@ const SandboxPage = () => {
 
       const plugin = await createPluginUI(existingElement, spec);
       molstarPlugins.current[domElementId] = plugin;
-      
+
       const data = await plugin.builders.data.rawData({ data: pdbData, label: blockId });
       const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
       await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
-      
+
       console.log(`Mol* viewer initialized and PDB loaded for '${domElementId}'`);
 
     } catch (e) {
@@ -167,10 +175,10 @@ const SandboxPage = () => {
   const clearOutputs = () => {
     // Reset all block statuses to 'idle'
     blocks.forEach(block => updateBlockInStore(block.id, { status: 'idle' }));
-    
+
     // Clear all block outputs
     setBlockOutputs({});
-    
+
     console.log('All block outputs cleared and statuses reset');
   };
 
@@ -215,11 +223,11 @@ const SandboxPage = () => {
       <div className="flex items-center gap-3">
         <span className="text-white text-sm font-medium">Loop</span>
         <label className="relative inline-flex items-center cursor-pointer">
-          <input 
-            type="checkbox" 
-            className="sr-only peer" 
-            checked={loopConfig.isEnabled} 
-            onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))} 
+          <input
+            type="checkbox"
+            className="sr-only peer"
+            checked={loopConfig.isEnabled}
+            onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))}
           />
           <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
         </label>
@@ -311,7 +319,7 @@ const SandboxPage = () => {
   const resetBlocksBetween = (startBlockId, endBlockId) => {
     const startIndex = blocks.findIndex(b => b.id === startBlockId);
     const endIndex = blocks.findIndex(b => b.id === endBlockId);
-    
+
     if (startIndex !== -1 && endIndex !== -1) {
       for (let i = startIndex; i <= endIndex; i++) {
         if (blocks[i]) {
@@ -324,7 +332,7 @@ const SandboxPage = () => {
   const resetOutputsBetween = (startBlockId, endBlockId) => {
     const startIndex = blocks.findIndex(b => b.id === startBlockId);
     const endIndex = blocks.findIndex(b => b.id === endBlockId);
-    
+
     if (startIndex !== -1 && endIndex !== -1 && startIndex <= endIndex) {
       setBlockOutputs(prevOutputs => {
         const newBlockOutputs = { ...prevOutputs };
@@ -352,14 +360,14 @@ const SandboxPage = () => {
       <div className="flex items-center gap-3">
         <span className="text-white text-sm font-medium">Auto-save Downloads</span>
         <label className="relative inline-flex items-center cursor-pointer">
-          <input 
-            type="checkbox" 
-            className="sr-only peer" 
-            checked={downloadSettings.autoSave} 
+          <input
+            type="checkbox"
+            className="sr-only peer"
+            checked={downloadSettings.autoSave}
             onChange={(e) => handleDownloadSettingsChange({
               ...downloadSettings,
               autoSave: e.target.checked
-            })} 
+            })}
           />
           <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
         </label>
@@ -423,7 +431,7 @@ const SandboxPage = () => {
     setBlockOutputs(prev => ({
       ...prev,
       [blockId]: null
-    }));    
+    }));
     console.log('Running block:', block.type);
 
     updateBlockInStore(blockId, { status: 'running' });
@@ -437,6 +445,8 @@ const SandboxPage = () => {
 
     if (block.type === 'multi_download') {
       const conns = connections[blockId] || {};
+      console.log('multi_download connections:', conns);
+      console.log('blocks:', blocks.map(b => ({ id: b.id, status: b.status })));
       const pending = Object.values(conns).filter(c =>
         blocks.find(b => b.id === c.source)?.status !== 'completed'
       );
@@ -487,9 +497,9 @@ const SandboxPage = () => {
               const nextIteration = prev.currentIteration + 1; // Increment currentIteration first for this check
               const sequenceBlock = blocks.find(b => b.id === prev.sequenceBlockId);
               const hasMoreInSequence = prev.iterationType === 'sequence' && sequenceBlock &&
-                                      sequenceBlock.parameters &&
-                                      Array.isArray(sequenceBlock.parameters.sequences) &&
-                                      sequenceBlock.parameters.sequences.length > 0;
+                sequenceBlock.parameters &&
+                Array.isArray(sequenceBlock.parameters.sequences) &&
+                sequenceBlock.parameters.sequences.length > 0;
 
               const shouldContinue = prev.iterationType === 'count'
                 ? nextIteration <= prev.iterationCount // Use <= to allow the last iteration
@@ -499,7 +509,7 @@ const SandboxPage = () => {
                 console.log('Loop completed or sequence finished.');
                 // stopLoop(); // Keep isEnabled true to allow normal chain from endBlock
                 // Instead of full stopLoop, just mark it as no longer actively iterating internally
-                return {...prev, isEnabled: false, currentIteration: nextIteration -1 }; // -1 because we incremented for check
+                return { ...prev, isEnabled: false, currentIteration: nextIteration - 1 }; // -1 because we incremented for check
               }
 
               // Reset relevant blocks for the next iteration
@@ -546,7 +556,7 @@ const SandboxPage = () => {
       }
       return;
     }
-    
+
     if (block.type === 'sequence_iterator') {
       clearOutputs();
       const sequences = block.parameters.sequences || [];
@@ -563,14 +573,14 @@ const SandboxPage = () => {
       remainingSequences.splice(currentIndex, 1);
 
       updateBlockInStore(blockId, {
-            status: 'completed',
-            parameters: {
+        status: 'completed',
+        parameters: {
           ...block.parameters,
-              sequences: remainingSequences,
+          sequences: remainingSequences,
           currentIndex: 0,
-              totalSequences: sequences.length,
+          totalSequences: sequences.length,
           completedSequences: (block.parameters.completedSequences || 0) + 1
-            }
+        }
       });
 
       const output = {
@@ -588,7 +598,7 @@ const SandboxPage = () => {
         ...prev,
         [blockId]: output
       }));
-      
+
       console.log('Sequence iterator output:', output);
       console.log('isAutomate:', isAutomate);
 
@@ -600,7 +610,7 @@ const SandboxPage = () => {
             nextBlocks.forEach(nextBlock => {
               if (nextBlock && nextBlock.id) {
                 console.log(`Triggering next block ${nextBlock.id} with sequence data`);
-                runBlock(nextBlock.id, { 
+                runBlock(nextBlock.id, {
                   sequence: currentSequence,
                   sequence_name: `sequence_${currentIndex + 1}`
                 });
@@ -611,7 +621,7 @@ const SandboxPage = () => {
           console.log('No connected blocks found for sequence iterator');
         }
       }
-      
+
       return;
     }
 
@@ -713,38 +723,9 @@ const SandboxPage = () => {
             [blockIdForStatusUpdate]: jobStatus.result
           }));
 
-          if (isAutomate) {
-            console.log('Running next blocks in chain');
-            const nextBlocks = getNextBlocksInChain(blockIdForStatusUpdate);
-            if (nextBlocks.length > 0) {
-              setTimeout(() => {
-                nextBlocks.forEach(nextBlock => {
-                  if (nextBlock && nextBlock.id) {
-                    // Pass the current block's output to the next block in the chain
-                    // Note: For sequence iterator, its specific output is already set.
-                    // For other blocks, jobStatus.result is the output.
-                    const inputForNextBlock = blockIdForStatusUpdate === loopConfig.sequenceBlockId 
-                                              ? blockOutputsRef.current[blockIdForStatusUpdate]
-                                              : jobStatus.result;
-                    
-                    // Critical: Ensure we don't re-trigger the start of a loop if the end block leads back to it
-                    // unless it's a new iteration being handled by the loop logic.
-                    // The loop logic itself will call runBlock(startBlockId).
-                    // This standard chaining should not re-initiate the loop.
-                    console.log(`Automated chain: Triggering ${nextBlock.id} from ${blockIdForStatusUpdate}`);
-                    runBlock(nextBlock.id, inputForNextBlock);
-                  }
-                });
-              }, AWAIT_TIME); // Use AWAIT_TIME for standard chaining
-            } else {
-              console.log('Pipeline sequence completed from pollJobStatus.');
-              // Loop completion is now primarily handled *after* the endBlock completes its job.
-              // The decision to continue or stop the loop is made when the endBlock's jobStatus is 'completed'.
-            }
-          }
+          // --- Instead of triggering next block here, set lastCompletedBlockId ---
+          setLastCompletedBlockId(blockIdForStatusUpdate);
 
-          // LOOP HANDLING LOGIC - MOVED AND REFINED
-          // This logic is now triggered *after* a block completes, primarily for the endBlock of a loop.
           if (loopConfig.isEnabled && blockIdForStatusUpdate === loopConfig.endBlockId && jobStatus.status === 'completed') {
             console.log('Loop logic: End block completed. Evaluating next iteration.');
             const currentLoopIteration = loopConfig.currentIteration; // Iteration that just completed
@@ -752,10 +733,10 @@ const SandboxPage = () => {
 
             const sequenceBlock = blocks.find(b => b.id === loopConfig.sequenceBlockId);
             const hasMoreInSequence = loopConfig.iterationType === 'sequence' && sequenceBlock &&
-                                    sequenceBlock.parameters &&
-                                    Array.isArray(sequenceBlock.parameters.sequences) &&
-                                    sequenceBlock.parameters.sequences.length > 0;
-            
+              sequenceBlock.parameters &&
+              Array.isArray(sequenceBlock.parameters.sequences) &&
+              sequenceBlock.parameters.sequences.length > 0;
+
             // For count-based, iterationCount is the total number of iterations.
             // So, if currentIteration (0-indexed) has reached iterationCount - 1, it's the last one.
             const shouldContinueLoop = loopConfig.iterationType === 'count'
@@ -764,7 +745,7 @@ const SandboxPage = () => {
 
             if (shouldContinueLoop) {
               console.log(`Loop: Continuing to iteration ${nextIterationNumber}. Max: ${loopConfig.iterationCount}`);
-              
+
               resetBlocksBetween(loopConfig.startBlockId, loopConfig.endBlockId);
               resetOutputsBetween(loopConfig.startBlockId, loopConfig.endBlockId);
 
@@ -814,6 +795,32 @@ const SandboxPage = () => {
     pollingInterval = setInterval(checkStatus, AWAIT_TIME);
     checkStatus();
   };
+
+  // --- NEW: useEffect to trigger automation chain only after status is updated ---
+  useEffect(() => {
+    if (!isAutomate || !lastCompletedBlockId) return;
+    // Find the block in the latest Zustand state
+    const completedBlock = blocks.find(b => b.id === lastCompletedBlockId && b.status === 'completed');
+    if (!completedBlock) return;
+    // Get next blocks in chain
+    const nextBlocks = getNextBlocksInChain(lastCompletedBlockId);
+    if (nextBlocks.length > 0) {
+      setTimeout(() => {
+        nextBlocks.forEach(nextBlock => {
+          if (nextBlock && nextBlock.id) {
+            // Pass the current block's output to the next block in the chain
+            const inputForNextBlock = lastCompletedBlockId === loopConfig.sequenceBlockId
+              ? blockOutputsRef.current[lastCompletedBlockId]
+              : blockOutputsRef.current[lastCompletedBlockId];
+            console.log(`Automated chain (useEffect): Triggering ${nextBlock.id} from ${lastCompletedBlockId}`);
+            runBlock(nextBlock.id, inputForNextBlock);
+          }
+        });
+      }, AWAIT_TIME);
+    }
+    // Reset lastCompletedBlockId so it doesn't retrigger
+    setLastCompletedBlockId(null);
+  }, [lastCompletedBlockId, isAutomate, blocks, loopConfig.sequenceBlockId]);
 
   return (
     <div className="flex flex-col h-screen bg-[#111c22]">
