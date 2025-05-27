@@ -16,6 +16,15 @@ const downloadApi = axios.create({
   responseType: 'blob'
 });
 
+// File upload API with multipart/form-data
+const uploadApi = axios.create({
+  baseURL: BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'multipart/form-data'
+  }
+});
+
 export const jobService = {
   // Confirm a job
   confirmJob: async (jobId, jobData) => {
@@ -132,6 +141,46 @@ export const downloadService = {
     } catch (err) {
       console.error('Multi-download error:', err);
       return { success: false, error: err.message };
+    }
+  }
+};
+
+export const uploadService = {
+  // Upload file
+  uploadFile: async (formData) => {
+    try {
+      const response = await uploadApi.post('/upload-file', formData);
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
+  }
+};
+
+export const fileService = {
+  // Get file content
+  getFileContent: async (filePath) => {
+    try {
+      const response = await api.get(`/file-content/${encodeURIComponent(filePath)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting file content:', error);
+      throw error;
+    }
+  },
+
+  // Save file
+  saveFile: async (filePath, content) => {
+    try {
+      const response = await api.post('/save-file', {
+        file_path: filePath,
+        content
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error saving file:', error);
+      throw error;
     }
   }
 }; 

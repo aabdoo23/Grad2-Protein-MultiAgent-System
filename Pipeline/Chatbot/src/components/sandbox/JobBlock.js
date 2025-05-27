@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Handle, Position } from 'reactflow';
 import BlockHeader from './JobBlockComponents/BlockHeader';
 import BlockPort from './JobBlockComponents/BlockPort';
@@ -8,6 +8,7 @@ import BlockActions from './JobBlockComponents/BlockActions';
 import FileUploadBlock from './JobBlockComponents/FileUploadBlock';
 import ResizableBlock from './JobBlockComponents/ResizableBlock';
 import { BASE_URL } from '../../config/config';
+import { uploadService } from '../../services/api';
 
 const JobBlock = ({
   id,
@@ -41,17 +42,8 @@ const JobBlock = ({
   // Handle file upload
   const handleFileUpload = async (formData, outputType) => {
     try {
-      const response = await fetch(`${BASE_URL}/upload-file`, {
-        method: 'POST',
-        body: formData
-      });
+      const result = await uploadService.uploadFile(formData);
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const result = await response.json();
-      
       // Use onUpdateParameters from data prop
       data.onUpdateParameters({ // Pass id implicitly via data or explicitly if needed
         filePath: result.filePath,
@@ -66,17 +58,17 @@ const JobBlock = ({
   };
 
   // The main scrollable area within the block
-  const scrollableContentRef = React.useRef(null);
+  const scrollableContentRef = useRef(null);
 
   return (
-    <ResizableBlock 
-      width={data.width || 450} 
-      height={data.height || 350} 
+    <ResizableBlock
+      width={data.width || 450}
+      height={data.height || 350}
       onResize={handleResize}
       blockId={id}
     >
       <div
-        className="job-block-inner cursor-default rounded-lg p-2 pt-0 shadow-xl transition-all duration-200 flex flex-col h-full"
+        className="nodrag nowheel nopan job-block-inner cursor-default rounded-lg shadow-xl flex flex-col h-full overflow-hidden"
         style={{
           backgroundColor: safeBlockType.color,
           border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -89,15 +81,12 @@ const JobBlock = ({
           onDeleteBlock={() => data.onDeleteBlock()}
         />
 
-        <div 
-          ref={scrollableContentRef}
-          className="nodrag flex-grow p-3 bg-black/20 overflow-auto rounded-b-lg custom-scrollbar"
-          onWheel={(e) => e.stopPropagation()}
-        >
-          {/* Input ports */}
-          <div className="mb-4">
+        {/* Container for ports and content area */}
+        <div className="flex flex-1 min-h-0 bg-black/10">
+          {/* Input Ports Section */}
+          <div className="flex flex-col justify-center items-start p-2 space-y-2">
             {safeBlockType.inputs.map((input) => (
-              <div key={`input-${input}`} className="relative flex items-center my-1">
+              <div key={`input-${input}`} className="relative flex items-center">
                 <Handle
                   type="target"
                   position={Position.Left}
@@ -108,28 +97,61 @@ const JobBlock = ({
                   type={input}
                   isInput={true}
                   isMultiDownload={safeBlockType.id === 'multi_download'}
-                  connectionCount={Array.isArray(data.connections?.[input]) 
-                    ? data.connections[input].length 
+                  connectionCount={Array.isArray(data.connections?.[input])
+                    ? data.connections[input].length
                     : (data.connections?.[input] ? 1 : 0)}
                 />
               </div>
             ))}
           </div>
 
-          {/* File Upload Block */}
-          {safeBlockType.id === 'file_upload' && (
-            <div className="nodrag">
-              <FileUploadBlock
-                onFileUpload={handleFileUpload}
+          {/* Scrollable Content Area */}
+          <div 
+            // ref={scrollableContentRef}
+            className="flex-1 p-3 mb-4 bg-black/20 overflow-auto custom-scrollbar rounded-b-lg"
+          >
+            {safeBlockType.id === 'file_upload' && (
+              <div className="nodrag">
+                <FileUploadBlock
+                  onFileUpload={handleFileUpload}
+                  blockType={safeBlockType}
+                />
+              </div>
+            )}
+            <BlockActions
+              hasConfig={!!safeBlockType.config}
+              isConfigOpen={isConfigOpen}
+              onToggleConfig={() => setIsConfigOpen(!isConfigOpen)}
+              onRunBlock={() => data.onRunBlock()}
+              isRunning={data.status === 'running'}
+            />
+            {safeBlockType.config && (
+              <BlockConfig
                 blockType={safeBlockType}
+                isConfigOpen={isConfigOpen}
+                onClose={() => setIsConfigOpen(false)}
+                onApply={(params) => {
+                  data.onUpdateParameters(params);
+                  setIsConfigOpen(false);
+                }}
+                initialParams={data.parameters || {}}
               />
-            </div>
-          )}
+            )}
+            <ResultsView
+              blockType={safeBlockType}
+              blockOutput={data.blockOutput}
+              blockInstanceId={id}
+              isResultsOpen={isResultsOpen}
+              onToggleResults={() => setIsResultsOpen(!isResultsOpen)}
+              initViewer={data.initViewer}
+              formatMetric={data.formatMetric}
+            />
+          </div>
 
-          {/* Output ports */}
-          <div className="mt-4">
+          {/* Output Ports Section */}
+          <div className="flex flex-col justify-center items-end p-2 space-y-2">
             {safeBlockType.outputs.map((output) => (
-              <div key={`output-${output}`} className="relative flex items-center justify-end my-1">
+              <div key={`output-${output}`} className="relative flex items-center">
                 <BlockPort type={output} isInput={false} />
                 <Handle
                   type="source"
@@ -140,39 +162,6 @@ const JobBlock = ({
               </div>
             ))}
           </div>
-
-          <BlockActions
-            hasConfig={!!safeBlockType.config}
-            isConfigOpen={isConfigOpen}
-            onToggleConfig={() => setIsConfigOpen(!isConfigOpen)}
-            onRunBlock={() => data.onRunBlock()}
-            isRunning={data.status === 'running'}
-          />
-
-          {/* Config panel */}
-          {safeBlockType.config && (
-            <BlockConfig
-              blockType={safeBlockType}
-              isConfigOpen={isConfigOpen}
-              onClose={() => setIsConfigOpen(false)}
-              onApply={(params) => {
-                data.onUpdateParameters(params);
-                setIsConfigOpen(false);
-              }}
-              initialParams={data.parameters || {}}
-            />
-          )}
-
-          {/* Results view */}
-          <ResultsView
-            blockType={safeBlockType}
-            blockOutput={data.blockOutput}
-            blockInstanceId={id}
-            isResultsOpen={isResultsOpen}
-            onToggleResults={() => setIsResultsOpen(!isResultsOpen)}
-            initViewer={data.initViewer}
-            formatMetric={data.formatMetric}
-          />
         </div>
       </div>
     </ResizableBlock>
