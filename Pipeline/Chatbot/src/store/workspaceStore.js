@@ -36,12 +36,21 @@ const useWorkspaceStore = create(
       delete state.connections[id]; // Remove connections for the deleted block
       // Also remove any edges connected to this node
       state.connections = Object.fromEntries(
-        Object.entries(state.connections).map(([key, connections]) => [
-          key,
+        Object.entries(state.connections).map(([targetBlockId, targetBlockConnections]) => [
+          targetBlockId,
           Object.fromEntries(
-            Object.entries(connections).filter(([port, conn]) => conn.source !== id && conn.target !== id)
-          ),
-        ])
+            Object.entries(targetBlockConnections).map(([port, connOrArray]) => {
+              if (Array.isArray(connOrArray)) {
+                // Filter out connections from the deleted block
+                const filteredConns = connOrArray.filter(c => c.source !== id);
+                return filteredConns.length > 0 ? [port, filteredConns] : null;
+              } else {
+                // If it's an object, check if its source is the deleted block
+                return connOrArray.source !== id ? [port, connOrArray] : null;
+              }
+            }).filter(Boolean) // Remove null entries (ports that became empty)
+          )
+        ]).map(([targetBlockId, conns]) => Object.keys(conns).length > 0 ? [targetBlockId, conns] : null).filter(Boolean)
       );
     }),
 
@@ -50,36 +59,60 @@ const useWorkspaceStore = create(
       const sourceBlock = state.blocks.find(b => b.id === source);
       const targetBlock = state.blocks.find(b => b.id === target);
 
-      if (!sourceBlock || !targetBlock) return;
-
-      if (sourceHandle && targetHandle) {
-        if (!state.connections[target]) {
-          state.connections[target] = {};
-        }
-        if (!state.connections[target][targetHandle]) {
-          state.connections[target][targetHandle] = [];
-        }
-        state.connections[target][targetHandle].push({
-          source,
-          sourceHandle,
-        });
+      if (!sourceBlock || !targetBlock) {
+        console.warn('ConnectBlocks: Source or target block not found', connection);
+        return;
       }
+
+      if (!state.connections[target]) {
+        state.connections[target] = {};
+      }
+
+      if (targetBlock.type === 'multi_download') {
+        if (!Array.isArray(state.connections[target][targetHandle])) {
+          state.connections[target][targetHandle] = []; // Initialize or reset to array
+        }
+        // Add new connection if it doesn't already exist (optional, prevents duplicates)
+        if (!state.connections[target][targetHandle].some(c => c.source === source && c.sourceHandle === sourceHandle)) {
+            state.connections[target][targetHandle].push({ source, sourceHandle });
+        }
+      } else {
+        // For non-multi_download blocks, overwrite or set the single connection
+        state.connections[target][targetHandle] = { source, sourceHandle };
+      }
+      
       try {
         console.log('connectBlocks store: Updated connections:', JSON.parse(JSON.stringify(state.connections)));
       } catch (e) {
         console.error('Error logging connections state:', e);
-        console.log('connectBlocks store: Could not stringify connections. Target involved:', target);
       }
     }),
 
     deleteConnection: (source, target, targetHandle) => set((state) => {
-      if (state.connections[target] && state.connections[target][targetHandle]) {
-        state.connections[target][targetHandle] = state.connections[target][targetHandle].filter(
-          conn => conn.source !== source
-        );
-        if (state.connections[target][targetHandle].length === 0) {
-          delete state.connections[target][targetHandle];
+      if (!state.connections[target] || !state.connections[target][targetHandle]) return;
+
+      const targetBlock = get().blocks.find(b => b.id === target);
+
+      if (targetBlock && targetBlock.type === 'multi_download') {
+        if (Array.isArray(state.connections[target][targetHandle])) {
+          state.connections[target][targetHandle] = state.connections[target][targetHandle].filter(
+            conn => conn.source !== source // Simple removal for now, could be more specific if needed
+          );
+          if (state.connections[target][targetHandle].length === 0) {
+            delete state.connections[target][targetHandle];
+          }
         }
+      } else {
+        // For non-multi_download blocks, it's a single object or was incorrectly an array
+        // This ensures we just delete the handle if the source matches
+        const conn = state.connections[target][targetHandle];
+        if(typeof conn === 'object' && conn !== null && !Array.isArray(conn) && conn.source === source){
+            delete state.connections[target][targetHandle];
+        }
+      }
+
+      if (Object.keys(state.connections[target]).length === 0) {
+        delete state.connections[target];
       }
     }),
 

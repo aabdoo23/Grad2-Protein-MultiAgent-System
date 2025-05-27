@@ -12,13 +12,19 @@ import 'reactflow/dist/style.css';
 import JobBlock from './JobBlock';
 import useWorkspaceStore from '../../store/workspaceStore';
 
+const getPortType = (handleId) => {
+  if (!handleId) return 'any';
+  if (handleId === 'input') return 'any';
+  return handleId.split('_')[0]; 
+};
+
 const nodeTypes = {
   jobBlock: JobBlock,
 };
 
 const defaultEdgeOptions = {
   style: {
-    stroke: '#13a4ec',
+    stroke: '#e9c46a',
     strokeWidth: 4,
   },
   animated: true,
@@ -101,12 +107,11 @@ const WorkspaceSurface = ({
   const initialEdges = React.useMemo(() => {
     const edges = [];
     Object.entries(connections).forEach(([targetId, targetConnections]) => {
-      Object.entries(targetConnections).forEach(([targetHandle, connections]) => {
-        if (connections) {
-          // Handle both array and single connection for backward compatibility
-          const connectionArray = Array.isArray(connections) ? connections : [connections];
+      Object.entries(targetConnections).forEach(([targetHandle, conns]) => {
+        if (conns) {
+          const connectionArray = Array.isArray(conns) ? conns : [conns]; // Ensure it's an array
           connectionArray.forEach((connection, index) => {
-            if (connection) {
+            if (connection && connection.source) { // Check if connection and source exist
               edges.push({
                 id: `e-${connection.source}-${targetId}-${targetHandle}-${index}`,
                 source: connection.source,
@@ -139,12 +144,11 @@ const WorkspaceSurface = ({
 
     const newEdges = [];
     Object.entries(connections).forEach(([targetId, targetConnections]) => {
-      Object.entries(targetConnections).forEach(([targetHandle, connections]) => {
-        if (connections) {
-          // Handle both array and single connection for backward compatibility
-          const connectionArray = Array.isArray(connections) ? connections : [connections];
+      Object.entries(targetConnections).forEach(([targetHandle, conns]) => {
+        if (conns) {
+          const connectionArray = Array.isArray(conns) ? conns : [conns];
           connectionArray.forEach((connection, index) => {
-            if (connection) {
+            if (connection && connection.source) {
               newEdges.push({
                 id: `e-${connection.source}-${targetId}-${targetHandle}-${index}`,
                 source: connection.source,
@@ -165,8 +169,9 @@ const WorkspaceSurface = ({
   }, [updateBlock]);
 
   const onConnect = useCallback((params) => {
+    // isValidConnection will be checked by ReactFlow before this is called if provided
     connectBlocks(params);
-    setEdges((eds) => addEdge(params, eds));
+    // setEdges((eds) => addEdge(params, eds)); // This might be redundant if isValidConnection works correctly
   }, [connectBlocks, setEdges]);
 
   const onEdgesDelete = useCallback((deletedEdges) => {
@@ -219,6 +224,40 @@ const WorkspaceSurface = ({
     [addBlock]
   );
 
+  const isValidConnection = useCallback(
+    (connection) => {
+      const sourceNode = nodes.find((node) => node.id === connection.source);
+      const targetNode = nodes.find((node) => node.id === connection.target);
+
+      if (!sourceNode || !targetNode) {
+        return false;
+      }
+
+      if (targetNode.data.blockType.id !== 'multi_download') {
+        const existingConnectionsToHandle = edges.filter(
+          (edge) => edge.target === connection.target && edge.targetHandle === connection.targetHandle
+        );
+        if (existingConnectionsToHandle.length > 0) {
+          console.log('Validation: Target handle already has a connection.');
+          return false;
+        }
+      }
+
+      const sourcePortType = getPortType(connection.sourceHandle);
+      const targetPortType = getPortType(connection.targetHandle);
+      
+      // console.log(`Validating connection: ${sourceNode.data.blockType.id}(${connection.sourceHandle}:${sourcePortType}) -> ${targetNode.data.blockType.id}(${connection.targetHandle}:${targetPortType})`);
+
+      if (sourcePortType !== 'any' && targetPortType !== 'any' && sourcePortType !== targetPortType) {
+        // console.log('Validation: Port types do not match.', sourcePortType, targetPortType);
+        return false;
+      }
+
+      return true;
+    },
+    [nodes, edges]
+  );
+
   return (
     <div className="h-full w-full">
       <ReactFlow
@@ -236,11 +275,12 @@ const WorkspaceSurface = ({
         onDrop={onDrop}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        isValidConnection={isValidConnection}
         // fitView
         attributionPosition="bottom-right"
         snapToGrid
         snapGrid={[15, 15]}
-        minZoom={0.5}
+        minZoom={0.25}
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         elementsSelectable={true}

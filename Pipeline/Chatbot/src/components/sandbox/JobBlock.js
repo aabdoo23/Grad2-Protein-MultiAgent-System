@@ -76,7 +76,7 @@ const JobBlock = ({
       blockId={id}
     >
       <div
-        className="job-block-inner rounded-lg p-2 pt-0 shadow-xl transition-all duration-200 flex flex-col h-full"
+        className="job-block-inner cursor-default rounded-lg p-2 pt-0 shadow-xl transition-all duration-200 flex flex-col h-full"
         style={{
           backgroundColor: safeBlockType.color,
           border: '1px solid rgba(255, 255, 255, 0.1)',

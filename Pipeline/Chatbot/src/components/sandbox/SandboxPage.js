@@ -230,102 +230,102 @@ const SandboxPage = () => {
   };
 
   // Add loop configuration UI
-  const renderLoopControls = () => (
-    <div className="flex items-center gap-4 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
-      <div className="flex items-center gap-3">
-        <span className="text-white text-sm font-medium">Loop</span>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            className="sr-only peer"
-            checked={loopConfig.isEnabled}
-            onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))}
-          />
-          <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
-        </label>
-      </div>
-      {loopConfig.isEnabled && (
-        <div className="flex items-center gap-3">
-          <select
-            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-            value={loopConfig.startBlockId || ''}
-            onChange={(e) => setLoopConfig(prev => ({ ...prev, startBlockId: e.target.value }))}
-          >
-            <option value="">Select Start Block</option>
-            {blocks.map(b => (
-              <option key={`start-${b.id}`} value={b.id}>
-                {b.type} - ({b.id})
-              </option>
-            ))}
-          </select>
-          <select
-            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-            value={loopConfig.endBlockId || ''}
-            onChange={(e) => setLoopConfig(prev => ({ ...prev, endBlockId: e.target.value }))}
-          >
-            <option value="">Select End Block</option>
-            {blocks.map(b => (
-              <option key={`end-${b.id}`} value={b.id}>
-                {b.type} - ({b.id})
-              </option>
-            ))}
-          </select>
-          <select
-            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-            value={loopConfig.iterationType}
-            onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationType: e.target.value }))}
-          >
-            <option value="count">Count</option>
-            <option value="sequence">Sequence</option>
-          </select>
-          {loopConfig.iterationType === 'count' ? (
-            <input
-              type="number"
-              min="1"
-              value={loopConfig.iterationCount}
-              onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationCount: parseInt(e.target.value) }))}
-              className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-20"
-            />
-          ) : (
-            <select
-              className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-              value={loopConfig.sequenceBlockId || ''}
-              onChange={(e) => setLoopConfig(prev => ({ ...prev, sequenceBlockId: e.target.value }))}
-            >
-              <option value="">Select Sequence Block</option>
-              {blocks
-                .filter(b => b.type === 'sequence_iterator')
-                .map(b => (
-                  <option key={b.id} value={b.id}>
-                    {b.id}
-                  </option>
-                ))}
-            </select>
-          )}
-          <button
-            onClick={startLoop}
-            className="px-4 py-1.5 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1] transition-colors duration-200 flex items-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Start Loop
-          </button>
-          <button
-            onClick={stopLoop}
-            className="px-4 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200 flex items-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 15l4-4m0" />
-            </svg>
-            Stop Loop
-          </button>
-        </div>
-      )}
-    </div>
-  );
+  // const renderLoopControls = () => (
+  //   <div className="flex items-center gap-4 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
+  //     <div className="flex items-center gap-3">
+  //       <span className="text-white text-sm font-medium">Loop</span>
+  //       <label className="relative inline-flex items-center cursor-pointer">
+  //         <input
+  //           type="checkbox"
+  //           className="sr-only peer"
+  //           checked={loopConfig.isEnabled}
+  //           onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))}
+  //         />
+  //         <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
+  //       </label>
+  //     </div>
+  //     {loopConfig.isEnabled && (
+  //       <div className="flex items-center gap-3">
+  //         <select
+  //           className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+  //           value={loopConfig.startBlockId || ''}
+  //           onChange={(e) => setLoopConfig(prev => ({ ...prev, startBlockId: e.target.value }))}
+  //         >
+  //           <option value="">Select Start Block</option>
+  //           {blocks.map(b => (
+  //             <option key={`start-${b.id}`} value={b.id}>
+  //               {b.type} - ({b.id})
+  //             </option>
+  //           ))}
+  //         </select>
+  //         <select
+  //           className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+  //           value={loopConfig.endBlockId || ''}
+  //           onChange={(e) => setLoopConfig(prev => ({ ...prev, endBlockId: e.target.value }))}
+  //         >
+  //           <option value="">Select End Block</option>
+  //           {blocks.map(b => (
+  //             <option key={`end-${b.id}`} value={b.id}>
+  //               {b.type} - ({b.id})
+  //             </option>
+  //           ))}
+  //         </select>
+  //         <select
+  //           className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+  //           value={loopConfig.iterationType}
+  //           onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationType: e.target.value }))}
+  //         >
+  //           <option value="count">Count</option>
+  //           <option value="sequence">Sequence</option>
+  //         </select>
+  //         {loopConfig.iterationType === 'count' ? (
+  //           <input
+  //             type="number"
+  //             min="1"
+  //             value={loopConfig.iterationCount}
+  //             onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationCount: parseInt(e.target.value) }))}
+  //             className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-20"
+  //           />
+  //         ) : (
+  //           <select
+  //             className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+  //             value={loopConfig.sequenceBlockId || ''}
+  //             onChange={(e) => setLoopConfig(prev => ({ ...prev, sequenceBlockId: e.target.value }))}
+  //           >
+  //             <option value="">Select Sequence Block</option>
+  //             {blocks
+  //               .filter(b => b.type === 'sequence_iterator')
+  //               .map(b => (
+  //                 <option key={b.id} value={b.id}>
+  //                   {b.id}
+  //                 </option>
+  //               ))}
+  //           </select>
+  //         )}
+  //         <button
+  //           onClick={startLoop}
+  //           className="px-4 py-1.5 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1] transition-colors duration-200 flex items-center gap-2"
+  //         >
+  //           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  //           </svg>
+  //           Start Loop
+  //         </button>
+  //         <button
+  //           onClick={stopLoop}
+  //           className="px-4 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200 flex items-center gap-2"
+  //         >
+  //           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 15l4-4m0" />
+  //           </svg>
+  //           Stop Loop
+  //         </button>
+  //       </div>
+  //     )}
+  //   </div>
+  // );
 
   // Add helper functions for resetting blocks and outputs
   const resetBlocksBetween = (startBlockId, endBlockId) => {
@@ -375,59 +375,59 @@ const SandboxPage = () => {
   };
 
   // Add this function after the renderLoopControls function
-  const renderDownloadSettings = () => (
-    <div className="flex items-center gap-4 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
-      <div className="flex items-center gap-3">
-        <span className="text-white text-sm font-medium">Auto-save Downloads</span>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            className="sr-only peer"
-            checked={downloadSettings.autoSave}
-            onChange={(e) => handleDownloadSettingsChange({
-              ...downloadSettings,
-              autoSave: e.target.checked
-            })}
-          />
-          <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
-        </label>
-      </div>
-      {downloadSettings.autoSave && (
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={downloadSettings.location}
-            onChange={(e) => handleDownloadSettingsChange({
-              ...downloadSettings,
-              location: e.target.value
-            })}
-            placeholder="Download location..."
-            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-64"
-          />
-          <button
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.webkitdirectory = true;
-              input.onchange = (e) => {
-                const path = e.target.files[0]?.path;
-                if (path) {
-                  handleDownloadSettingsChange({
-                    ...downloadSettings,
-                    location: path
-                  });
-                }
-              };
-              input.click();
-            }}
-            className="px-3 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200"
-          >
-            Browse
-          </button>
-        </div>
-      )}
-    </div>
-  );
+  // const renderDownloadSettings = () => (
+  //   <div className="flex items-center gap-4 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
+  //     <div className="flex items-center gap-3">
+  //       <span className="text-white text-sm font-medium">Auto-save Downloads</span>
+  //       <label className="relative inline-flex items-center cursor-pointer">
+  //         <input
+  //           type="checkbox"
+  //           className="sr-only peer"
+  //           checked={downloadSettings.autoSave}
+  //           onChange={(e) => handleDownloadSettingsChange({
+  //             ...downloadSettings,
+  //             autoSave: e.target.checked
+  //           })}
+  //         />
+  //         <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
+  //       </label>
+  //     </div>
+  //     {downloadSettings.autoSave && (
+  //       <div className="flex items-center gap-2">
+  //         <input
+  //           type="text"
+  //           value={downloadSettings.location}
+  //           onChange={(e) => handleDownloadSettingsChange({
+  //             ...downloadSettings,
+  //             location: e.target.value
+  //           })}
+  //           placeholder="Download location..."
+  //           className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-64"
+  //         />
+  //         <button
+  //           onClick={() => {
+  //             const input = document.createElement('input');
+  //             input.type = 'file';
+  //             input.webkitdirectory = true;
+  //             input.onchange = (e) => {
+  //               const path = e.target.files[0]?.path;
+  //               if (path) {
+  //                 handleDownloadSettingsChange({
+  //                   ...downloadSettings,
+  //                   location: path
+  //                 });
+  //               }
+  //             };
+  //             input.click();
+  //           }}
+  //           className="px-3 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200"
+  //         >
+  //           Browse
+  //         </button>
+  //       </div>
+  //     )}
+  //   </div>
+  // );
 
   const getNextBlocksInChain = (currentBlockId) => {
     const nextBlocks = blocks.filter(block => {
@@ -491,7 +491,7 @@ const SandboxPage = () => {
         const connectionArray = Array.isArray(connections) ? connections : [connections];
         return connectionArray.map(conn => {
           if (!conn) return null;
-          const sourceBlock = blocks.find(b => b.id === conn.source);
+          // const sourceBlock = blocks.find(b => b.id === conn.source);
           const output = blockOutputsRef.current[conn.source];
           return { outputType: conn.sourceHandle, data: output };
         }).filter(Boolean);
