@@ -1,4 +1,4 @@
-const BlockHeader = ({ blockType, status, onDeleteBlock }) => {
+const BlockHeader = ({ blockType, blockInstanceId, status, onDeleteBlock }) => {
     const getStatusColor = () => {
       switch (status) {
         case 'running': return 'bg-blue-500 animate-pulse';
@@ -20,7 +20,10 @@ const BlockHeader = ({ blockType, status, onDeleteBlock }) => {
     return (
       <div className="drag-handle p-2 rounded-t-lg cursor-move flex justify-between items-center backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <h4 className="text-white font-bold text-sm tracking-wide">{blockType.name}</h4>
+          <div className="flex flex-col">
+            <h4 className="text-white font-bold text-sm tracking-wide">{blockType.name}</h4>
+            <span className="text-white/60 text-xs">{blockInstanceId}</span>
+          </div>
           <div className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
           <span className="text-white/60 text-xs">{getStatusText()}</span>
         </div>

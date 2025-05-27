@@ -210,11 +210,23 @@ const SandboxPage = () => {
   };
 
   const stopLoop = () => {
+    // Reset loop configuration
     setLoopConfig(prev => ({
       ...prev,
       isEnabled: false,
       currentIteration: 0
     }));
+
+    // Ensure all blocks in the loop are properly reset
+    if (loopConfig.startBlockId && loopConfig.endBlockId) {
+      resetBlocksBetween(loopConfig.startBlockId, loopConfig.endBlockId);
+      resetOutputsBetween(loopConfig.startBlockId, loopConfig.endBlockId);
+    }
+
+    // Reset automation state if it was only enabled for the loop
+    if (!isAutomate) {
+      setIsAutomate(false);
+    }
   };
 
   // Add loop configuration UI
@@ -323,7 +335,15 @@ const SandboxPage = () => {
     if (startIndex !== -1 && endIndex !== -1) {
       for (let i = startIndex; i <= endIndex; i++) {
         if (blocks[i]) {
-          updateBlockInStore(blocks[i].id, { status: 'idle' });
+          // Only update the status while preserving all other properties
+          updateBlockInStore(blocks[i].id, {
+            status: 'idle',
+            // Preserve other essential properties
+            // position: blocks[i].position,
+            type: blocks[i].type,
+            blockTypeId: blocks[i].blockTypeId,
+            parameters: blocks[i].parameters
+          });
         }
       }
     }
@@ -412,9 +432,14 @@ const SandboxPage = () => {
   const getNextBlocksInChain = (currentBlockId) => {
     const nextBlocks = blocks.filter(block => {
       const blockConnection = connections[block.id];
-      return blockConnection && Object.values(blockConnection).some(
-        conn => conn.source === currentBlockId
-      );
+      if (!blockConnection) return false;
+      
+      // Check if any input handle has a connection from the current block
+      return Object.entries(blockConnection).some(([handle, connections]) => {
+        // Handle both array and single connection for backward compatibility
+        const connectionArray = Array.isArray(connections) ? connections : [connections];
+        return connectionArray.some(conn => conn && conn.source === currentBlockId);
+      });
     });
 
     if (nextBlocks.length > 0) {
@@ -447,18 +472,31 @@ const SandboxPage = () => {
       const conns = connections[blockId] || {};
       console.log('multi_download connections:', conns);
       console.log('blocks:', blocks.map(b => ({ id: b.id, status: b.status })));
-      const pending = Object.values(conns).filter(c =>
-        blocks.find(b => b.id === c.source)?.status !== 'completed'
-      );
+      
+      // Check all connections for pending blocks
+      const pending = Object.entries(conns).flatMap(([handle, connections]) => {
+        const connectionArray = Array.isArray(connections) ? connections : [connections];
+        return connectionArray.filter(conn => 
+          conn && blocks.find(b => b.id === conn.source)?.status !== 'completed'
+        );
+      });
+      
       if (pending.length) {
         console.log('Waiting on inputs for multi_download:', pending);
         return;
       }
-      const downloadItems = Object.entries(conns).map(([inputType, c]) => {
-        const sourceBlock = blocks.find(b => b.id === c.source);
-        const output = blockOutputsRef.current[c.source];
-        return { outputType: c.sourceHandle, data: output };
+
+      // Collect all download items from all connections
+      const downloadItems = Object.entries(conns).flatMap(([inputType, connections]) => {
+        const connectionArray = Array.isArray(connections) ? connections : [connections];
+        return connectionArray.map(conn => {
+          if (!conn) return null;
+          const sourceBlock = blocks.find(b => b.id === conn.source);
+          const output = blockOutputsRef.current[conn.source];
+          return { outputType: conn.sourceHandle, data: output };
+        }).filter(Boolean);
       });
+
       const missingData = downloadItems.filter(item => !item.data);
       if (missingData.length > 0) {
         console.error('Missing data for multi-download:', missingData);
@@ -558,7 +596,6 @@ const SandboxPage = () => {
     }
 
     if (block.type === 'sequence_iterator') {
-      clearOutputs();
       const sequences = block.parameters.sequences || [];
       const currentIndex = block.parameters.currentIndex || 0;
 
@@ -629,18 +666,22 @@ const SandboxPage = () => {
     if (!params) {
       const blockConnectionData = connections[blockId];
       if (blockConnectionData) {
-        for (const [targetHandle, connDetails] of Object.entries(blockConnectionData)) {
-          if (blockOutputs[connDetails.source]) {
-            const sourceOutput = blockOutputs[connDetails.source];
-            console.log(`Getting ${connDetails.sourceHandle} from block ${connDetails.source}:`, sourceOutput);
-            switch (connDetails.sourceHandle) {
-              case 'sequence': blockInputs.sequence = sourceOutput.sequence; break;
-              case 'structure': blockInputs.pdb_file = sourceOutput.pdb_file; break;
-              case 'metrics': blockInputs.metrics = sourceOutput.metrics; break;
-              case 'results': blockInputs.results = sourceOutput.results; break;
-              default: blockInputs[targetHandle] = sourceOutput;
+        for (const [targetHandle, connections] of Object.entries(blockConnectionData)) {
+          // Handle both array and single connection for backward compatibility
+          const connectionArray = Array.isArray(connections) ? connections : [connections];
+          connectionArray.forEach(conn => {
+            if (conn && blockOutputs[conn.source]) {
+              const sourceOutput = blockOutputs[conn.source];
+              console.log(`Getting ${conn.sourceHandle} from block ${conn.source}:`, sourceOutput);
+              switch (conn.sourceHandle) {
+                case 'sequence': blockInputs.sequence = sourceOutput.sequence; break;
+                case 'structure': blockInputs.pdb_file = sourceOutput.pdb_file; break;
+                case 'metrics': blockInputs.metrics = sourceOutput.metrics; break;
+                case 'results': blockInputs.results = sourceOutput.results; break;
+                default: blockInputs[targetHandle] = sourceOutput;
+              }
             }
-          }
+          });
         }
       }
     }
@@ -822,10 +863,14 @@ const SandboxPage = () => {
     setLastCompletedBlockId(null);
   }, [lastCompletedBlockId, isAutomate, blocks, loopConfig.sequenceBlockId]);
 
-  return (
-    <div className="flex flex-col h-screen bg-[#111c22]">
-      <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#233c48] px-8 py-4 shrink-0 bg-[#111c22]/95 backdrop-blur-sm">
-        <div className="flex items-center gap-6">
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Add this new component for the top bar
+  const TopBar = () => (
+    <header className="flex flex-col bg-[#111c22]/95 backdrop-blur-sm border-b border-[#233c48]">
+      {/* Main bar */}
+      <div className="flex items-center justify-between px-6 py-3">
+        <div className="flex items-center gap-4">
           <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em] flex items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#13a4ec]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
@@ -833,7 +878,9 @@ const SandboxPage = () => {
             Protein Pipeline Sandbox
           </h2>
         </div>
-        <div className="flex items-center gap-6">
+
+        <div className="flex items-center gap-4">
+          {/* Quick actions */}
           <button
             onClick={clearOutputs}
             className="px-4 py-2 bg-[#233c48] text-white border border-[#13a4ec] rounded-lg text-sm hover:bg-[#2a4a5a] transition-all duration-200 flex items-center gap-2 group"
@@ -844,18 +891,193 @@ const SandboxPage = () => {
             </svg>
             Clear Outputs
           </button>
-          {renderLoopControls()}
-          {renderDownloadSettings()}
-          <div className="flex items-center gap-3 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
-            <span className="text-white text-sm font-medium">Automate</span>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked={isAutomate} onChange={() => setIsAutomate(!isAutomate)} />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
-            </label>
+
+          {/* Settings toggle */}
+          <button
+            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+            className="px-4 py-2 bg-[#233c48] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#2a4a5a] transition-all duration-200 flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Settings
+          </button>
+        </div>
+      </div>
+
+      {/* Collapsible settings panel */}
+      {isSettingsOpen && (
+        <div className="px-6 py-4 bg-[#1a2c35] border-t border-[#233c48]">
+          <div className="flex flex-wrap gap-6">
+            {/* Loop Controls */}
+            <div className="flex-1 min-w-[300px]">
+              <div className="flex items-center gap-4 bg-[#233c48] px-4 py-3 rounded-lg border border-[#344854]">
+                <div className="flex items-center gap-3">
+                  <span className="text-white text-sm font-medium">Loop</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={loopConfig.isEnabled}
+                      onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))}
+                    />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
+                  </label>
+                </div>
+                {loopConfig.isEnabled && (
+                  <div className="flex flex-wrap gap-3">
+                    <select
+                      className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                      value={loopConfig.startBlockId || ''}
+                      onChange={(e) => setLoopConfig(prev => ({ ...prev, startBlockId: e.target.value }))}
+                    >
+                      <option value="">Select Start Block</option>
+                      {blocks.map(b => (
+                        <option key={`start-${b.id}`} value={b.id}>
+                          {b.type} - ({b.id})
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                      value={loopConfig.endBlockId || ''}
+                      onChange={(e) => setLoopConfig(prev => ({ ...prev, endBlockId: e.target.value }))}
+                    >
+                      <option value="">Select End Block</option>
+                      {blocks.map(b => (
+                        <option key={`end-${b.id}`} value={b.id}>
+                          {b.type} - ({b.id})
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                      value={loopConfig.iterationType}
+                      onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationType: e.target.value }))}
+                    >
+                      <option value="count">Count</option>
+                      <option value="sequence">Sequence</option>
+                    </select>
+                    {loopConfig.iterationType === 'count' ? (
+                      <input
+                        type="number"
+                        min="1"
+                        value={loopConfig.iterationCount}
+                        onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationCount: parseInt(e.target.value) }))}
+                        className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-20"
+                      />
+                    ) : (
+                      <select
+                        className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                        value={loopConfig.sequenceBlockId || ''}
+                        onChange={(e) => setLoopConfig(prev => ({ ...prev, sequenceBlockId: e.target.value }))}
+                      >
+                        <option value="">Select Sequence Block</option>
+                        {blocks
+                          .filter(b => b.type === 'sequence_iterator')
+                          .map(b => (
+                            <option key={b.id} value={b.id}>
+                              {b.id}
+                            </option>
+                          ))}
+                      </select>
+                    )}
+                    <button
+                      onClick={startLoop}
+                      className="px-4 py-1.5 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1] transition-colors duration-200 flex items-center gap-2"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Start Loop
+                    </button>
+                    <button
+                      onClick={stopLoop}
+                      className="px-4 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200 flex items-center gap-2"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 15l4-4m0" />
+                      </svg>
+                      Stop Loop
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Automation toggle */}
+            <div className="flex items-center gap-3 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
+              <span className="text-white text-sm font-medium">Automate</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" checked={isAutomate} onChange={() => setIsAutomate(!isAutomate)} />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
+              </label>
+            </div>
+            {/* Download Settings */}
+            <div className="flex-1 min-w-[300px]">
+              <div className="flex items-center gap-4 bg-[#233c48] px-4 py-3 rounded-lg border border-[#344854]">
+                <div className="flex items-center gap-3">
+                  <span className="text-white text-sm font-medium">Auto-save Downloads</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={downloadSettings.autoSave}
+                      onChange={(e) => handleDownloadSettingsChange({
+                        ...downloadSettings,
+                        autoSave: e.target.checked
+                      })}
+                    />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
+                  </label>
+                </div>
+                {downloadSettings.autoSave && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={downloadSettings.location}
+                      onChange={(e) => handleDownloadSettingsChange({
+                        ...downloadSettings,
+                        location: e.target.value
+                      })}
+                      placeholder="Download location..."
+                      className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-64"
+                    />
+                    <button
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.webkitdirectory = true;
+                        input.onchange = (e) => {
+                          const path = e.target.files[0]?.path;
+                          if (path) {
+                            handleDownloadSettingsChange({
+                              ...downloadSettings,
+                              location: path
+                            });
+                          }
+                        };
+                        input.click();
+                      }}
+                      className="px-3 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200"
+                    >
+                      Browse
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </header>
+      )}
+    </header>
+  );
 
+  return (
+    <div className="flex flex-col h-screen bg-[#111c22]">
+      <TopBar />
       <DndProvider backend={HTML5Backend}>
         <div className="flex flex-1 overflow-hidden">
           <div className="bg-[#1a2b34] border-r border-[#233c48] overflow-y-auto p-4 transition-all duration-100 ease-in-out">

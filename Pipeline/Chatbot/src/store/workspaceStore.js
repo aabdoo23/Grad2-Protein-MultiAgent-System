@@ -56,24 +56,30 @@ const useWorkspaceStore = create(
         if (!state.connections[target]) {
           state.connections[target] = {};
         }
-        state.connections[target][targetHandle] = {
+        if (!state.connections[target][targetHandle]) {
+          state.connections[target][targetHandle] = [];
+        }
+        state.connections[target][targetHandle].push({
           source,
           sourceHandle,
-        };
+        });
       }
-      // Use JSON.parse(JSON.stringify(...)) for reliable logging of immer draft state
       try {
         console.log('connectBlocks store: Updated connections:', JSON.parse(JSON.stringify(state.connections)));
       } catch (e) {
         console.error('Error logging connections state:', e);
-        // Fallback or simplified logging if stringify fails (e.g., circular refs, though unlikely for this structure)
         console.log('connectBlocks store: Could not stringify connections. Target involved:', target);
       }
     }),
 
     deleteConnection: (source, target, targetHandle) => set((state) => {
       if (state.connections[target] && state.connections[target][targetHandle]) {
-        delete state.connections[target][targetHandle];
+        state.connections[target][targetHandle] = state.connections[target][targetHandle].filter(
+          conn => conn.source !== source
+        );
+        if (state.connections[target][targetHandle].length === 0) {
+          delete state.connections[target][targetHandle];
+        }
       }
     }),
 

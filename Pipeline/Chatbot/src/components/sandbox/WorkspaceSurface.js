@@ -16,6 +16,27 @@ const nodeTypes = {
   jobBlock: JobBlock,
 };
 
+const defaultEdgeOptions = {
+  style: {
+    stroke: '#13a4ec',
+    strokeWidth: 4,
+  },
+  animated: true,
+  zIndex: 1000,
+};
+
+const edgeStyles = {
+  default: {
+    stroke: '#13a4ec',
+    strokeWidth: 4,
+  },
+  animated: {
+    stroke: '#13a4ec',
+    strokeWidth: 4,
+    strokeDasharray: '5,5',
+  },
+};
+
 const WorkspaceSurface = ({ 
   blocks, 
   blockTypes, 
@@ -37,7 +58,6 @@ const WorkspaceSurface = ({
     updateViewport,
     setSelectedNodes,
     setSelectedEdges,
-    layoutBlocks,
   } = useWorkspaceStore();
 
   const findBlockType = (typeId) => {
@@ -77,18 +97,31 @@ const WorkspaceSurface = ({
 
   const initialNodes = blocks.map(createNodeFromBlock);
 
-  // Generate edges from connections data
+  // Generate edges from connections data with enhanced styling
   const initialEdges = React.useMemo(() => {
     const edges = [];
     Object.entries(connections).forEach(([targetId, targetConnections]) => {
-      Object.entries(targetConnections).forEach(([targetHandle, connection]) => {
-        if (connection) {
-          edges.push({
-            id: `e-${connection.source}-${targetId}-${targetHandle}`,
-            source: connection.source,
-            target: targetId,
-            sourceHandle: connection.sourceHandle,
-            targetHandle: targetHandle,
+      Object.entries(targetConnections).forEach(([targetHandle, connections]) => {
+        if (connections) {
+          // Handle both array and single connection for backward compatibility
+          const connectionArray = Array.isArray(connections) ? connections : [connections];
+          connectionArray.forEach((connection, index) => {
+            if (connection) {
+              edges.push({
+                id: `e-${connection.source}-${targetId}-${targetHandle}-${index}`,
+                source: connection.source,
+                target: targetId,
+                sourceHandle: connection.sourceHandle,
+                targetHandle: targetHandle,
+                style: edgeStyles.default,
+                animated: true,
+                zIndex: 1000,
+                markerEnd: {
+                  type: 'arrowclosed',
+                  color: '#13a4ec',
+                },
+              });
+            }
           });
         }
       });
@@ -106,14 +139,20 @@ const WorkspaceSurface = ({
 
     const newEdges = [];
     Object.entries(connections).forEach(([targetId, targetConnections]) => {
-      Object.entries(targetConnections).forEach(([targetHandle, connection]) => {
-        if (connection) {
-          newEdges.push({
-            id: `e-${connection.source}-${targetId}-${targetHandle}`,
-            source: connection.source,
-            target: targetId,
-            sourceHandle: connection.sourceHandle,
-            targetHandle: targetHandle,
+      Object.entries(targetConnections).forEach(([targetHandle, connections]) => {
+        if (connections) {
+          // Handle both array and single connection for backward compatibility
+          const connectionArray = Array.isArray(connections) ? connections : [connections];
+          connectionArray.forEach((connection, index) => {
+            if (connection) {
+              newEdges.push({
+                id: `e-${connection.source}-${targetId}-${targetHandle}-${index}`,
+                source: connection.source,
+                target: targetId,
+                sourceHandle: connection.sourceHandle,
+                targetHandle: targetHandle,
+              });
+            }
           });
         }
       });
@@ -196,25 +235,22 @@ const WorkspaceSurface = ({
         onDragOver={onDragOver}
         onDrop={onDrop}
         nodeTypes={nodeTypes}
-        fitView
+        defaultEdgeOptions={defaultEdgeOptions}
+        // fitView
         attributionPosition="bottom-right"
         snapToGrid
         snapGrid={[15, 15]}
         minZoom={0.5}
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        elementsSelectable={true}
+        nodesDraggable={true}
+        nodesConnectable={true}
+        selectNodesOnDrag={false}
       >
         <Background />
         <Controls />
         <MiniMap />
-        {/* <Panel position="top-right">
-          <button
-            onClick={layoutBlocks}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            Layout Blocks
-          </button>
-        </Panel> */}
       </ReactFlow>
     </div>
   );

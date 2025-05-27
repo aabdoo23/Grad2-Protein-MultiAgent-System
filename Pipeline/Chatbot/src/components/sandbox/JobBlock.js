@@ -76,7 +76,7 @@ const JobBlock = ({
       blockId={id}
     >
       <div
-        className="job-block-inner rounded-lg p-2 pt-0 pb-1 shadow-xl transition-all duration-200 flex flex-col h-full"
+        className="job-block-inner rounded-lg p-2 pt-0 shadow-xl transition-all duration-200 flex flex-col h-full"
         style={{
           backgroundColor: safeBlockType.color,
           border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -84,8 +84,9 @@ const JobBlock = ({
       >
         <BlockHeader
           blockType={safeBlockType}
-          status={data.status} // Access status from data
-          onDeleteBlock={() => data.onDeleteBlock()} // Use onDeleteBlock from data
+          blockInstanceId={id}
+          status={data.status}
+          onDeleteBlock={() => data.onDeleteBlock()}
         />
 
         <div 
@@ -107,7 +108,9 @@ const JobBlock = ({
                   type={input}
                   isInput={true}
                   isMultiDownload={safeBlockType.id === 'multi_download'}
-                  connectionCount={data.connections?.[input]?.length || 0} // Access connections from data if needed
+                  connectionCount={Array.isArray(data.connections?.[input]) 
+                    ? data.connections[input].length 
+                    : (data.connections?.[input] ? 1 : 0)}
                 />
               </div>
             ))}
@@ -142,8 +145,8 @@ const JobBlock = ({
             hasConfig={!!safeBlockType.config}
             isConfigOpen={isConfigOpen}
             onToggleConfig={() => setIsConfigOpen(!isConfigOpen)}
-            onRunBlock={() => data.onRunBlock()} // Use onRunBlock from data
-            isRunning={data.status === 'running'} // Access status from data
+            onRunBlock={() => data.onRunBlock()}
+            isRunning={data.status === 'running'}
           />
 
           {/* Config panel */}
@@ -153,10 +156,10 @@ const JobBlock = ({
               isConfigOpen={isConfigOpen}
               onClose={() => setIsConfigOpen(false)}
               onApply={(params) => {
-                data.onUpdateParameters(params); // Use onUpdateParameters from data
+                data.onUpdateParameters(params);
                 setIsConfigOpen(false);
               }}
-              initialParams={data.parameters || {}} // Access parameters from data
+              initialParams={data.parameters || {}}
             />
           )}
 
