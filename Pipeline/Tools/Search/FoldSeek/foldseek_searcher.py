@@ -13,6 +13,7 @@ class FoldseekSearcher:
 
     def submit_search(self, pdb_file_path: str) -> Dict[str, Any]:
         if not os.path.exists(pdb_file_path):
+            print(f"PDB file not found: {pdb_file_path}")
             return {"success": False, "error": f"PDB file not found: {pdb_file_path}"}
         with open(pdb_file_path, "rb") as f:
             files = {"q": ("query.file", f)}

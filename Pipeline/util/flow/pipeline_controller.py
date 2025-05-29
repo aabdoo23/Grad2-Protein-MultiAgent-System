@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from text_processor import TextProcessor, PipelineFunction
+from util.chatbot.text_processor import TextProcessor, PipelineFunction
 from Tools.DeNovo.protein_generator import ProteinGenerator
 from Tools.TDStructure.Prediction.esm_predictor import ESM_Predictor
 from Tools.TDStructure.Prediction.af2_predictor import AlphaFold2_Predictor
@@ -9,7 +9,9 @@ from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 from Tools.Search.BLAST.colabfold_msa_search import ColabFold_MSA_Searcher
 from Tools.Search.BLAST.local_blast import LocalBlastSearcher
-from job_manager import Job
+from util.flow.job_manager import Job
+from Tools.Search.BLAST.database_builder import BlastDatabaseBuilder
+import os
 
 class PipelineController:
     def __init__(self, conversation_memory, job_manager):
@@ -27,6 +29,7 @@ class PipelineController:
         self.conversation_memory = conversation_memory
         self.job_manager = job_manager
         self.selected_functions = []
+        self.db_builder = BlastDatabaseBuilder()
 
     def process_input(self, session_id: str, text: str) -> Dict[str, Any]:
         # Retrieve conversation history if needed
@@ -82,7 +85,37 @@ class PipelineController:
                 # Update parameters based on previous job's result
                 params = self._chain_job_parameters(previous_job.result, job)
         
-        if name == PipelineFunction.GENERATE_PROTEIN.value:
+        if name == 'file_upload':
+            # Get the file path and output type from parameters
+            file_path = params.get('filePath')
+            output_type = params.get('outputType')
+            
+            if not file_path or not output_type:
+                return {"success": False, "error": "Missing file path or output type"}
+            
+            # Construct the full file path
+            full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', file_path)
+            
+            if not os.path.exists(full_path):
+                return {"success": False, "error": "File not found"}
+            
+            # Return the appropriate output based on file type
+            if output_type == 'structure':
+                result = {
+                    "success": True,
+                    "pdb_file": file_path,
+                    "outputType": "structure"
+                }
+            elif output_type == 'molecule':
+                result = {
+                    "success": True,
+                    "molecule_file": file_path,
+                    "outputType": "molecule"
+                }
+            else:
+                return {"success": False, "error": "Invalid output type"}
+                
+        elif name == PipelineFunction.GENERATE_PROTEIN.value:
             result = self.protein_generator.generate(params.get("prompt", ""))
         elif name == PipelineFunction.PREDICT_STRUCTURE.value:
             sequence = params.get("sequence", "")
@@ -141,15 +174,23 @@ class PipelineController:
                 result = self.colabfold_msa_searcher.search(sequence, params)
             elif search_type == "local_blast_search":
                 # Get local BLAST specific parameters
-                fasta_path = params.get("fasta_file", None)
-                custom_db = params.get("db_name", None)
-                interpro_ids = params.get("interpro_ids", None)
+                sequence = params.get("sequence", "")
+                e_value = params.get("e_value", 0.0001)
+                interpro_ids = params.get("interpro_ids", [])
+                
+                # Get database information from input
+                database = params.get("database", {})
+                if isinstance(database, dict) and "database" in database:
+                    database = database["database"]  # Unwrap the nested database object
+                
+                if not database or not database.get("path"):
+                    return {"success": False, "error": "No database provided. Please connect a BLAST Database Builder block."}
                 
                 # Run local BLAST search
                 result = self.local_blast_searcher.search(
                     sequence=sequence,
-                    fasta_file=fasta_path,
-                    db_name=custom_db,
+                    db_path=database["path"],
+                    e_value=e_value,
                     interpro_ids=interpro_ids
                 )
                 
@@ -161,6 +202,8 @@ class PipelineController:
                     return {"success": False, "error": result.get("error", "Local BLAST search failed")}
             else:
                 return {"success": False, "error": f"Unknown search type: {search_type}"}
+        elif name == 'build_database':
+            return self.build_database(params)
             
         return result
 
@@ -226,3 +269,39 @@ class PipelineController:
             else:
                 return "Run a BLAST search on NCBI server in the nr database to find similar sequences"
         return "Execute the requested operation"
+
+    def build_database(self, parameters):
+        """Build a BLAST database from FASTA file or Pfam IDs."""
+        try:
+            fasta_file = parameters.get('fasta_file')
+            pfam_ids = parameters.get('pfam_ids', [])
+            db_name = parameters.get('db_name')
+            sequence_types = parameters.get('sequence_types')
+
+            result = self.db_builder.build_database(
+                fasta_file=fasta_file,
+                pfam_ids=pfam_ids,
+                db_name=db_name,
+                sequence_types=sequence_types
+            )
+
+            if result['success']:
+                return {
+                    'success': True,
+                    'database': {
+                        'path': result['db_path'],
+                        'name': result['db_name']
+                    },
+                    'fasta_file': result['fasta_path']
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': result['error']
+                }
+
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }

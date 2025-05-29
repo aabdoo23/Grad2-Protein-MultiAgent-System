@@ -136,6 +136,34 @@ class DownloadHandler:
                         
                         # Add original results
                         zipf.writestr(f"{item_dir}/original_results.json", json.dumps(results, indent=2))
+
+                elif typ == 'database':
+                    # Handle BLAST database files
+                    if data.get('database'):
+                        db_path = data['database'].get('path')+"\.."
+                        if db_path and os.path.exists(db_path):
+                            # Add all files in the database folder
+                            for root, dirs, files in os.walk(db_path):
+                                for file in files:
+                                    file_path = os.path.join(root, file)
+                                    arcname = os.path.join(item_dir, os.path.relpath(file_path, db_path))
+                                    zipf.write(file_path, arcname)
+                            # Create database report
+                            db_report = self.report_generator.generate_database_report(data)
+                            zipf.writestr(f"{item_dir}/database_report.txt", db_report)
+                        else:
+                            print(f"Database file not found at {db_path}")
+
+                elif typ == 'fasta':
+                    # Handle FASTA files
+                    if data.get('fasta_file'):
+                        fasta_path = data['fasta_file']
+                        if os.path.exists(fasta_path):
+                            zipf.write(fasta_path, f"{item_dir}/sequences.fasta")
+                            
+                            # Create FASTA report
+                            fasta_report = self.report_generator.generate_fasta_report(data)
+                            zipf.writestr(f"{item_dir}/fasta_report.txt", fasta_report)
                 
                 # Add item metadata
                 metadata = {

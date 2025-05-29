@@ -5,6 +5,12 @@ export const blockConfigSchema = {
       label: 'Enter sequences (one per line)',
       placeholder: 'Enter sequences here, one per line...',
       rows: 8
+    },
+    fasta_file: {
+      type: 'file',
+      label: 'Upload FASTA file',
+      accept: '.fasta,.fa,.fna',
+      description: 'Upload a FASTA file containing sequences to iterate through'
     }
   },
   openfold_predict: {
@@ -98,23 +104,39 @@ export const blockConfigSchema = {
     }
   },
   local_blast_search: {
-    fasta_file: {
-      type: 'text',
-      label: 'FASTA File Path',
-      placeholder: 'Enter path to FASTA file',
-      defaultValue: ''
-    },
-    db_name: {
-      type: 'text',
-      label: 'Database Name',
-      placeholder: 'Enter database name',
-      defaultValue: ''
+    e_value: {
+      type: 'number',
+      label: 'E-value',
+      min: 0,
+      max: 1,
+      step: 0.0001,
+      defaultValue: 0.0001
     },
     interpro_ids: {
       type: 'tagInput',
       label: 'InterPro IDs',
       placeholder: 'Enter InterPro IDs and press Enter',
       defaultValue: []
+    }
+  },
+  blast_db_builder: {
+    fasta_file: {
+      type: 'text',
+      label: 'FASTA File Path',
+      placeholder: 'Enter path to FASTA file',
+      defaultValue: ''
+    },
+    pfam_ids: {
+      type: 'text',
+      label: 'Pfam IDs',
+      placeholder: 'Enter Pfam IDs and press Enter',
+      defaultValue: []
+    },
+    db_name: {
+      type: 'text',
+      label: 'Database Name',
+      placeholder: 'Enter custom database name (optional)',
+      defaultValue: ''
     }
   }
 }; 

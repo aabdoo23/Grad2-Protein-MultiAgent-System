@@ -1,17 +1,19 @@
-from flask import Flask, request, jsonify, session, send_from_directory, send_file
+from flask import Flask, request, jsonify, session, send_from_directory, send_file, Response
 from flask_cors import CORS
-from pipeline_controller import PipelineController
-from conversation_memory import ConversationMemory
-from job_manager import JobManager, JobStatus
+from util.flow.pipeline_controller import PipelineController
+from util.chatbot.conversation_memory import ConversationMemory
+from util.flow.job_manager import JobManager, JobStatus
 from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
 from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
+from Tools.Search.BLAST.database_builder import BlastDatabaseBuilder
 from util.modules.download_handler import DownloadHandler
 import os
 import threading
 import io
 from datetime import datetime
 import uuid
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 # Configure CORS to allow credentials and specific headers
@@ -27,7 +29,121 @@ app.secret_key = "YOUR_SECRET_KEY"  # Needed for session management
 
 # Configure static file serving
 STATIC_PDB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'pdb_files')
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
 os.makedirs(STATIC_PDB_DIR, exist_ok=True)
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Allowed file extensions
+ALLOWED_EXTENSIONS = {
+    'structure': ['.pdb'],
+    'molecule': ['.sdf', '.mol2'],
+    'sequence': ['.fasta', '.fa', '.fna', '.ffn', '.faa', '.frn']
+}
+
+def allowed_file(filename, output_type):
+    return any(filename.lower().endswith(ext) for ext in ALLOWED_EXTENSIONS[output_type])
+
+@app.route('/api/pdb-content', methods=['GET'])
+def get_pdb_content():
+    file_path_param = request.args.get('filePath')
+    if not file_path_param:
+        app.logger.warning("API call to /api/pdb-content missing filePath parameter.")
+        return jsonify({'error': 'filePath parameter is required'}), 400
+
+    try:
+        # Normalize and get real absolute path for security check.
+        # os.path.realpath resolves symlinks and normalizes the path (e.g., handles '..')
+        requested_abs_path = os.path.realpath(file_path_param)
+        
+        # Get the real absolute path of the allowed base directory
+        allowed_base_dir_abs = os.path.realpath(STATIC_PDB_DIR)
+
+        # Security check: Ensure the requested path is within the allowed base directory.
+        # This prevents directory traversal attacks.
+        if not requested_abs_path.startswith(allowed_base_dir_abs):
+            app.logger.warning(
+                f"Forbidden access attempt to PDB path: '{file_path_param}' "
+                f"(resolved: '{requested_abs_path}'). "
+                f"It is not within allowed base: '{allowed_base_dir_abs}'."
+            )
+            return jsonify({'error': 'Access to the requested file path is forbidden.'}), 403
+
+        if not os.path.exists(requested_abs_path):
+            app.logger.info(f"PDB file not found at API request: {requested_abs_path}")
+            return jsonify({'error': 'PDB file not found.'}), 404
+        
+        if not os.path.isfile(requested_abs_path):
+            app.logger.warning(f"Requested PDB path via API is not a file: {requested_abs_path}")
+            return jsonify({'error': 'The specified path is not a file.'}), 400
+
+        with open(requested_abs_path, 'r', encoding='utf-8') as f:
+            pdb_content = f.read()
+        
+        return Response(pdb_content, mimetype='text/plain; charset=utf-8')
+
+    except Exception as e:
+        app.logger.error(f"Error serving PDB content for path '{file_path_param}': {str(e)}", exc_info=True)
+        return jsonify({'error': f'An internal error occurred while trying to read the PDB file.'}), 500
+
+@app.route('/upload-file', methods=['POST'])
+def upload_file():
+    """Handle file uploads and store them temporarily."""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file provided'}), 400
+    
+    file = request.files['file']
+    output_type = request.form.get('outputType')
+    
+    if not file or not output_type:
+        return jsonify({'success': False, 'error': 'Missing file or output type'}), 400
+    
+    if not allowed_file(file.filename, output_type):
+        return jsonify({'success': False, 'error': 'Invalid file type'}), 400
+    
+    try:
+        # Create a unique filename
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4()}_{filename}"
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        
+        # Save the file
+        file.save(file_path)
+        
+        # Schedule file deletion after 1 hour
+        def delete_file():
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                print(f"Error deleting file {file_path}: {str(e)}")
+        
+        threading.Timer(3600, delete_file).start()
+        
+        # If it's a sequence file, read and parse it
+        sequences = []
+        if output_type == 'sequence':
+            with open(file_path, 'r') as f:
+                current_sequence = []
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('>'):
+                        if current_sequence:
+                            sequences.append(''.join(current_sequence))
+                            current_sequence = []
+                    elif line:
+                        current_sequence.append(line)
+                if current_sequence:
+                    sequences.append(''.join(current_sequence))
+        
+        return jsonify({
+            'success': True,
+            'filePath': file_path,
+            'outputType': output_type,
+            'sequences': sequences if output_type == 'sequence' else None
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # Create global objects
 memory = ConversationMemory()
@@ -35,6 +151,7 @@ job_manager = JobManager()
 controller = PipelineController(conversation_memory=memory, job_manager=job_manager)
 blast_searcher = NCBI_BLAST_Searcher()
 download_handler = DownloadHandler()
+db_builder = BlastDatabaseBuilder()
 
 # Function to execute a job in a background thread
 def execute_job_in_background(job_id):
@@ -84,7 +201,8 @@ def confirm_job():
             'esmfold_predict': 'predict_structure',
             'colabfold_search': 'search_similarity',
             'ncbi_blast_search': 'search_similarity',
-            'local_blast_search': 'search_similarity'
+            'local_blast_search': 'search_similarity',
+            'blast_db_builder': 'build_database'  # Add mapping for database builder
         }
         
         # Get the base function name from the mapping, or use the original if not found
@@ -112,7 +230,8 @@ def confirm_job():
         job.parameters.update(job_data['parameters'])
         # Ensure model_type is set for specialized blocks
         if job_data.get('function_name') in ['openfold_predict', 'alphafold2_predict', 'esmfold_predict', 
-                                           'colabfold_search', 'ncbi_blast_search', 'local_blast_search']:
+                                           'colabfold_search', 'ncbi_blast_search', 'local_blast_search',
+                                           'blast_db_builder']:  # Add blast_db_builder to the list
             job.parameters['model_type'] = job_data.get('function_name')
     
     # For sandbox jobs, store the block_id if provided
@@ -144,6 +263,40 @@ def get_jobs():
         "success": True,
         "jobs": job_manager.get_all_jobs()
     })
+
+@app.route('/read-fasta-file', methods=['POST'])
+def read_fasta_file():
+    try:
+        file_path = request.json.get('file_path')
+        if not file_path:
+            return jsonify({"success": False, "message": "File path is required."}), 400
+
+        # Read and parse the FASTA file
+        sequences = []
+        current_sequence = []
+        with open(file_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('>'):
+                    if current_sequence:
+                        sequences.append(''.join(current_sequence))
+                        current_sequence = []
+                elif line:
+                    current_sequence.append(line)
+            
+            # Add the last sequence if exists
+            if current_sequence:
+                sequences.append(''.join(current_sequence))
+
+        return jsonify({
+            "success": True,
+            "sequences": sequences
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 @app.route('/pdb/<path:filename>')
 def serve_pdb(filename):
@@ -300,6 +453,66 @@ def download_multiple():
     
     # Send the zip file
     return download_handler.send_zip_file(zip_buffer, filename, download_settings)
+
+@app.route('/build-blast-db', methods=['POST'])
+def build_blast_db():
+    """Build a BLAST database from either a FASTA file or Pfam IDs."""
+    data = request.json
+    fasta_file = data.get('fasta_file')
+    pfam_ids = data.get('pfam_ids')
+    sequence_types = data.get('sequence_types', ['unreviewed', 'reviewed', 'uniprot'])
+    db_name = data.get('db_name')
+    
+    if not fasta_file and not pfam_ids:
+        return jsonify({'success': False, 'error': 'Either fasta_file or pfam_ids must be provided'}), 400
+    
+    result = db_builder.build_database(
+        fasta_file=fasta_file,
+        pfam_ids=pfam_ids,
+        sequence_types=sequence_types,
+        db_name=db_name
+    )
+    
+    if not result['success']:
+        return jsonify(result), 500
+    
+    return jsonify(result)
+
+@app.route('/active-blast-dbs', methods=['GET'])
+def get_active_dbs():
+    """Get all currently active BLAST databases."""
+    try:
+        active_dbs = db_builder.get_active_databases()
+        return jsonify({
+            'success': True,
+            'databases': active_dbs
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/get-pfam-data', methods=['POST'])
+def get_pfam_data():
+    """Get Pfam data for given Pfam IDs."""
+    data = request.json
+    pfam_ids = data.get('pfam_ids', [])
+    
+    if not pfam_ids:
+        return jsonify({
+            'success': False,
+            'error': 'No Pfam IDs provided'
+        }), 400
+        
+    try:
+        result = db_builder._get_count_of_sequences(pfam_ids)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -16,6 +16,15 @@ const downloadApi = axios.create({
   responseType: 'blob'
 });
 
+// File upload API with multipart/form-data
+const uploadApi = axios.create({
+  baseURL: BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'multipart/form-data'
+  }
+});
+
 export const jobService = {
   // Confirm a job
   confirmJob: async (jobId, jobData) => {
@@ -38,6 +47,17 @@ export const jobService = {
       return response.data;
     } catch (error) {
       console.error('Error getting job status:', error);
+      throw error;
+    }
+  },
+
+  // Read FASTA file
+  readFastaFile: async (filePath) => {
+    try {
+      const response = await api.post('/read-fasta-file', { file_path: filePath });
+      return response.data;
+    } catch (error) {
+      console.error('Error reading FASTA file:', error);
       throw error;
     }
   }
@@ -132,6 +152,102 @@ export const downloadService = {
     } catch (err) {
       console.error('Multi-download error:', err);
       return { success: false, error: err.message };
+    }
+  }
+};
+
+export const uploadService = {
+  // Upload file
+  uploadFile: async (formData) => {
+    try {
+      const response = await uploadApi.post('/upload-file', formData);
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
+  },
+
+  // Upload FASTA file
+  uploadFastaFile: async (formData) => {
+    try {
+      const response = await uploadApi.post('/upload-file', formData);
+      if (response.data.success) {
+        // Read the FASTA file content
+        const fastaResponse = await api.post('/read-fasta-file', {
+          file_path: response.data.filePath
+        });
+        return {
+          ...response.data,
+          sequences: fastaResponse.data.sequences
+        };
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading FASTA file:', error);
+      throw error;
+    }
+  }
+};
+
+export const fileService = {
+  // Get file content
+  getFileContent: async (filePath) => {
+    try {
+      const response = await api.get(`/file-content/${encodeURIComponent(filePath)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting file content:', error);
+      throw error;
+    }
+  },
+
+  // Save file
+  saveFile: async (filePath, content) => {
+    try {
+      const response = await api.post('/save-file', {
+        file_path: filePath,
+        content
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error saving file:', error);
+      throw error;
+    }
+  }
+};
+
+export const blastService = {
+  // Build BLAST database
+  buildDatabase: async (params) => {
+    try {
+      const response = await api.post('/build-blast-db', params);
+      return response.data;
+    } catch (error) {
+      console.error('Error building BLAST database:', error);
+      throw error;
+    }
+  },
+
+  // Get active databases
+  getActiveDatabases: async () => {
+    try {
+      const response = await api.get('/active-blast-dbs');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting active BLAST databases:', error);
+      throw error;
+    }
+  },
+
+  // Get Pfam data
+  getPfamData: async (pfamIds) => {
+    try {
+      const response = await api.post('/get-pfam-data', { pfam_ids: pfamIds });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting Pfam data:', error);
+      throw error;
     }
   }
 }; 

@@ -2,9 +2,10 @@ import FoldSeekResults from '../../result-viewers/FoldSeekResults';
 import SequenceGenerationResults from '../../result-viewers/SequenceGenerationResults';
 import { downloadService } from '../../../services/api';
 import BlastResults from '../../BlastResults';
+import { BASE_URL } from '../../../config/config';
+import React, { useEffect } from 'react';
 
-
-const ResultsView = ({ blockType, blockOutput, isResultsOpen, onToggleResults, initViewer, formatMetric }) => {
+const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, onToggleResults, initViewer, formatMetric }) => {
     const renderDownloadButton = () => {
       if (!blockOutput) return null;
   
@@ -17,7 +18,7 @@ const ResultsView = ({ blockType, blockOutput, isResultsOpen, onToggleResults, i
             case 'sequence_iterator':
               response = await downloadService.downloadSequence(
                 blockOutput.sequence,
-                `sequence_${blockOutput.id}`
+                `sequence_${blockOutput.id || blockInstanceId}`
               );
               break;
   
@@ -61,6 +62,38 @@ const ResultsView = ({ blockType, blockOutput, isResultsOpen, onToggleResults, i
       );
     };
   
+    const viewerDomId = `viewer-${blockInstanceId}`;
+
+    useEffect(() => {
+        if (isResultsOpen && initViewer && blockOutput?.pdb_file && 
+            (blockType.id === 'openfold_predict' || blockType.id === 'alphafold2_predict' || blockType.id === 'esmfold_predict')) {
+            
+            const fetchPdbContent = async () => {
+                try {
+                    const response = await fetch(`${BASE_URL}/api/pdb-content?filePath=${encodeURIComponent(blockOutput.pdb_file)}`);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Failed to fetch PDB content: ${response.status} ${response.statusText}. ${errorText}`);
+                    }
+                    const pdbContent = await response.text();
+                    if (pdbContent) {
+                        initViewer(viewerDomId, pdbContent, blockInstanceId);
+                    } else {
+                        initViewer(viewerDomId, null, blockInstanceId, 'Fetched PDB content is empty.');
+                    }
+                } catch (error) {
+                    console.error('Error fetching PDB content:', error);
+                    initViewer(viewerDomId, null, blockInstanceId, `Error fetching PDB: ${error.message}`);
+                }
+            };
+
+            fetchPdbContent();
+        } else if (isResultsOpen && initViewer && !blockOutput?.pdb_file && 
+                   (blockType.id === 'openfold_predict' || blockType.id === 'alphafold2_predict' || blockType.id === 'esmfold_predict')) {
+            initViewer(viewerDomId, null, blockInstanceId, 'PDB file path missing in block output.');
+        }
+    }, [isResultsOpen, blockOutput, blockType.id, blockInstanceId, initViewer, viewerDomId]);
+
     const renderResults = () => {
       if (!blockOutput) return null;
   
@@ -111,13 +144,8 @@ const ResultsView = ({ blockType, blockOutput, isResultsOpen, onToggleResults, i
           return (
             <div className="bg-[#1a2b34] rounded-lg p-3">
               <div
-                id={`viewer-${blockOutput.id}`}
-                className="w-full h-[300px] rounded-lg mb-3 bg-[#1a2b34]"
-                ref={(el) => {
-                  if (el) {
-                    initViewer(blockOutput.id, blockOutput.pdb_file);
-                  }
-                }}
+                id={viewerDomId}
+                className="nodrag relative w-full h-[400px] rounded-lg mb-3 bg-gray-800 border border-gray-700 molstar-viewer-container overflow-hidden"
               />
               <div className="mt-2 text-xs text-gray-300">
                 <div className="w-full h-2 rounded overflow-hidden"
@@ -188,7 +216,10 @@ const ResultsView = ({ blockType, blockOutput, isResultsOpen, onToggleResults, i
         )}
   
         {isResultsOpen && blockOutput && (
-          <div className="mt-4 border-t border-white/10 pt-4">
+          <div 
+            className="mt-4 border-t border-white/10 pt-4 overflow-y-auto custom-scrollbar results-container"
+            onWheel={(e) => e.stopPropagation()}
+          >
             {renderResults()}
           </div>
         )}

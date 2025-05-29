@@ -8,21 +8,8 @@ import MSAViewer from './MSAViewer';
 
 // Constants
 const DEFAULT_MAX_SEQUENCES = 40;
-const MAX_SEQUENCES_LIMIT = 100;
+const MAX_SEQUENCES_LIMIT = 1000;
 
-// Helper functions
-const calculateIdentity = (querySeq, targetSeq) => {
-  if (!querySeq || !targetSeq || querySeq.length !== targetSeq.length) return 0;
-  
-  let matches = 0, total = 0;
-  for (let i = 0; i < querySeq.length; ++i) {
-    if (querySeq[i] !== '-' && targetSeq[i] !== '-') {
-      total++;
-      if (querySeq[i].toUpperCase() === targetSeq[i].toUpperCase()) matches++;
-    }
-  }
-  return total > 0 ? Number(((matches / total) * 100).toFixed(2)) : 0;
-};
 
 const formatSequenceHeader = (name, identity, isQuery = false) => {
   name = name.split('|')[0];
@@ -98,11 +85,6 @@ const BlastResults = ({ results }) => {
     }));
   };
 
-  const filterSequencesByDb = (sequences, dbName) => {
-    if (dbName === 'all') return sequences;
-    return sequences.filter(seq => seq.dbName === dbName);
-  };
-
   const getUniqueDbs = () => {
     if (!results?.msa?.sequences) return ['all'];
     const dbs = new Set(results.msa.sequences.map(seq => seq.database));
@@ -148,19 +130,27 @@ const BlastResults = ({ results }) => {
   const processSequences = () => {
     if (!results?.msa?.sequences) return null;
 
-    // Filter sequences by selected database
-    const filteredSequences = selectedDb === 'all' 
-      ? results.msa.sequences 
-      : results.msa.sequences.filter(seq => seq.database === selectedDb);
+    // Ensure we have a mutable copy for filtering and sorting
+    let sequencesToProcess = Array.from(results.msa.sequences);
 
-    // Sort by identity and limit to maxSequences
-    const sortedSequences = filteredSequences
-      .sort((a, b) => b.identity - a.identity)
+    // Filter sequences by selected database
+    if (selectedDb !== 'all') {
+      sequencesToProcess = sequencesToProcess.filter(seq => seq.database === selectedDb);
+    }
+
+    // Sort by identity (if identity exists) and limit to maxSequences
+    // Add a check for the existence of the 'identity' property before sorting
+    const sortedSequences = sequencesToProcess
+      .sort((a, b) => {
+        const identityA = a.identity || 0; // Default to 0 if identity is missing
+        const identityB = b.identity || 0; // Default to 0 if identity is missing
+        return identityB - identityA; // Sort descending
+      })
       .slice(0, maxSequences);
 
     // Format sequences for MSA viewer
     return sortedSequences.map(seq => 
-      `${formatSequenceHeader(seq.name || seq.id, seq.identity, seq.id === 'query')}\n${seq.sequence}`
+      `${formatSequenceHeader(seq.name || seq.id, seq.identity || 0, seq.id === 'Query' || seq.name === 'Query')}\n${seq.sequence}`
     ).join('\n');
   };
 
@@ -231,7 +221,7 @@ const BlastResults = ({ results }) => {
       {Object.entries(results.alignments?.databases || {}).map(([dbName, dbData]) => (
         <div key={dbName} className="p-2 space-y-4">
           <h5 className="text-white text-sm font-medium">{dbName.toUpperCase()} Hits</h5>
-          {dbData.hits.map((hit, index) => (
+          {dbData.hits.slice(0, maxSequences).map((hit, index) => (
             <div key={index} className="border border-[#344752] rounded-lg p-3">
               <button
                 onClick={() => toggleHit(hit.id)}
