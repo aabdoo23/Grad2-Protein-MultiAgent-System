@@ -8,21 +8,8 @@ import MSAViewer from './MSAViewer';
 
 // Constants
 const DEFAULT_MAX_SEQUENCES = 40;
-const MAX_SEQUENCES_LIMIT = 100;
+const MAX_SEQUENCES_LIMIT = 1000;
 
-// Helper functions
-const calculateIdentity = (querySeq, targetSeq) => {
-  if (!querySeq || !targetSeq || querySeq.length !== targetSeq.length) return 0;
-  
-  let matches = 0, total = 0;
-  for (let i = 0; i < querySeq.length; ++i) {
-    if (querySeq[i] !== '-' && targetSeq[i] !== '-') {
-      total++;
-      if (querySeq[i].toUpperCase() === targetSeq[i].toUpperCase()) matches++;
-    }
-  }
-  return total > 0 ? Number(((matches / total) * 100).toFixed(2)) : 0;
-};
 
 const formatSequenceHeader = (name, identity, isQuery = false) => {
   name = name.split('|')[0];
@@ -96,11 +83,6 @@ const BlastResults = ({ results }) => {
       ...prev,
       [hitId]: !prev[hitId]
     }));
-  };
-
-  const filterSequencesByDb = (sequences, dbName) => {
-    if (dbName === 'all') return sequences;
-    return sequences.filter(seq => seq.dbName === dbName);
   };
 
   const getUniqueDbs = () => {
@@ -239,7 +221,7 @@ const BlastResults = ({ results }) => {
       {Object.entries(results.alignments?.databases || {}).map(([dbName, dbData]) => (
         <div key={dbName} className="p-2 space-y-4">
           <h5 className="text-white text-sm font-medium">{dbName.toUpperCase()} Hits</h5>
-          {dbData.hits.map((hit, index) => (
+          {dbData.hits.slice(0, maxSequences).map((hit, index) => (
             <div key={index} className="border border-[#344752] rounded-lg p-3">
               <button
                 onClick={() => toggleHit(hit.id)}

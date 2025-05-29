@@ -596,7 +596,72 @@ const SandboxPage = () => {
     }
 
     if (block.type === 'sequence_iterator') {
-      const sequences = block.parameters.sequences || [];
+      // Get sequences from either FASTA input or pasted sequences
+      let sequences = [];
+      
+      // Check if we need to load data (first run or explicit load)
+      const shouldLoadData = params?.loadData || (block.status === 'idle' && !block.parameters.loadedSequences);
+      
+      if (shouldLoadData) {
+        // Check for FASTA input from connected block
+        const blockConnectionData = connections[blockId];
+        if (blockConnectionData && blockConnectionData.fasta) {
+          const fastaConnection = Array.isArray(blockConnectionData.fasta) 
+            ? blockConnectionData.fasta[0] 
+            : blockConnectionData.fasta;
+          console.log("fastaConnection", fastaConnection);
+          console.log("blockOutputs", blockOutputs[fastaConnection.source]);
+          
+          if (fastaConnection && blockOutputs[fastaConnection.source]) {
+            const fastaOutput = blockOutputs[fastaConnection.source];
+            // Handle both direct sequences array and FASTA file path
+            if (fastaOutput.sequences) {
+              sequences = fastaOutput.sequences;
+            } else if (fastaOutput.fasta_file) {
+              // If we have a FASTA file path, use the backend API to read it
+              try {
+                const response = await jobService.readFastaFile(fastaOutput.fasta_file);
+                if (response.success && response.sequences) {
+                  sequences = response.sequences;
+                } else {
+                  console.error('Failed to read FASTA file:', response.error);
+                  updateBlockInStore(blockId, { status: 'failed' });
+                  return;
+                }
+              } catch (error) {
+                console.error('Error reading FASTA file:', error);
+                updateBlockInStore(blockId, { status: 'failed' });
+                return;
+              }
+            }
+          }
+        }
+        
+        // If no FASTA input, use pasted sequences from parameters
+        if (sequences.length === 0 && block.parameters.sequences) {
+          sequences = block.parameters.sequences;
+        }
+
+        if (sequences.length === 0) {
+          updateBlockInStore(blockId, { status: 'failed' });
+          return;
+        }
+
+        // Store the loaded sequences in the block parameters
+        updateBlockInStore(blockId, {
+          parameters: {
+            ...block.parameters,
+            loadedSequences: sequences,
+            currentIndex: 0,
+            totalSequences: sequences.length,
+            completedSequences: 0
+          }
+        });
+      } else {
+        // Use already loaded sequences
+        sequences = block.parameters.loadedSequences || [];
+      }
+
       const currentIndex = block.parameters.currentIndex || 0;
 
       if (sequences.length === 0) {
@@ -613,8 +678,8 @@ const SandboxPage = () => {
         status: 'completed',
         parameters: {
           ...block.parameters,
-          sequences: remainingSequences,
-          currentIndex: 0,
+          loadedSequences: sequences, // Keep the loaded sequences
+          currentIndex: (currentIndex + 1) % sequences.length, // Move to next sequence
           totalSequences: sequences.length,
           completedSequences: (block.parameters.completedSequences || 0) + 1
         }

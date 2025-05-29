@@ -49,6 +49,17 @@ export const jobService = {
       console.error('Error getting job status:', error);
       throw error;
     }
+  },
+
+  // Read FASTA file
+  readFastaFile: async (filePath) => {
+    try {
+      const response = await api.post('/read-fasta-file', { file_path: filePath });
+      return response.data;
+    } catch (error) {
+      console.error('Error reading FASTA file:', error);
+      throw error;
+    }
   }
 };
 
@@ -155,6 +166,27 @@ export const uploadService = {
       console.error('Error uploading file:', error);
       throw error;
     }
+  },
+
+  // Upload FASTA file
+  uploadFastaFile: async (formData) => {
+    try {
+      const response = await uploadApi.post('/upload-file', formData);
+      if (response.data.success) {
+        // Read the FASTA file content
+        const fastaResponse = await api.post('/read-fasta-file', {
+          file_path: response.data.filePath
+        });
+        return {
+          ...response.data,
+          sequences: fastaResponse.data.sequences
+        };
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading FASTA file:', error);
+      throw error;
+    }
   }
 };
 
@@ -180,6 +212,41 @@ export const fileService = {
       return response.data;
     } catch (error) {
       console.error('Error saving file:', error);
+      throw error;
+    }
+  }
+};
+
+export const blastService = {
+  // Build BLAST database
+  buildDatabase: async (params) => {
+    try {
+      const response = await api.post('/build-blast-db', params);
+      return response.data;
+    } catch (error) {
+      console.error('Error building BLAST database:', error);
+      throw error;
+    }
+  },
+
+  // Get active databases
+  getActiveDatabases: async () => {
+    try {
+      const response = await api.get('/active-blast-dbs');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting active BLAST databases:', error);
+      throw error;
+    }
+  },
+
+  // Get Pfam data
+  getPfamData: async (pfamIds) => {
+    try {
+      const response = await api.post('/get-pfam-data', { pfam_ids: pfamIds });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting Pfam data:', error);
       throw error;
     }
   }

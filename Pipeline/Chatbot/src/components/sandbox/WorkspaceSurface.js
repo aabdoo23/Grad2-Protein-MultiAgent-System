@@ -4,8 +4,7 @@ import ReactFlow, {
   Controls,
   MiniMap,
   useNodesState,
-  useEdgesState,
-  addEdge,
+  useEdgesState
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -180,6 +179,12 @@ const WorkspaceSurface = ({
     });
   }, [deleteConnection]);
 
+  const onEdgeClick = useCallback((event, edge) => {
+    // Optional: Add a confirmation dialog here if desired
+    // For now, directly delete the connection
+    deleteConnection(edge.source, edge.target, edge.targetHandle);
+  }, [deleteConnection]);
+
   const onNodesDelete = useCallback((nodesToDelete) => {
     nodesToDelete.forEach(node => onDeleteBlock(node.id));
   }, [onDeleteBlock]);
@@ -269,6 +274,7 @@ const WorkspaceSurface = ({
         onConnect={onConnect}
         onNodesDelete={onNodesDelete}
         onEdgesDelete={onEdgesDelete}
+        onEdgeClick={onEdgeClick}
         onMove={onMove}
         onSelectionChange={onSelectionChange}
         onDragOver={onDragOver}
@@ -278,8 +284,6 @@ const WorkspaceSurface = ({
         isValidConnection={isValidConnection}
         // fitView
         attributionPosition="bottom-right"
-        snapToGrid
-        snapGrid={[15, 15]}
         minZoom={0.25}
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
@@ -288,7 +292,7 @@ const WorkspaceSurface = ({
         nodesConnectable={true}
         selectNodesOnDrag={false}
       >
-        <Background />
+        <Background/>
         <Controls />
         <MiniMap />
       </ReactFlow>

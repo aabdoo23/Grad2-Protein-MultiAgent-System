@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Dict, Any, List
+import os
 
 class ReportGenerator:
     @staticmethod
@@ -97,80 +98,20 @@ class ReportGenerator:
     def generate_multiple_items_report(items: List[Dict[str, Any]]) -> str:
         """Generate a summary report for multiple items."""
         report = []
-        report.append("=" * 80)
         report.append("Multiple Items Download Report")
-        report.append("=" * 80)
+        report.append("=" * 30)
         report.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        report.append("\n")
+        report.append(f"Total Items: {len(items)}")
+        report.append("\nItems Summary:")
+        report.append("-" * 20)
         
         for idx, item in enumerate(items, start=1):
-            report.append(f"Item {idx} {item.get('outputType')}:")
-            report.append("-" * 40)
-            
-            # Get item type and data
-            item_type = item.get('outputType', 'Unknown')
+            typ = item.get('outputType', 'unknown')
             data = item.get('data', {})
-            results = data.get('results', {})
-            search_type = data.get('search_type', 'unknown')
-            
-            # Basic item information
-            report.append(f"Type: {item_type}")
+            report.append(f"\nItem {idx}:")
+            report.append(f"Type: {typ}")
             if data.get('description'):
                 report.append(f"Description: {data['description']}")
-            report.append(f"Search Type: {search_type.upper()}")
-            
-            # Add results summary if available
-            if results:
-                report.append("\nResults Summary:")
-                
-                # Add metadata if available
-                if results.get('metadata'):
-                    metadata = results['metadata']
-                    report.append(f"  Query Length: {metadata.get('query_info', {}).get('length', 'Unknown')}")
-                    report.append(f"  Timestamp: {metadata.get('timestamp', 'Unknown')}")
-                
-                # Add MSA summary if available
-                if results.get('msa', {}).get('sequences'):
-                    msa = results['msa']
-                    report.append(f"  Total Sequences: {len(msa['sequences'])}")
-                    
-                    # Group sequences by database
-                    db_counts = {}
-                    for seq in msa['sequences']:
-                        db = seq.get('database', 'unknown')
-                        db_counts[db] = db_counts.get(db, 0) + 1
-                    
-                    report.append("  Sequences by Database:")
-                    for db, count in db_counts.items():
-                        report.append(f"    - {db}: {count} sequences")
-                
-                # Add database summaries
-                if results.get('alignments', {}).get('databases'):
-                    report.append("\n  Database Summaries:")
-                    for db_name, db_data in results['alignments']['databases'].items():
-                        report.append(f"\n    {db_name.upper()}:")
-                        report.append(f"      Total Hits: {db_data.get('total_hits', 0)}")
-                        
-                        if db_data.get('hits'):
-                            hits = db_data['hits']
-                            # Calculate statistics
-                            avg_identity = sum(hit.get('identity', 0) for hit in hits) / len(hits)
-                            best_hit = max(hits, key=lambda x: x.get('identity', 0))
-                            worst_hit = min(hits, key=lambda x: x.get('identity', 0))
-                            
-                            report.append(f"      Average Identity: {avg_identity:.2f}%")
-                            report.append(f"      Best Hit: {best_hit.get('description', 'Unknown')}")
-                            report.append(f"      Best Identity: {best_hit.get('identity', 0):.2f}%")
-                            report.append(f"      Worst Identity: {worst_hit.get('identity', 0):.2f}%")
-                            
-                            # Add score statistics if available
-                            if hits[0].get('score') is not None:
-                                avg_score = sum(hit.get('score', 0) for hit in hits) / len(hits)
-                                best_score = max(hits, key=lambda x: x.get('score', 0))
-                                report.append(f"      Average Score: {avg_score:.2f}")
-                                report.append(f"      Best Score: {best_score.get('score', 0)}")
-            
-            report.append("\n")  # Add extra newline between items
         
         return "\n".join(report)
 
@@ -195,4 +136,61 @@ class ReportGenerator:
         report.append("=" * 80)
         report.append(f"File: {data.get('pdb_file', 'Unknown')}")
         report.append(f"Description: {data.get('metrics', 'No description available')}")
-        return "\n".join(report) 
+        return "\n".join(report)
+
+    def generate_database_report(self, data: Dict[str, Any]) -> str:
+        """Generate a report for a BLAST database."""
+        report = []
+        report.append("BLAST Database Report")
+        report.append("=" * 30)
+        report.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        if data.get('database'):
+            db_info = data['database']
+            report.append(f"\nDatabase Name: {db_info.get('name', 'Unknown')}")
+            report.append(f"Database Path: {db_info.get('path', 'Unknown')}")
+            
+            # Add file sizes
+            db_path = db_info.get('path')
+            if db_path:
+                total_size = 0
+                for ext in ['.phr', '.pin', '.psq']:
+                    file_path = f"{db_path}{ext}"
+                    if os.path.exists(file_path):
+                        size = os.path.getsize(file_path)
+                        total_size += size
+                        report.append(f"{ext[1:].upper()} File Size: {self._format_size(size)}")
+                report.append(f"Total Database Size: {self._format_size(total_size)}")
+        
+        return "\n".join(report)
+
+    def generate_fasta_report(self, data: Dict[str, Any]) -> str:
+        """Generate a report for a FASTA file."""
+        report = []
+        report.append("FASTA File Report")
+        report.append("=" * 30)
+        report.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        if data.get('fasta_file'):
+            fasta_path = data['fasta_file']
+            if os.path.exists(fasta_path):
+                report.append(f"\nFile Path: {fasta_path}")
+                report.append(f"File Size: {self._format_size(os.path.getsize(fasta_path))}")
+                
+                # Count sequences
+                try:
+                    with open(fasta_path, 'r') as f:
+                        sequence_count = sum(1 for line in f if line.startswith('>'))
+                    report.append(f"Number of Sequences: {sequence_count}")
+                except Exception as e:
+                    report.append(f"Error counting sequences: {str(e)}")
+        
+        return "\n".join(report)
+
+    def _format_size(self, size_bytes: int) -> str:
+        """Format file size in human-readable format."""
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size_bytes < 1024.0:
+                return f"{size_bytes:.2f} {unit}"
+            size_bytes /= 1024.0
+        return f"{size_bytes:.2f} TB" 

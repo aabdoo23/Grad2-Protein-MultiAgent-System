@@ -6,6 +6,7 @@ from util.flow.job_manager import JobManager, JobStatus
 from Tools.Search.FoldSeek.foldseek_searcher import FoldseekSearcher
 from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
+from Tools.Search.BLAST.database_builder import BlastDatabaseBuilder
 from util.modules.download_handler import DownloadHandler
 import os
 import threading
@@ -35,7 +36,8 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {
     'structure': ['.pdb'],
-    'molecule': ['.sdf', '.mol2']
+    'molecule': ['.sdf', '.mol2'],
+    'sequence': ['.fasta', '.fa', '.fna', '.ffn', '.faa', '.frn']
 }
 
 def allowed_file(filename, output_type):
@@ -117,10 +119,27 @@ def upload_file():
         
         threading.Timer(3600, delete_file).start()
         
+        # If it's a sequence file, read and parse it
+        sequences = []
+        if output_type == 'sequence':
+            with open(file_path, 'r') as f:
+                current_sequence = []
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('>'):
+                        if current_sequence:
+                            sequences.append(''.join(current_sequence))
+                            current_sequence = []
+                    elif line:
+                        current_sequence.append(line)
+                if current_sequence:
+                    sequences.append(''.join(current_sequence))
+        
         return jsonify({
             'success': True,
             'filePath': file_path,
-            'outputType': output_type
+            'outputType': output_type,
+            'sequences': sequences if output_type == 'sequence' else None
         })
         
     except Exception as e:
@@ -132,6 +151,7 @@ job_manager = JobManager()
 controller = PipelineController(conversation_memory=memory, job_manager=job_manager)
 blast_searcher = NCBI_BLAST_Searcher()
 download_handler = DownloadHandler()
+db_builder = BlastDatabaseBuilder()
 
 # Function to execute a job in a background thread
 def execute_job_in_background(job_id):
@@ -181,7 +201,8 @@ def confirm_job():
             'esmfold_predict': 'predict_structure',
             'colabfold_search': 'search_similarity',
             'ncbi_blast_search': 'search_similarity',
-            'local_blast_search': 'search_similarity'
+            'local_blast_search': 'search_similarity',
+            'blast_db_builder': 'build_database'  # Add mapping for database builder
         }
         
         # Get the base function name from the mapping, or use the original if not found
@@ -209,7 +230,8 @@ def confirm_job():
         job.parameters.update(job_data['parameters'])
         # Ensure model_type is set for specialized blocks
         if job_data.get('function_name') in ['openfold_predict', 'alphafold2_predict', 'esmfold_predict', 
-                                           'colabfold_search', 'ncbi_blast_search', 'local_blast_search']:
+                                           'colabfold_search', 'ncbi_blast_search', 'local_blast_search',
+                                           'blast_db_builder']:  # Add blast_db_builder to the list
             job.parameters['model_type'] = job_data.get('function_name')
     
     # For sandbox jobs, store the block_id if provided
@@ -241,6 +263,40 @@ def get_jobs():
         "success": True,
         "jobs": job_manager.get_all_jobs()
     })
+
+@app.route('/read-fasta-file', methods=['POST'])
+def read_fasta_file():
+    try:
+        file_path = request.json.get('file_path')
+        if not file_path:
+            return jsonify({"success": False, "message": "File path is required."}), 400
+
+        # Read and parse the FASTA file
+        sequences = []
+        current_sequence = []
+        with open(file_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('>'):
+                    if current_sequence:
+                        sequences.append(''.join(current_sequence))
+                        current_sequence = []
+                elif line:
+                    current_sequence.append(line)
+            
+            # Add the last sequence if exists
+            if current_sequence:
+                sequences.append(''.join(current_sequence))
+
+        return jsonify({
+            "success": True,
+            "sequences": sequences
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 @app.route('/pdb/<path:filename>')
 def serve_pdb(filename):
@@ -397,6 +453,66 @@ def download_multiple():
     
     # Send the zip file
     return download_handler.send_zip_file(zip_buffer, filename, download_settings)
+
+@app.route('/build-blast-db', methods=['POST'])
+def build_blast_db():
+    """Build a BLAST database from either a FASTA file or Pfam IDs."""
+    data = request.json
+    fasta_file = data.get('fasta_file')
+    pfam_ids = data.get('pfam_ids')
+    sequence_types = data.get('sequence_types', ['unreviewed', 'reviewed', 'uniprot'])
+    db_name = data.get('db_name')
+    
+    if not fasta_file and not pfam_ids:
+        return jsonify({'success': False, 'error': 'Either fasta_file or pfam_ids must be provided'}), 400
+    
+    result = db_builder.build_database(
+        fasta_file=fasta_file,
+        pfam_ids=pfam_ids,
+        sequence_types=sequence_types,
+        db_name=db_name
+    )
+    
+    if not result['success']:
+        return jsonify(result), 500
+    
+    return jsonify(result)
+
+@app.route('/active-blast-dbs', methods=['GET'])
+def get_active_dbs():
+    """Get all currently active BLAST databases."""
+    try:
+        active_dbs = db_builder.get_active_databases()
+        return jsonify({
+            'success': True,
+            'databases': active_dbs
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/get-pfam-data', methods=['POST'])
+def get_pfam_data():
+    """Get Pfam data for given Pfam IDs."""
+    data = request.json
+    pfam_ids = data.get('pfam_ids', [])
+    
+    if not pfam_ids:
+        return jsonify({
+            'success': False,
+            'error': 'No Pfam IDs provided'
+        }), 400
+        
+    try:
+        result = db_builder._get_count_of_sequences(pfam_ids)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Handle, Position } from 'reactflow';
 import BlockHeader from './JobBlockComponents/BlockHeader';
 import BlockPort from './JobBlockComponents/BlockPort';
@@ -6,14 +6,13 @@ import BlockConfig from './JobBlockComponents/BlockConfig';
 import ResultsView from './JobBlockComponents/ResultsView';
 import BlockActions from './JobBlockComponents/BlockActions';
 import FileUploadBlock from './JobBlockComponents/FileUploadBlock';
+import BlastDatabaseBuilder from './JobBlockComponents/BlastDatabaseBuilder';
 import ResizableBlock from './JobBlockComponents/ResizableBlock';
-import { BASE_URL } from '../../config/config';
 import { uploadService } from '../../services/api';
 
 const JobBlock = ({
   id,
   data,
-  selected,
 }) => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isResultsOpen, setIsResultsOpen] = useState(false);
@@ -45,20 +44,89 @@ const JobBlock = ({
       const result = await uploadService.uploadFile(formData);
 
       // Use onUpdateParameters from data prop
-      data.onUpdateParameters({ // Pass id implicitly via data or explicitly if needed
+      const parameters = {
         filePath: result.filePath,
-        outputType: outputType
-      });
+        outputType: outputType,
+        model_type: 'file_upload'
+      };
+
+      // Add sequences if it's a sequence file
+      if (outputType === 'sequence' && result.sequences) {
+        parameters.sequences = result.sequences;
+      }
+
+      data.onUpdateParameters(parameters);
 
       // Use onRunBlock from data prop
-      data.onRunBlock(); // Pass id implicitly via data or explicitly if needed
+      data.onRunBlock();
     } catch (error) {
       console.error('Error uploading file:', error);
     }
   };
 
-  // The main scrollable area within the block
-  const scrollableContentRef = useRef(null);
+  // Handle BLAST database builder parameters update
+  const handleBlastDbParametersUpdate = (params) => {
+    if (data.onUpdateParameters) {
+      data.onUpdateParameters(params);
+    }
+  };
+
+  // Render block content based on block type
+  const renderBlockContent = () => {
+    switch (safeBlockType.id) {
+      case 'file_upload':
+        return (
+          <div className="nodrag">
+            <FileUploadBlock
+              onFileUpload={handleFileUpload}
+              blockType={safeBlockType}
+            />
+          </div>
+        );
+      case 'blast_db_builder':
+        return (
+          <div className="nodrag">
+            <BlastDatabaseBuilder
+              onUpdateParameters={handleBlastDbParametersUpdate}
+            />
+          </div>
+        );
+      case 'sequence_iterator':
+        return (
+          <div className="nodrag flex flex-col items-center justify-center gap-4 p-4">
+            <button
+              onClick={() => data.onRunBlock({ loadData: true })}
+              disabled={data.status === 'running'}
+              className="w-full px-4 py-2 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1] transition-colors duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {data.status === 'running' ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  Load Data
+                </>
+              )}
+            </button>
+            {data.parameters?.loadedSequences && (
+              <div className="text-sm text-gray-300">
+                Loaded {data.parameters.loadedSequences.length} sequences
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <ResizableBlock
@@ -68,7 +136,7 @@ const JobBlock = ({
       blockId={id}
     >
       <div
-        className="nodrag nowheel nopan job-block-inner cursor-default rounded-lg shadow-xl flex flex-col h-full overflow-hidden"
+        className="job-block-inner cursor-default rounded-lg shadow-xl flex flex-col h-full overflow-hidden"
         style={{
           backgroundColor: safeBlockType.color,
           border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -82,7 +150,7 @@ const JobBlock = ({
         />
 
         {/* Container for ports and content area */}
-        <div className="flex flex-1 min-h-0 bg-black/10">
+        <div className="nodrag nowheel nopan flex flex-1 min-h-0 bg-black/20">
           {/* Input Ports Section */}
           <div className="flex flex-col justify-center items-start p-2 space-y-2">
             {safeBlockType.inputs.map((input) => (
@@ -107,17 +175,9 @@ const JobBlock = ({
 
           {/* Scrollable Content Area */}
           <div 
-            // ref={scrollableContentRef}
             className="flex-1 p-3 mb-4 bg-black/20 overflow-auto custom-scrollbar rounded-b-lg"
           >
-            {safeBlockType.id === 'file_upload' && (
-              <div className="nodrag">
-                <FileUploadBlock
-                  onFileUpload={handleFileUpload}
-                  blockType={safeBlockType}
-                />
-              </div>
-            )}
+            {renderBlockContent()}
             <BlockActions
               hasConfig={!!safeBlockType.config}
               isConfigOpen={isConfigOpen}
@@ -137,15 +197,17 @@ const JobBlock = ({
                 initialParams={data.parameters || {}}
               />
             )}
-            <ResultsView
-              blockType={safeBlockType}
-              blockOutput={data.blockOutput}
-              blockInstanceId={id}
-              isResultsOpen={isResultsOpen}
-              onToggleResults={() => setIsResultsOpen(!isResultsOpen)}
-              initViewer={data.initViewer}
-              formatMetric={data.formatMetric}
-            />
+            {data.status === 'completed' && (
+              <ResultsView
+                blockType={safeBlockType}
+                blockOutput={data.blockOutput}
+                blockInstanceId={id}
+                isResultsOpen={isResultsOpen}
+                onToggleResults={() => setIsResultsOpen(!isResultsOpen)}
+                initViewer={data.initViewer}
+                formatMetric={data.formatMetric}
+              />
+            )}
           </div>
 
           {/* Output Ports Section */}

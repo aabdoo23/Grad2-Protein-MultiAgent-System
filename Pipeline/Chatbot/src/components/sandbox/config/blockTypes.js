@@ -6,11 +6,12 @@ export const blockTypes = [
       description: 'Upload PDB, SDF, or MOL2 files for structure or molecule analysis',
       color: '#4a90e2',
       inputs: [],
-      outputs: ['structure', 'molecule'],
+      outputs: ['structure', 'molecule', 'sequence'],
       config: {
         acceptedFileTypes: {
           structure: ['.pdb'],
-          molecule: ['.sdf', '.mol2']
+          molecule: ['.sdf', '.mol2'],
+          sequence: ['.fasta', '.fa']
         }
       }
     },
@@ -36,9 +37,9 @@ export const blockTypes = [
       id: 'sequence_iterator',
       name: 'Sequence Iterator',
       type: 'Iterate',
-      description: 'Iterate through a list of sequences one at a time',
+      description: 'Iterate through sequences from FASTA file or pasted sequences',
       color: '#073b4c',
-      inputs: [],
+      inputs: ['fasta'],
       outputs: ['sequence'],
       config:{}
     },
@@ -105,7 +106,7 @@ export const blockTypes = [
     {
       id: 'ncbi_blast_search',
       name: 'NCBI BLAST Search',
-      type: 'Multiple Sequence Alignment',
+      type: 'BLAST Search',
       description: 'Search using NCBI BLAST (Standard, ~6 min)',
       color: '#2a9d8f',
       inputs: ['sequence'],
@@ -118,14 +119,13 @@ export const blockTypes = [
     {
       id: 'local_blast_search',
       name: 'Local BLAST Search',
-      type: 'Multiple Sequence Alignment',
+      type: 'BLAST Search',
       description: 'Search using Local BLAST (Custom database, ~1 min)',
       color: '#457b9d',
-      inputs: ['sequence'],
+      inputs: ['sequence', 'database'],
       outputs: ['results'],
       config: {
-        fasta_file: "",
-        db_name: "",
+        e_value: 0.0001,
         interpro_ids: []
       }
     },
@@ -137,5 +137,19 @@ export const blockTypes = [
       color: '#2a9d8f',
       inputs: ['structure'],
       outputs: ['results']
+    },
+    {
+      id: 'blast_db_builder',
+      name: 'BLAST Database Builder',
+      type: 'Database',
+      description: 'Build a BLAST database from FASTA file or Pfam IDs',
+      color: '#457b9d',
+      inputs: [],
+      outputs: ['database', 'fasta'],
+      config: {
+        fasta_file: "",
+        pfam_ids: [],
+        db_name: ""
+      }
     }
   ];

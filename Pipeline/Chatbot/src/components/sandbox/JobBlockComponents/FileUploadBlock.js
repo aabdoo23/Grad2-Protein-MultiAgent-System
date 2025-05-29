@@ -18,10 +18,12 @@ const FileUploadBlock = ({ onFileUpload, blockType }) => {
       outputType = 'structure';
     } else if (blockType.config.acceptedFileTypes.molecule.includes(`.${extension}`)) {
       outputType = 'molecule';
+    } else if (blockType.config.acceptedFileTypes.sequence.includes(`.${extension}`)) {
+      outputType = 'sequence';
     }
 
     if (!outputType) {
-      setError('Invalid file type. Please upload a PDB, SDF, or MOL2 file.');
+      setError('Invalid file type. Please upload a PDB, SDF, MOL2, or FASTA file.');
       return;
     }
 
@@ -41,7 +43,8 @@ const FileUploadBlock = ({ onFileUpload, blockType }) => {
     accept: {
       'chemical/x-pdb': ['.pdb'],
       'chemical/x-mdl-molfile': ['.sdf'],
-      'chemical/x-mol2': ['.mol2']
+      'chemical/x-mol2': ['.mol2'],
+      'chemical/x-fasta': ['.fasta', '.fa', '.fna', '.ffn', '.faa', '.frn']
     },
     maxFiles: 1
   });
@@ -65,7 +68,7 @@ const FileUploadBlock = ({ onFileUpload, blockType }) => {
               Drag and drop a file here, or click to select
               <br />
               <span className="text-white/60 text-xs">
-                Supported formats: PDB, SDF, MOL2
+                Supported formats: PDB, SDF, MOL2, FASTA
               </span>
             </>
           )}
