@@ -57,7 +57,8 @@ const WorkspaceSurface = ({
   loopConfig,
   setLoopConfig,
   formatMetric,
-  initViewer
+  initViewer,
+  onClearBlockOutput
 }) => {
   const {
     updateViewport,
@@ -95,7 +96,8 @@ const WorkspaceSurface = ({
         loopConfig,
         setLoopConfig,
         formatMetric,
-        initViewer
+        initViewer,
+        onClearOutput: () => onClearBlockOutput(block.id)
       },
     };
   };

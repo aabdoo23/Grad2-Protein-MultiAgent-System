@@ -2,9 +2,9 @@ export const blockTypes = [
     {
       id: 'file_upload',
       name: 'File Upload',
-      type: 'Input',
+      type: 'I/O',
       description: 'Upload PDB, SDF, or MOL2 files for structure or molecule analysis',
-      color: '#4a90e2',
+      color: '#653239',
       inputs: [],
       outputs: ['structure', 'molecule', 'sequence'],
       config: {
@@ -18,9 +18,9 @@ export const blockTypes = [
     {
       id: 'multi_download',
       name: 'Multi Download',
-      type: 'Download',
+      type: 'I/O',
       description: 'Download output from multiple blocks once they are completed',
-      color: '#9b2226',
+      color: '#522B29',
       inputs: ['input'],
       outputs: []
     },
@@ -45,11 +45,20 @@ export const blockTypes = [
     },
     // Structure Prediction Blocks
     {
+      id: 'esmfold_predict',
+      name: 'ESMFold Predict',
+      type: '3D Structure Prediction',
+      description: 'Predict structure using ESMFold (Fastest, ~10 sec)',
+      color: '#D8973C',
+      inputs: ['sequence'],
+      outputs: ['structure']
+    },
+    {
       id: 'openfold_predict',
       name: 'OpenFold Predict',
-      type: '3d Structure Prediction',
+      type: '3D Structure Prediction',
       description: 'Predict structure using OpenFold (Fast, ~30 sec)',
-      color: '#f4a261',
+      color: '#BE5E3C',
       inputs: ['sequence'],
       outputs: ['structure'],
       config: {
@@ -60,9 +69,9 @@ export const blockTypes = [
     {
       id: 'alphafold2_predict',
       name: 'AlphaFold2 Predict',
-      type: '3d Structure Prediction',
+      type: '3D Structure Prediction',
       description: 'Predict structure using AlphaFold2 (Accurate, ~6 min)',
-      color: '#e76f51',
+      color: '#CB7B3C',
       inputs: ['sequence'],
       outputs: ['structure'],
       config: {
@@ -78,15 +87,7 @@ export const blockTypes = [
         template_searcher: "hhsearch"
       }
     },
-    {
-      id: 'esmfold_predict',
-      name: 'ESMFold Predict',
-      type: '3d Structure Prediction',
-      description: 'Predict structure using ESMFold (Fastest, ~10 sec)',
-      color: '#e9c46a',
-      inputs: ['sequence'],
-      outputs: ['structure']
-    },
+    
     // Sequence Similarity Search Blocks
     {
       id: 'colabfold_search',
@@ -108,7 +109,7 @@ export const blockTypes = [
       name: 'NCBI BLAST Search',
       type: 'BLAST Search',
       description: 'Search using NCBI BLAST (Standard, ~6 min)',
-      color: '#2a9d8f',
+      color: '#0E3938',
       inputs: ['sequence'],
       outputs: ['results'],
       config: {
@@ -121,7 +122,7 @@ export const blockTypes = [
       name: 'Local BLAST Search',
       type: 'BLAST Search',
       description: 'Search using Local BLAST (Custom database, ~1 min)',
-      color: '#457b9d',
+      color: '#1C4C49',
       inputs: ['sequence', 'database'],
       outputs: ['results'],
       config: {
@@ -134,16 +135,16 @@ export const blockTypes = [
       name: 'Search Structure',
       type: '3D Structure Search',
       description: 'Search for similar protein structures using FoldSeek',
-      color: '#2a9d8f',
+      color: '#28666E',
       inputs: ['structure'],
       outputs: ['results']
     },
     {
       id: 'blast_db_builder',
       name: 'BLAST Database Builder',
-      type: 'Database',
+      type: 'BLAST Search',
       description: 'Build a BLAST database from FASTA file or Pfam IDs',
-      color: '#457b9d',
+      color: '#38726C',
       inputs: [],
       outputs: ['database', 'fasta'],
       config: {
@@ -157,7 +158,7 @@ export const blockTypes = [
       name: 'Molecular Docking',
       type: 'Docking',
       description: 'Perform molecular docking between a protein and ligand using AutoDock Vina',
-      color: '#7209b7',
+      color: '#033F63',
       inputs: ['structure', 'molecule'],
       outputs: ['results'],
       config: {

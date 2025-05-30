@@ -9,6 +9,7 @@ import FileUploadBlock from './JobBlockComponents/FileUploadBlock';
 import BlastDatabaseBuilder from './JobBlockComponents/BlastDatabaseBuilder';
 import ResizableBlock from './JobBlockComponents/ResizableBlock';
 import { uploadService } from '../../services/api';
+import { showErrorToast } from '../../services/notificationService';
 
 const JobBlock = ({
   id,
@@ -38,6 +39,16 @@ const JobBlock = ({
     }
   };
 
+  // Handle reset block
+  const handleResetBlock = () => {
+    if (data.updateBlock) {
+      data.updateBlock({ status: 'idle' });
+    }
+    if (data.onClearOutput) {
+      data.onClearOutput(); 
+    }
+  };
+
   // Handle file upload
   const handleFileUpload = async (formData, outputType) => {
     try {
@@ -61,6 +72,7 @@ const JobBlock = ({
       data.onRunBlock();
     } catch (error) {
       console.error('Error uploading file:', error);
+      showErrorToast(`File upload failed: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -147,6 +159,7 @@ const JobBlock = ({
           blockInstanceId={id}
           status={data.status}
           onDeleteBlock={() => data.onDeleteBlock()}
+          onResetBlock={handleResetBlock}
         />
 
         {/* Container for ports and content area */}
@@ -212,7 +225,10 @@ const JobBlock = ({
 
           {/* Output Ports Section */}
           <div className="flex flex-col justify-center items-end p-2 space-y-2">
-            {safeBlockType.outputs.map((output) => (
+            {(safeBlockType.id === 'file_upload' && data.parameters?.outputType
+              ? safeBlockType.outputs.filter(output => output === data.parameters.outputType)
+              : safeBlockType.outputs
+            ).map((output) => (
               <div key={`output-${output}`} className="relative flex items-center">
                 <BlockPort type={output} isInput={false} />
                 <Handle

@@ -73,16 +73,81 @@ class DownloadHandler:
         
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
             report_dir = "report"
-            summary_report = self.report_generator.generate_multiple_items_report(items)
-            zipf.writestr(f"{report_dir}/summary_report.txt", summary_report)
             
+            # --- Enhanced Summary Report Logic ---
+            base_summary_content = self.report_generator.generate_multiple_items_report(items)
+            
+            additional_summary_lines = ["\n\nDetailed Item Overview:", "======================="]
+            
+            temp_item_specific_types = [] # To store determined specific types for reuse
+
+            # First pass: determine specific types and gather details for the enhanced summary
             for idx, item in enumerate(items, start=1):
-                typ = item.get('outputType') # This is often the input handle name from the frontend connection
+                typ = item.get('outputType')
                 data = item.get('data', {})
-                # Determine a more specific item type if possible, e.g., from data structure
-                item_specific_type = typ 
-                if 'docking_poses' in data and 'output_dir' in data: # Check for docking result structure
+                
+                item_specific_type = typ  # Default
+                if 'docking_poses' in data and 'output_dir' in data:  # Check for docking result structure
                     item_specific_type = 'docking_results'
+                temp_item_specific_types.append(item_specific_type)
+
+                item_dir_name_for_report = f"item_{idx}_{item_specific_type}"
+                
+                line = f"\nItem {idx} ({item_specific_type}): Stored in '{item_dir_name_for_report}/'"
+                
+                if item_specific_type == 'docking_results':
+                    output_dir = data.get('output_dir', 'N/A')
+                    scores = data.get('scores')
+                    best_affinity = 'N/A'
+                    if isinstance(scores, dict):
+                        best_affinity = scores.get('best_affinity', 'N/A')
+                    line += f" - Docking: Results from '{os.path.basename(output_dir) if output_dir != 'N/A' else 'N/A'}'. Best affinity: {best_affinity}."
+                    line += " Files are within the item directory."
+                elif typ == 'sequence':
+                    sequence_name = data.get('sequence_name', f'seq{idx}')
+                    sequence_len = len(data.get('sequence', ''))
+                    line += f" - Sequence: '{sequence_name}', Length: {sequence_len} aa."
+                elif typ == 'structure':
+                    pdb_file = data.get('pdb_file', 'N/A')
+                    line += f" - Structure: '{os.path.basename(pdb_file) if pdb_file != 'N/A' else 'N/A'}'."
+                elif typ == 'results':
+                    search_type_report = data.get('search_type', 'unknown_search')
+                    num_hits_report = 0
+                    results_data_report = data.get('results')
+                    if isinstance(results_data_report, dict):
+                        msa_data = results_data_report.get('msa', {})
+                        if msa_data and 'sequences' in msa_data:
+                            num_hits_report = len(msa_data.get('sequences', []))
+                        elif 'alignments' in results_data_report:
+                            alignments_data = results_data_report.get('alignments', {})
+                            if alignments_data and 'databases' in alignments_data:
+                                for db_name, db_data in alignments_data.get('databases', {}).items():
+                                    num_hits_report += len(db_data.get('hits', []))
+                    line += f" - Search Results ({search_type_report}): Approx. {num_hits_report} hits/sequences."
+                elif typ == 'database':
+                    db_info = data.get('database', {})
+                    db_name = db_info.get('name', 'N/A')
+                    db_path_base = db_info.get('path', 'N/A')
+                    line += f" - BLAST Database: '{db_name}' (based on '{os.path.basename(db_path_base) if db_path_base != 'N/A' else 'N/A'}')."
+                elif typ == 'fasta':
+                    fasta_file = data.get('fasta_file', 'N/A')
+                    line += f" - FASTA file: '{os.path.basename(fasta_file) if fasta_file != 'N/A' else 'N/A'}'."
+                else:
+                    line += f" - Generic data item. See '{item_dir_name_for_report}/data.json' or '{item_dir_name_for_report}/full_item_data.json'."
+                
+                additional_summary_lines.append(line)
+                additional_summary_lines.append(f"  Full data for this item is in: {item_dir_name_for_report}/full_item_data.json")
+                additional_summary_lines.append(f"  Individual report (if any) and files are in: {item_dir_name_for_report}/")
+
+            enhanced_summary_content = base_summary_content + "\n".join(additional_summary_lines)
+            zipf.writestr(f"{report_dir}/summary_report.txt", enhanced_summary_content)
+            # --- End of Enhanced Summary Report Logic ---
+
+            for idx, item in enumerate(items, start=1):
+                typ = item.get('outputType') 
+                data = item.get('data', {})
+                # Use the pre-calculated item_specific_type for consistency
+                item_specific_type = temp_item_specific_types[idx-1]
                 
                 item_dir_name = f"item_{idx}_{item_specific_type}"
 
@@ -192,6 +257,9 @@ class DownloadHandler:
                          zipf.writestr(f"{item_dir_name}/data.json", json.dumps(data, indent=2))
                     else:
                         zipf.writestr(f"{item_dir_name}/info.txt", f"Item type '{typ}' had no specific data to zip.")
+
+                # Add the full item data as JSON
+                zipf.writestr(f"{item_dir_name}/full_item_data.json", json.dumps(item, indent=2))
 
                 metadata = {
                     'type': item_specific_type,

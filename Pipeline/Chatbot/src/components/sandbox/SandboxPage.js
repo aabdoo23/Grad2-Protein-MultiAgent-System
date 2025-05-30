@@ -8,6 +8,9 @@ import { downloadService, jobService } from '../../services/api';
 import { blockTypes } from './config/blockTypes';
 import useWorkspaceStore from '../../store/workspaceStore';
 import { AWAIT_TIME } from '../../config/config';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { showErrorToast } from '../../services/notificationService';
 
 // Mol* imports
 import { createPluginUI } from 'molstar/lib/mol-plugin-ui';
@@ -35,10 +38,6 @@ const SandboxPage = () => {
   const [blockOutputs, setBlockOutputs] = useState({});
   const blockOutputsRef = useRef(blockOutputs);
   const [isAutomate, setIsAutomate] = useState(false);
-  const [downloadSettings, setDownloadSettings] = useState(() => {
-    const saved = localStorage.getItem('downloadSettings');
-    return saved ? JSON.parse(saved) : { autoSave: false, location: '' };
-  });
   const loopQueuedRef = useRef(false);
   const [loopConfig, setLoopConfig] = useState({
     isEnabled: false,
@@ -171,6 +170,14 @@ const SandboxPage = () => {
     deleteBlockInStore(blockId);
   };
 
+  const clearBlockOutput = (blockId) => {
+    setBlockOutputs(prev => {
+      const newOutputs = { ...prev };
+      delete newOutputs[blockId];
+      return newOutputs;
+    });
+  };
+
   // Add this function after the deleteBlock function
   const clearOutputs = () => {
     // Reset all block statuses to 'idle'
@@ -229,104 +236,6 @@ const SandboxPage = () => {
     }
   };
 
-  // Add loop configuration UI
-  // const renderLoopControls = () => (
-  //   <div className="flex items-center gap-4 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
-  //     <div className="flex items-center gap-3">
-  //       <span className="text-white text-sm font-medium">Loop</span>
-  //       <label className="relative inline-flex items-center cursor-pointer">
-  //         <input
-  //           type="checkbox"
-  //           className="sr-only peer"
-  //           checked={loopConfig.isEnabled}
-  //           onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))}
-  //         />
-  //         <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
-  //       </label>
-  //     </div>
-  //     {loopConfig.isEnabled && (
-  //       <div className="flex items-center gap-3">
-  //         <select
-  //           className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-  //           value={loopConfig.startBlockId || ''}
-  //           onChange={(e) => setLoopConfig(prev => ({ ...prev, startBlockId: e.target.value }))}
-  //         >
-  //           <option value="">Select Start Block</option>
-  //           {blocks.map(b => (
-  //             <option key={`start-${b.id}`} value={b.id}>
-  //               {b.type} - ({b.id})
-  //             </option>
-  //           ))}
-  //         </select>
-  //         <select
-  //           className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-  //           value={loopConfig.endBlockId || ''}
-  //           onChange={(e) => setLoopConfig(prev => ({ ...prev, endBlockId: e.target.value }))}
-  //         >
-  //           <option value="">Select End Block</option>
-  //           {blocks.map(b => (
-  //             <option key={`end-${b.id}`} value={b.id}>
-  //               {b.type} - ({b.id})
-  //             </option>
-  //           ))}
-  //         </select>
-  //         <select
-  //           className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-  //           value={loopConfig.iterationType}
-  //           onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationType: e.target.value }))}
-  //         >
-  //           <option value="count">Count</option>
-  //           <option value="sequence">Sequence</option>
-  //         </select>
-  //         {loopConfig.iterationType === 'count' ? (
-  //           <input
-  //             type="number"
-  //             min="1"
-  //             value={loopConfig.iterationCount}
-  //             onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationCount: parseInt(e.target.value) }))}
-  //             className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-20"
-  //           />
-  //         ) : (
-  //           <select
-  //             className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-  //             value={loopConfig.sequenceBlockId || ''}
-  //             onChange={(e) => setLoopConfig(prev => ({ ...prev, sequenceBlockId: e.target.value }))}
-  //           >
-  //             <option value="">Select Sequence Block</option>
-  //             {blocks
-  //               .filter(b => b.type === 'sequence_iterator')
-  //               .map(b => (
-  //                 <option key={b.id} value={b.id}>
-  //                   {b.id}
-  //                 </option>
-  //               ))}
-  //           </select>
-  //         )}
-  //         <button
-  //           onClick={startLoop}
-  //           className="px-4 py-1.5 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1] transition-colors duration-200 flex items-center gap-2"
-  //         >
-  //           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  //           </svg>
-  //           Start Loop
-  //         </button>
-  //         <button
-  //           onClick={stopLoop}
-  //           className="px-4 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200 flex items-center gap-2"
-  //         >
-  //           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 15l4-4m0" />
-  //           </svg>
-  //           Stop Loop
-  //         </button>
-  //       </div>
-  //     )}
-  //   </div>
-  // );
-
   // Add helper functions for resetting blocks and outputs
   const resetBlocksBetween = (startBlockId, endBlockId) => {
     const startIndex = blocks.findIndex(b => b.id === startBlockId);
@@ -368,67 +277,6 @@ const SandboxPage = () => {
     }
   };
 
-  // Add this function after the stopLoop function
-  const handleDownloadSettingsChange = (settings) => {
-    setDownloadSettings(settings);
-    localStorage.setItem('downloadSettings', JSON.stringify(settings));
-  };
-
-  // Add this function after the renderLoopControls function
-  // const renderDownloadSettings = () => (
-  //   <div className="flex items-center gap-4 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
-  //     <div className="flex items-center gap-3">
-  //       <span className="text-white text-sm font-medium">Auto-save Downloads</span>
-  //       <label className="relative inline-flex items-center cursor-pointer">
-  //         <input
-  //           type="checkbox"
-  //           className="sr-only peer"
-  //           checked={downloadSettings.autoSave}
-  //           onChange={(e) => handleDownloadSettingsChange({
-  //             ...downloadSettings,
-  //             autoSave: e.target.checked
-  //           })}
-  //         />
-  //         <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
-  //       </label>
-  //     </div>
-  //     {downloadSettings.autoSave && (
-  //       <div className="flex items-center gap-2">
-  //         <input
-  //           type="text"
-  //           value={downloadSettings.location}
-  //           onChange={(e) => handleDownloadSettingsChange({
-  //             ...downloadSettings,
-  //             location: e.target.value
-  //           })}
-  //           placeholder="Download location..."
-  //           className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-64"
-  //         />
-  //         <button
-  //           onClick={() => {
-  //             const input = document.createElement('input');
-  //             input.type = 'file';
-  //             input.webkitdirectory = true;
-  //             input.onchange = (e) => {
-  //               const path = e.target.files[0]?.path;
-  //               if (path) {
-  //                 handleDownloadSettingsChange({
-  //                   ...downloadSettings,
-  //                   location: path
-  //                 });
-  //               }
-  //             };
-  //             input.click();
-  //           }}
-  //           className="px-3 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200"
-  //         >
-  //           Browse
-  //         </button>
-  //       </div>
-  //     )}
-  //   </div>
-  // );
-
   const getNextBlocksInChain = (currentBlockId) => {
     const nextBlocks = blocks.filter(block => {
       const blockConnection = connections[block.id];
@@ -453,6 +301,36 @@ const SandboxPage = () => {
   const runBlock = async (blockId, params = null) => {
     const block = blocks.find(b => b.id === blockId);
     if (!block) return;
+
+    const currentBlockType = blockTypes.find(bt => bt.id === block.type);
+    if (!currentBlockType) {
+      console.error(`Unknown block type: ${block.type} for block ID: ${blockId}`);
+      showErrorToast(`Cannot run block: Unknown type ${block.type}`);
+      updateBlockInStore(blockId, { status: 'failed' });
+      return;
+    }
+
+    // Configuration Check (for standard blocks, before specific type handling)
+    if (block.type !== 'file_upload' && block.type !== 'multi_download' && block.type !== 'sequence_iterator') {
+      if (block.type === 'perform_docking') {
+        const requiredDockingParams = [
+          { name: 'center_x', label: 'Center X' }, { name: 'center_y', label: 'Center Y' }, { name: 'center_z', label: 'Center Z' },
+          { name: 'size_x', label: 'Size X' }, { name: 'size_y', label: 'Size Y' }, { name: 'size_z', label: 'Size Z' }
+        ];
+        for (const param of requiredDockingParams) {
+          const value = block.parameters[param.name];
+          if (value === undefined || value === null || 
+              (typeof value === 'string' && value.trim() === '') || 
+              isNaN(parseFloat(value))) {
+            showErrorToast(`Docking block '${currentBlockType.name}' requires a valid number for configuration: ${param.label}`);
+            updateBlockInStore(blockId, { status: 'failed' });
+            return;
+          }
+        }
+      }
+      // Add other block-specific config checks here if needed (e.g., checking if block.parameters[paramName] is undefined when no default exists in schema)
+    }
+
     setBlockOutputs(prev => ({
       ...prev,
       [blockId]: null
@@ -505,26 +383,20 @@ const SandboxPage = () => {
       }
 
       try {
-        const resp = await downloadService.multiDownload({ items: downloadItems, downloadSettings });
+        const resp = await downloadService.multiDownload({ items: downloadItems });
         if (resp.success && resp.zipUrl) {
-          if (!downloadSettings.autoSave) {
-            const a = document.createElement('a');
-            a.href = resp.zipUrl;
-            a.download = `batch_download_${Date.now()}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-          }
+          const a = document.createElement('a');
+          a.href = resp.zipUrl;
+          a.download = `batch_download_${Date.now()}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
           updateBlockInStore(blockId, { status: 'completed' });
           setBlockOutputs(prev => ({
             ...prev,
             [blockId]: {
               ...prev[blockId],
-              downloadInfo: downloadSettings.autoSave ? {
-                saved: true,
-                path: downloadSettings.location,
-                filename: `batch_download_${Date.now()}.zip`
-              } : {
+              downloadInfo: {
                 saved: false,
                 downloaded: true
               }
@@ -739,14 +611,53 @@ const SandboxPage = () => {
               const sourceOutput = blockOutputs[conn.source];
               console.log(`Getting ${conn.sourceHandle} from block ${conn.source}:`, sourceOutput);
               switch (conn.sourceHandle) {
-                case 'sequence': blockInputs.sequence = sourceOutput.sequence; break;
+                case 'sequence': blockInputs.sequence = sourceOutput.sequence; blockInputs.sequence_name = sourceOutput.sequence_name; break;
                 case 'structure': blockInputs.pdb_file = sourceOutput.pdb_file; break;
+                case 'molecule': blockInputs.molecule_file = sourceOutput.molecule_file; break;
                 case 'metrics': blockInputs.metrics = sourceOutput.metrics; break;
                 case 'results': blockInputs.results = sourceOutput.results; break;
                 default: blockInputs[targetHandle] = sourceOutput;
               }
             }
           });
+        }
+      }
+    }
+
+    // Input Data Check (for standard blocks, after blockInputs is populated)
+    if (block.type !== 'file_upload' && block.type !== 'multi_download' && block.type !== 'sequence_iterator') {
+      if (currentBlockType.inputs && currentBlockType.inputs.length > 0) {
+        const getInputKeyForHandle = (handleName) => {
+          switch (handleName) {
+            case 'sequence': return 'sequence';
+            case 'structure': return 'pdb_file';
+            case 'molecule': return 'molecule_file';
+            case 'metrics': return 'metrics';
+            case 'results': return 'results';
+            case 'fasta': return 'fasta_file'; // Used by sequence_iterator if input is a file
+            default: return handleName; // Assumes the data is directly under the handle name in blockInputs
+          }
+        };
+
+        for (const inputHandleName of currentBlockType.inputs) {
+          const requiredInputKey = getInputKeyForHandle(inputHandleName);
+          const blockConnectionData = connections[blockId];
+          const connectionForThisInput = blockConnectionData ? blockConnectionData[inputHandleName] : null;
+
+          if (!connectionForThisInput) {
+            showErrorToast(`Block '${currentBlockType.name}' is missing a connection for required input: ${inputHandleName}`);
+            updateBlockInStore(blockId, { status: 'failed' });
+            return;
+          }
+          
+          // Check if the actual data is present in blockInputs
+          // This covers cases where the connection exists but the upstream block didn't provide the specific data piece
+          if (blockInputs[requiredInputKey] === undefined || blockInputs[requiredInputKey] === null) {
+            // It's possible the upstream block completed but its output structure was not as expected or was empty.
+             showErrorToast(`Block '${currentBlockType.name}' is missing data for required input: ${inputHandleName} (from key: ${requiredInputKey})`);
+            updateBlockInStore(blockId, { status: 'failed' });
+            return;
+          }
         }
       }
     }
@@ -776,6 +687,7 @@ const SandboxPage = () => {
       }
     } catch (error) {
       console.error('Error running block:', error);
+      showErrorToast(`Error running block ${block.type}: ${error.message || 'Unknown error'}`);
       updateBlockInStore(blockId, { status: 'failed' });
     }
   };
@@ -784,6 +696,7 @@ const SandboxPage = () => {
     const jobData = jobManager.current.jobList.get(jobId);
     if (!jobData) {
       console.error('Job data not found in jobManager for job ID:', jobId);
+      showErrorToast(`Job data not found for ID: ${jobId}`);
       return false;
     }
     const associatedBlockId = jobData.block_id;
@@ -802,11 +715,13 @@ const SandboxPage = () => {
         return true;
       } else {
         console.error('Failed to confirm job:', response.message);
+        showErrorToast(`Failed to confirm job ${jobData.name}: ${response.message || 'Unknown error'}`);
         if (associatedBlockId) updateBlockInStore(associatedBlockId, { status: 'failed' });
         return false;
       }
     } catch (error) {
       console.error('Error confirming job:', error);
+      showErrorToast(`Error confirming job ${jobData.name}: ${error.message || 'Unknown error'}`);
       if (associatedBlockId) updateBlockInStore(associatedBlockId, { status: 'failed' });
       return false;
     }
@@ -877,6 +792,7 @@ const SandboxPage = () => {
             if (loopConfig.isEnabled) {
               console.log('Loop stopped due to block failure within the loop.');
               stopLoop();
+              showErrorToast('Loop stopped due to a block failure.');
             }
           }
         } else if (jobStatus.status === 'failed') { // This is the original 'failed' block from pollJobStatus
@@ -885,15 +801,18 @@ const SandboxPage = () => {
           if (loopConfig.isEnabled) {
             console.log('Loop stopped due to block failure (outer check).');
             stopLoop();
+            showErrorToast('Loop stopped due to a block failure.');
           }
         }
       } catch (error) {
         console.error('Error polling job status:', error);
+        showErrorToast(`Error polling job ${jobId}: ${error.message || 'Unknown error'}`);
         clearInterval(pollingInterval);
         updateBlockInStore(blockIdForStatusUpdate, { status: 'failed' });
         if (loopConfig.isEnabled) {
           console.log('Loop stopped due to error');
           stopLoop();
+          showErrorToast('Loop stopped due to an error during polling.');
         }
       }
     };
@@ -930,6 +849,38 @@ const SandboxPage = () => {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  const handleClearAllBlocks = () => {
+    // Confirmation dialog before clearing
+    if (window.confirm("Are you sure you want to clear all blocks from the workspace? This action cannot be undone.")) {
+      // Dispose all Mol* plugins
+      blocks.forEach(block => {
+        const viewerDomId = `viewer-${block.id}`;
+        if (molstarPlugins.current[viewerDomId]) {
+          console.log(`Disposing Mol* plugin for cleared block ${block.id}`);
+          molstarPlugins.current[viewerDomId].dispose();
+          delete molstarPlugins.current[viewerDomId];
+        }
+      });
+      // Call store action to clear blocks and connections
+      useWorkspaceStore.getState().clearWorkspace(); // Assuming a clearWorkspace action exists/will be added
+      setBlockOutputs({}); // Clear any lingering outputs
+      setLastCompletedBlockId(null); // Reset last completed block
+      // Reset loop config if needed, or handle its state appropriately
+      setLoopConfig({
+        isEnabled: false,
+        startBlockId: null,
+        endBlockId: null,
+        iterationType: 'count',
+        iterationCount: 1,
+        sequenceBlockId: null,
+        currentIteration: 0
+      });
+       // Reset automation state
+      setIsAutomate(false);
+      console.log('All blocks cleared from workspace.');
+    }
+  };
+
   // Add this new component for the top bar
   const TopBar = () => (
     <header className="flex flex-col bg-[#111c22]/95 backdrop-blur-sm border-b border-[#233c48]">
@@ -940,7 +891,7 @@ const SandboxPage = () => {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#13a4ec]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
             </svg>
-            Protein Pipeline Sandbox
+            Protomatic
           </h2>
         </div>
 
@@ -948,13 +899,24 @@ const SandboxPage = () => {
           {/* Quick actions */}
           <button
             onClick={clearOutputs}
-            className="px-4 py-2 bg-[#233c48] text-white border border-[#13a4ec] rounded-lg text-sm hover:bg-[#2a4a5a] transition-all duration-200 flex items-center gap-2 group"
+            className="px-4 py-2 bg-[#233c48] text-white rounded-lg text-sm hover:bg-[#2a4a5a] transition-all duration-200 flex items-center gap-2 group"
             title="Clear all outputs and reset blocks"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#13a4ec] group-hover:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             Clear Outputs
+          </button>
+
+          <button
+            onClick={handleClearAllBlocks}
+            className="px-4 py-2 bg-[#c82333] text-white border border-[#c82333] rounded-lg text-sm hover:bg-[#dc3545] transition-all duration-200 flex items-center gap-2 group"
+            title="Clear all blocks from workspace"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white group-hover:rotate-12 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Clear All
           </button>
 
           {/* Settings toggle */}
@@ -1080,60 +1042,6 @@ const SandboxPage = () => {
                 <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
               </label>
             </div>
-            {/* Download Settings */}
-            <div className="flex-1 min-w-[300px]">
-              <div className="flex items-center gap-4 bg-[#233c48] px-4 py-3 rounded-lg border border-[#344854]">
-                <div className="flex items-center gap-3">
-                  <span className="text-white text-sm font-medium">Auto-save Downloads</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={downloadSettings.autoSave}
-                      onChange={(e) => handleDownloadSettingsChange({
-                        ...downloadSettings,
-                        autoSave: e.target.checked
-                      })}
-                    />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
-                  </label>
-                </div>
-                {downloadSettings.autoSave && (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={downloadSettings.location}
-                      onChange={(e) => handleDownloadSettingsChange({
-                        ...downloadSettings,
-                        location: e.target.value
-                      })}
-                      placeholder="Download location..."
-                      className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-64"
-                    />
-                    <button
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.webkitdirectory = true;
-                        input.onchange = (e) => {
-                          const path = e.target.files[0]?.path;
-                          if (path) {
-                            handleDownloadSettingsChange({
-                              ...downloadSettings,
-                              location: path
-                            });
-                          }
-                        };
-                        input.click();
-                      }}
-                      className="px-3 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200"
-                    >
-                      Browse
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -1166,10 +1074,12 @@ const SandboxPage = () => {
               setLoopConfig={setLoopConfig}
               formatMetric={formatMetric}
               initViewer={initViewer}
+              onClearBlockOutput={clearBlockOutput}
             />
           </div>
         </div>
       </DndProvider>
+      <ToastContainer />
     </div>
   );
 };

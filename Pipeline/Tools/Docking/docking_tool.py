@@ -314,7 +314,7 @@ class DockingTool:
                 size_x, size_y, size_z,
                 str(config_file),
                 exhaustiveness=exhaustiveness,
-                num_modes=num_modes, 
+                num_modes=num_modes,
                 cpu=cpu
             )
             if not config_result["success"]:

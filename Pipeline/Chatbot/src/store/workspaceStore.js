@@ -166,6 +166,16 @@ const useWorkspaceStore = create(
         });
       });
     },
+
+    clearWorkspace: () => set((state) => {
+      state.blocks = [];
+      state.connections = {};
+      state.selectedNodes = [];
+      state.selectedEdges = [];
+      // Optionally reset viewport, or leave it as is
+      // state.viewport = { x: 0, y: 0, zoom: 1 }; 
+      console.log('Workspace cleared in store');
+    }),
   }))
 );
 
