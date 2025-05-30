@@ -208,8 +208,8 @@ class PipelineController:
             return self.build_database(params)
         elif name == 'perform_docking':
             # Extract docking parameters
-            protein_file = params.get('pdb_file')  # Changed from protein_file to pdb_file
-            ligand_file = params.get('molecule', {}).get('molecule_file')  # Get molecule_file from molecule object
+            protein_file = params.get('pdb_file') 
+            ligand_file = params.get('molecule_file')  
             center_x = params.get('center_x')
             center_y = params.get('center_y')
             center_z = params.get('center_z')

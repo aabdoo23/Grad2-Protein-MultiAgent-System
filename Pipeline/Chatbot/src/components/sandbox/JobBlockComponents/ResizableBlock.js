@@ -8,10 +8,11 @@ const ResizableBlock = ({ children, width, height, onResize, blockId }) => {
   const [startSize, setStartSize] = useState({ width: 0, height: 0 });
   const minHeight = 300;
   const minWidth = 350;
-  const resizeFrameHeight = 8; // Slightly larger for easier grabbing
+  const maxHeight = 1200;
+  const maxWidth = 1200;
+  const resizeFrameHeight = 8;
 
   useEffect(() => {
-    // Update internal size if parent dimensions change and not currently resizing
     if (!isResizing) {
       setSize({ width, height });
     }
@@ -19,7 +20,7 @@ const ResizableBlock = ({ children, width, height, onResize, blockId }) => {
 
   const handleMouseDown = (e, direction) => {
     e.preventDefault();
-    e.stopPropagation(); // Prevent React Flow from dragging the node
+    e.stopPropagation();
     setIsResizing(true);
     setResizeDirection(direction);
     setStartPos({ x: e.clientX, y: e.clientY });
@@ -37,19 +38,16 @@ const ResizableBlock = ({ children, width, height, onResize, blockId }) => {
     let newHeight = startSize.height;
 
     if (resizeDirection.includes('s')) {
-      newHeight = Math.max(minHeight, Math.min(800, startSize.height + deltaY));
+      newHeight = Math.max(minHeight, Math.min(maxHeight, startSize.height + deltaY));
     }
     if (resizeDirection.includes('n')) {
-        newHeight = Math.max(minHeight, Math.min(800, startSize.height - deltaY));
-      // Note: Resizing from top/left also requires position adjustment, which is complex with React Flow nodes.
-      // For simplicity, top/left resize often omitted or handled by resizing bottom/right and then moving the node.
-      // Current implementation primarily supports bottom/right/corner resizing effectively changing size, not top/left position.
+        newHeight = Math.max(minHeight, Math.min(maxHeight, startSize.height - deltaY));
     }
     if (resizeDirection.includes('e')) {
-      newWidth = Math.max(minWidth, Math.min(800, startSize.width + deltaX));
+      newWidth = Math.max(minWidth, Math.min(maxWidth, startSize.width + deltaX));
     }
     if (resizeDirection.includes('w')) {
-      newWidth = Math.max(minWidth, Math.min(800, startSize.width - deltaX));
+      newWidth = Math.max(minWidth, Math.min(maxWidth, startSize.width - deltaX));
     }
     
     setSize({ width: newWidth, height: newHeight });
@@ -59,7 +57,6 @@ const ResizableBlock = ({ children, width, height, onResize, blockId }) => {
     if (isResizing) {
       setIsResizing(false);
       setResizeDirection(null);
-      // Only call onResize if the size actually changed to avoid unnecessary updates
       if (size.width !== startSize.width || size.height !== startSize.height) {
         onResize({ width: size.width, height: size.height });
       }
@@ -87,12 +84,7 @@ const ResizableBlock = ({ children, width, height, onResize, blockId }) => {
   const handles = [
     { direction: 's', style: { bottom: 0, left: `${resizeFrameHeight}px`, right: `${resizeFrameHeight}px`, height: resizeFrameHeight, cursor: 's-resize' } },
     { direction: 'e', style: { right: 0, top: `${resizeFrameHeight}px`, bottom: `${resizeFrameHeight}px`, width: resizeFrameHeight, cursor: 'e-resize' } },
-    // { direction: 'n', style: { top: 0, left: `${resizeFrameHeight}px`, right: `${resizeFrameHeight}px`, height: resizeFrameHeight, cursor: 'n-resize' } }, // Top resize can be tricky with node positioning
-    // { direction: 'w', style: { left: 0, top: `${resizeFrameHeight}px`, bottom: `${resizeFrameHeight}px`, width: resizeFrameHeight, cursor: 'w-resize' } }, // Left resize also
-    // { direction: 'ne', style: { top: 0, right: 0, width: resizeFrameHeight, height: resizeFrameHeight, cursor: 'ne-resize' } },
-    // { direction: 'nw', style: { top: 0, left: 0, width: resizeFrameHeight, height: resizeFrameHeight, cursor: 'nw-resize' } },
     { direction: 'se', style: { bottom: 0, right: 0, width: resizeFrameHeight, height: resizeFrameHeight, cursor: 'se-resize' } },
-    // { direction: 'sw', style: { bottom: 0, left: 0, width: resizeFrameHeight, height: resizeFrameHeight, cursor: 'sw-resize' } },
   ];
 
   return (
