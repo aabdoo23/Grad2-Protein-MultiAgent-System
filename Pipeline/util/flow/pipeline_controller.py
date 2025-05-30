@@ -9,6 +9,7 @@ from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 from Tools.Search.BLAST.colabfold_msa_search import ColabFold_MSA_Searcher
 from Tools.Search.BLAST.local_blast import LocalBlastSearcher
+from Tools.Docking.docking_tool import DockingTool
 from util.flow.job_manager import Job
 from Tools.Search.BLAST.database_builder import BlastDatabaseBuilder
 import os
@@ -30,6 +31,7 @@ class PipelineController:
         self.job_manager = job_manager
         self.selected_functions = []
         self.db_builder = BlastDatabaseBuilder()
+        self.docking_tool = DockingTool()
 
     def process_input(self, session_id: str, text: str) -> Dict[str, Any]:
         # Retrieve conversation history if needed
@@ -204,6 +206,38 @@ class PipelineController:
                 return {"success": False, "error": f"Unknown search type: {search_type}"}
         elif name == 'build_database':
             return self.build_database(params)
+        elif name == 'perform_docking':
+            # Extract docking parameters
+            protein_file = params.get('protein_file')
+            ligand_file = params.get('ligand_file')
+            output_dir = params.get('output_dir')
+            center_x = params.get('center_x')
+            center_y = params.get('center_y')
+            center_z = params.get('center_z')
+            size_x = params.get('size_x')
+            size_y = params.get('size_y')
+            size_z = params.get('size_z')
+            exhaustiveness = params.get('exhaustiveness', 16)
+            num_modes = params.get('num_modes', 10)
+            cpu = params.get('cpu', 4)
+
+            if not all([protein_file, ligand_file, output_dir, center_x, center_y, center_z, size_x, size_y, size_z]):
+                return {"success": False, "error": "Missing required docking parameters"}
+
+            result = self.docking_tool.perform_docking(
+                protein_file=protein_file,
+                ligand_file=ligand_file,
+                output_dir=output_dir,
+                center_x=center_x,
+                center_y=center_y,
+                center_z=center_z,
+                size_x=size_x,
+                size_y=size_y,
+                size_z=size_z,
+                exhaustiveness=exhaustiveness,
+                num_modes=num_modes,
+                cpu=cpu
+            )
             
         return result
 

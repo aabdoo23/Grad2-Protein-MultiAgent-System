@@ -10,20 +10,22 @@ load_dotenv()
 class PipelineFunction(Enum):
     GENERATE_PROTEIN = "generate_protein"
     PREDICT_STRUCTURE = "predict_structure"
-    SEARCH_SIMILARITY = "search_similarity"
     SEARCH_STRUCTURE = "search_structure"
     EVALUATE_STRUCTURE = "evaluate_structure"
+    SEARCH_SIMILARITY = "search_similarity"
+    PERFORM_DOCKING = "perform_docking"
 
-    @classmethod
-    def get_description(cls, function: str) -> str:
+    @staticmethod
+    def get_description(function_name):
         descriptions = {
-            cls.GENERATE_PROTEIN.value: "Generate a protein sequence with specific properties",
-            cls.PREDICT_STRUCTURE.value: "Predict the 3D structure of a protein sequence",
-            cls.SEARCH_SIMILARITY.value: "Search for similar protein sequences",
-            cls.SEARCH_STRUCTURE.value: "Search for similar protein structures using FoldSeek",
-            cls.EVALUATE_STRUCTURE.value: "Evaluate the quality and properties of a predicted 3D structure"
+            PipelineFunction.GENERATE_PROTEIN.value: "Generate a protein sequence",
+            PipelineFunction.PREDICT_STRUCTURE.value: "Predict protein structure",
+            PipelineFunction.SEARCH_STRUCTURE.value: "Search for similar structures",
+            PipelineFunction.EVALUATE_STRUCTURE.value: "Evaluate structure quality",
+            PipelineFunction.SEARCH_SIMILARITY.value: "Search for similar sequences",
+            PipelineFunction.PERFORM_DOCKING.value: "Perform molecular docking"
         }
-        return descriptions.get(function, "Unknown function")
+        return descriptions.get(function_name, "Unknown function")
 
 class TextProcessor:
     def __init__(self):

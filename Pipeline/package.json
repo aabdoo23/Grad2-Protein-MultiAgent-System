@@ -1,9 +1,0 @@
-{
-  "dependencies": {
-    "dagre": "^0.8.5",
-    "immer": "^10.1.1",
-    "molstar": "^4.17.0",
-    "reactflow": "^11.11.4",
-    "zustand": "^5.0.5"
-  }
-}

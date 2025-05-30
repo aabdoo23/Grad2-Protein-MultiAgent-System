@@ -26,42 +26,6 @@ const InputField = ({ type, label, value, onChange, options, placeholder, min, m
           />
         );
 
-      case 'file':
-        return (
-          <div className="space-y-2">
-            <input
-              type="file"
-              accept={options?.accept}
-              onChange={async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                try {
-                  const text = await file.text();
-                  // Parse FASTA format
-                  const sequences = text
-                    .split('>')
-                    .filter(block => block.trim())
-                    .map(block => {
-                      const [header, ...sequenceLines] = block.split('\n');
-                      const sequence = sequenceLines.join('').trim();
-                      return sequence;
-                    })
-                    .filter(seq => seq.length > 0);
-
-                  onChange(sequences);
-                } catch (error) {
-                  console.error('Error reading FASTA file:', error);
-                }
-              }}
-              className="w-full p-2 rounded bg-[#1a2a33] text-white border border-[#344854] focus:outline-none focus:ring-1 focus:ring-[#13a4ec]"
-            />
-            {options?.description && (
-              <p className="text-sm text-gray-400">{options.description}</p>
-            )}
-          </div>
-        );
-
       case 'select':
         return (
           <select
@@ -181,133 +145,79 @@ const InputField = ({ type, label, value, onChange, options, placeholder, min, m
 };
 
 const BlockConfig = ({ blockType, isConfigOpen, onClose, onApply, initialParams }) => {
-  const [parameters, setParameters] = useState(initialParams || {});
-  const [isLoading, setIsLoading] = useState(false);
+  const [localParams, setLocalParams] = useState({});
 
-  const handleParameterChange = (key, value) => {
-    setParameters(prev => ({
+  useEffect(() => {
+    if (blockType && blockType.id) {
+      const schema = blockConfigSchema[blockType.id];
+      if (schema) {
+        const defaultParams = {};
+        Object.entries(schema).forEach(([key, config]) => {
+          defaultParams[key] = initialParams?.[key] ?? config.defaultValue;
+        });
+        setLocalParams(defaultParams);
+      }
+    }
+  }, [blockType, initialParams]);
+
+  const handleParameterChange = (paramName, value) => {
+    setLocalParams(prev => ({
       ...prev,
-      [key]: value
+      [paramName]: value
     }));
   };
 
-  const handleLoadData = async () => {
-    setIsLoading(true);
-    try {
-      // Call runBlock with loadData parameter
-      await onApply({ ...parameters, loadData: true });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const renderConfigPanel = () => {
+    if (!isConfigOpen || !blockType) return null;
 
-  const renderInput = (key, field) => {
-    switch (field.type) {
-      case 'textarea':
-        return (
-          <textarea
-            value={parameters[key] || ''}
-            onChange={(e) => handleParameterChange(key, e.target.value)}
-            className="w-full h-32 p-2 bg-[#1a2c35] text-white rounded-lg border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-            placeholder={field.placeholder || ''}
-          />
-        );
-      case 'file':
-        return (
-          <div>
-            <input
-              type="file"
-              accept={field.options?.accept}
-              onChange={(e) => {
-                const file = e.target.files[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (event) => {
-                    // For FASTA files, parse the sequences
-                    if (file.name.endsWith('.fasta') || file.name.endsWith('.fa')) {
-                      const text = event.target.result;
-                      const sequences = text
-                        .split('>')
-                        .filter(block => block.trim())
-                        .map(block => {
-                          const [header, ...sequenceLines] = block.split('\n');
-                          const sequence = sequenceLines.join('').trim();
-                          return sequence;
-                        })
-                        .filter(seq => seq.length > 0);
-                      handleParameterChange(key, sequences);
-                    } else {
-                      handleParameterChange(key, event.target.result);
-                    }
-                  };
-                  reader.readAsText(file);
-                }
-              }}
-              className="w-full p-2 bg-[#1a2c35] text-white rounded-lg border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+    const schema = blockConfigSchema[blockType.id];
+    if (!schema) {
+      return (
+        <div className="text-sm text-gray-300">
+          No configurable parameters available.
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-[#233c48] p-4 rounded-lg shadow-inner border border-[#344854] mt-2 mb-2">
+        <h4 className="text-white font-bold text-sm mb-3">Configure Parameters</h4>
+        <div className="space-y-4">
+          {Object.entries(schema).map(([paramName, config]) => (
+            <InputField
+              key={paramName}
+              type={config.type}
+              label={config.label}
+              value={localParams[paramName]}
+              onChange={(value) => handleParameterChange(paramName, value)}
+              options={config.options}
+              placeholder={config.placeholder}
+              min={config.min}
+              max={config.max}
+              step={config.step}
+              rows={config.rows}
             />
-            {field.description && (
-              <p className="mt-1 text-sm text-gray-400">{field.description}</p>
-            )}
-          </div>
-        );
-      default:
-        return (
-          <input
-            type={field.type || 'text'}
-            value={parameters[key] || ''}
-            onChange={(e) => handleParameterChange(key, e.target.value)}
-            className="w-full p-2 bg-[#1a2c35] text-white rounded-lg border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-            placeholder={field.placeholder || ''}
-          />
-        );
-    }
-  };
-
-  return (
-    <div className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 ${isConfigOpen ? '' : 'hidden'}`}>
-      <div className="bg-[#1a2c35] rounded-lg shadow-xl w-[500px] max-h-[80vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-white">{blockType.name} Configuration</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors duration-200"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {blockType.config && Object.entries(blockType.config).map(([key, field]) => (
-              <div key={key}>
-                <label className="block text-sm font-medium text-white mb-1">
-                  {field.label}
-                </label>
-                {renderInput(key, field)}
-              </div>
-            ))}
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-[#233c48] text-white rounded-lg text-sm hover:bg-[#2a4a5a] transition-colors duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => onApply(parameters)}
-                className="px-4 py-2 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1] transition-colors duration-200"
-              >
-                Apply
-              </button>
-            </div>
-          </div>
+          ))}
+        </div>
+        <div className="flex justify-end mt-3">
+          <button
+            onClick={onClose}
+            className="px-3 py-1 mr-2 bg-[#233c48] text-white border border-[#13a4ec] rounded text-sm hover:bg-[#2a4a5a]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onApply(localParams)}
+            className="px-3 py-1 bg-[#13a4ec] text-white rounded text-sm hover:bg-[#0f8fd1]"
+          >
+            Apply
+          </button>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  return renderConfigPanel();
 };
 
 export default BlockConfig; 
