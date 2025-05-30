@@ -1,13 +1,9 @@
-from Bio import Phylo
-from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
-from Bio import AlignIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import tempfile
 import os
 import logging
-import sys
-from .clustalo import serviceRun, serviceGetStatus, serviceGetResult, serviceGetResultTypes
+from .clustalo import serviceRun, serviceGetStatus, serviceGetResult
 import time
 
 logger = logging.getLogger(__name__)
@@ -36,23 +32,16 @@ class PhylogeneticAnalyzer:
                 return None
                 
             # Create multiple sequence alignment
-            alignment = self._create_alignment(sequences)
+            alignment_file = self._create_alignment(sequences)
             
-            if not alignment:
+            if not alignment_file:
                 logger.error("Failed to create alignment")
                 return None
                 
-            # Calculate distance matrix
-            calculator = DistanceCalculator('identity')
-            distance_matrix = calculator.get_distance(alignment)
+            # Create phylogenetic tree using FastTree
+            tree_file = os.path.join(self.temp_dir, 'tree.nwk')
+            os.system(f"fasttree {alignment_file} > {tree_file}")
             
-            # Construct phylogenetic tree
-            constructor = DistanceTreeConstructor(calculator, 'nj')
-            tree = constructor.build_tree(alignment)
-            
-            # Save tree to file
-            tree_file = os.path.join(self.temp_dir, 'phylogenetic_tree.newick')
-            Phylo.write(tree, tree_file, 'newick')
             return tree_file
             
         except Exception as e:
@@ -104,7 +93,7 @@ class PhylogeneticAnalyzer:
             sequences (list): List of SeqRecord objects
             
         Returns:
-            MultipleSeqAlignment: Aligned sequences
+            str: Path to the alignment file
         """
         if not sequences:
             logger.error("No sequences to align")
@@ -152,11 +141,34 @@ class PhylogeneticAnalyzer:
             with open(alignment_file, 'w') as f:
                 f.write(alignment_result)
             
-            # Read the alignment
-            alignment = AlignIO.read(alignment_file, "clustal")
-            logger.info(f"Successfully created alignment with {len(alignment)} sequences")
-            return alignment
+            return alignment_file
             
         except Exception as e:
             logger.error(f"Error creating alignment: {str(e)}")
+            return None
+
+    def create_phylogenetic_tree_from_alignment(self, fasta_alignment: str) -> str:
+        """
+        Create a phylogenetic tree from a FASTA alignment string
+        
+        Args:
+            fasta_alignment (str): FASTA-formatted alignment string
+            
+        Returns:
+            str: Path to the phylogenetic tree file
+        """
+        try:
+            # Save the FASTA alignment to a file
+            alignment_file = os.path.join(self.temp_dir, 'alignment.fasta')
+            with open(alignment_file, 'w') as f:
+                f.write(fasta_alignment)
+            
+            # Create phylogenetic tree using FastTree
+            tree_file = os.path.join(self.temp_dir, 'tree.nwk')
+            os.system(f"fasttree {alignment_file} > {tree_file}")
+            
+            return tree_file
+            
+        except Exception as e:
+            logger.error(f"Error creating phylogenetic tree from alignment: {str(e)}")
             return None 

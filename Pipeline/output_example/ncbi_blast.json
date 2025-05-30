@@ -1,0 +1,1510 @@
+{
+  "hits": [
+    {
+      "accession": "CDQ84146",
+      "def": "unnamed protein product [Oncorhynchus mykiss]",
+      "hsps": [
+        {
+          "align_len": "82",
+          "bit_score": "172.17",
+          "evalue": "1.90604e-51",
+          "gaps": "0",
+          "hit_from": "1",
+          "hit_to": "82",
+          "hseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFKRL",
+          "identity": "82",
+          "midline": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFKRL",
+          "positive": "82",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "435"
+        }
+      ],
+      "id": "emb|CDQ84146.1|",
+      "len": "241"
+    },
+    {
+      "accession": "XP_071011162",
+      "def": "interleukin-1 beta-like [Oncorhynchus clarkii lewisi]",
+      "hsps": [
+        {
+          "align_len": "92",
+          "bit_score": "162.925",
+          "evalue": "3.69687e-47",
+          "gaps": "10",
+          "hit_from": "34",
+          "hit_to": "125",
+          "hseq": "MELHKGLTFDLEVIQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEECVMERVQEPEGAVDKKAEGTFKRL",
+          "identity": "81",
+          "midline": "MELHKGLTFDLEV+QQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE          EGAVDKKAEGTFKRL",
+          "positive": "82",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE----------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "411"
+        }
+      ],
+      "id": "ref|XP_071011162.1|",
+      "len": "295"
+    },
+    {
+      "accession": "XP_029514839",
+      "def": "interleukin-1 beta [Oncorhynchus nerka]",
+      "hsps": [
+        {
+          "align_len": "91",
+          "bit_score": "159.073",
+          "evalue": "2.82242e-46",
+          "gaps": "9",
+          "hit_from": "1",
+          "hit_to": "91",
+          "hseq": "MELHKGLTFNLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSSIIMDNLLECVMERVQEPEGAVDKQAEGTFKRL",
+          "identity": "79",
+          "midline": "MELHKGLTF+LEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLS IIMDNLLE         EGAVDK+AEGTFKRL",
+          "positive": "81",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE---------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "401"
+        }
+      ],
+      "id": "ref|XP_029514839.1|",
+      "len": "249"
+    },
+    {
+      "accession": "XP_024237076",
+      "def": "interleukin-1 beta isoform X2 [Oncorhynchus tshawytscha]",
+      "hsps": [
+        {
+          "align_len": "92",
+          "bit_score": "155.221",
+          "evalue": "1.47203e-44",
+          "gaps": "10",
+          "hit_from": "18",
+          "hit_to": "109",
+          "hseq": "MELHKCLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDPTHTPLGMECTDDQLSSIIMDNLLEECVMERVQEPEGAVDKQAEGTFKRL",
+          "identity": "78",
+          "midline": "MELHK LTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSD THTPLGMECTDDQLS IIMDNLLE          EGAVDK+AEGTFKRL",
+          "positive": "79",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE----------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "391"
+        }
+      ],
+      "id": "ref|XP_024237076.1|",
+      "len": "268"
+    },
+    {
+      "accession": "XP_024237074",
+      "def": "interleukin-1 beta isoform X1 [Oncorhynchus tshawytscha] >ref|XP_024237075.1| interleukin-1 beta isoform X1 [Oncorhynchus tshawytscha]",
+      "hsps": [
+        {
+          "align_len": "92",
+          "bit_score": "155.221",
+          "evalue": "1.80704e-44",
+          "gaps": "10",
+          "hit_from": "29",
+          "hit_to": "120",
+          "hseq": "MELHKCLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDPTHTPLGMECTDDQLSSIIMDNLLEECVMERVQEPEGAVDKQAEGTFKRL",
+          "identity": "78",
+          "midline": "MELHK LTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSD THTPLGMECTDDQLS IIMDNLLE          EGAVDK+AEGTFKRL",
+          "positive": "79",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE----------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "391"
+        }
+      ],
+      "id": "ref|XP_024237074.1|",
+      "len": "279"
+    },
+    {
+      "accession": "XP_035617982",
+      "def": "interleukin-1 beta [Oncorhynchus keta]",
+      "hsps": [
+        {
+          "align_len": "91",
+          "bit_score": "157.532",
+          "evalue": "2.4486e-44",
+          "gaps": "9",
+          "hit_from": "34",
+          "hit_to": "124",
+          "hseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSSIIMDNLLECVMERVLEPEGVVDKQAEGTFKRL",
+          "identity": "79",
+          "midline": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLS IIMDNLLE         EG VDK+AEGTFKRL",
+          "positive": "80",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE---------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "397"
+        }
+      ],
+      "id": "ref|XP_035617982.1|",
+      "len": "370"
+    },
+    {
+      "accession": "XP_045549382",
+      "def": "LOW QUALITY PROTEIN: interleukin-1 beta [Salmo salar]",
+      "hsps": [
+        {
+          "align_len": "92",
+          "bit_score": "149.443",
+          "evalue": "1.71909e-42",
+          "gaps": "10",
+          "hit_from": "1",
+          "hit_to": "92",
+          "hseq": "MEVHMGLTFDLEVLQQRQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLFSIVMDNLLEECVMERVQEPEGAVDKKAEGTFXRL",
+          "identity": "75",
+          "midline": "ME+H GLTFDLEVLQQ QVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQL  I+MDNLLE          EGAVDKKAEGTF RL",
+          "positive": "77",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE----------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "376"
+        }
+      ],
+      "id": "ref|XP_045549382.1|",
+      "len": "246"
+    },
+    {
+      "accession": "XP_071207809",
+      "def": "LOW QUALITY PROTEIN: interleukin-1 beta [Salvelinus alpinus]",
+      "hsps": [
+        {
+          "align_len": "92",
+          "bit_score": "140.198",
+          "evalue": "1.49613e-38",
+          "gaps": "12",
+          "hit_from": "34",
+          "hit_to": "123",
+          "hseq": "MELHMGLTFDLEVLQQRQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMVCTDEQX--IIMDNLLEECVMERVQEPEGAVDXKAEGTFKRL",
+          "identity": "74",
+          "midline": "MELH GLTFDLEVLQQ QVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGM CTD+Q   IIMDNLLE          EGAVD KAEGTFKRL",
+          "positive": "75",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE----------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "352"
+        }
+      ],
+      "id": "ref|XP_071207809.1|",
+      "len": "282"
+    },
+    {
+      "accession": "XP_038826974",
+      "def": "LOW QUALITY PROTEIN: interleukin-1 beta [Salvelinus namaycush]",
+      "hsps": [
+        {
+          "align_len": "92",
+          "bit_score": "140.584",
+          "evalue": "1.67085e-38",
+          "gaps": "12",
+          "hit_from": "34",
+          "hit_to": "123",
+          "hseq": "MELHMGLTFDLEVLQQRQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMVCTDEQX--IIMDNLLEECVMERVQEPEGTVDKKAEGTFKRL",
+          "identity": "74",
+          "midline": "MELH GLTFDLEVLQQ QVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGM CTD+Q   IIMDNLLE          EG VDKKAEGTFKRL",
+          "positive": "75",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE----------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "353"
+        }
+      ],
+      "id": "ref|XP_038826974.1|",
+      "len": "291"
+    },
+    {
+      "accession": "CAB1318873",
+      "def": "unnamed protein product [Coregonus sp. 'balchen']",
+      "hsps": [
+        {
+          "align_len": "92",
+          "bit_score": "133.265",
+          "evalue": "5.65639e-36",
+          "gaps": "10",
+          "hit_from": "34",
+          "hit_to": "125",
+          "hseq": "MELHLGLSFELEVLQQRQGGMRQVAHLVIAMHRMKHTFQKSDSIHTPLGMECTDEQLCSIIMDNLVEDCVMERVQEPEGAMAKKAEGTFKRM",
+          "identity": "66",
+          "midline": "MELH GL+F+LEVLQQ Q GMRQVAHLV+ +HRMKHTFQKSDS HTPLGMECTD+QL  IIMDNL+E          EGA+ KKAEGTFKR+",
+          "positive": "74",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE----------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "334"
+        }
+      ],
+      "id": "emb|CAB1318873.1|",
+      "len": "261"
+    },
+    {
+      "accession": "KAK6316272",
+      "def": "hypothetical protein J4Q44_G00137960 [Coregonus suidteri]",
+      "hsps": [
+        {
+          "align_len": "92",
+          "bit_score": "133.65",
+          "evalue": "6.58421e-36",
+          "gaps": "10",
+          "hit_from": "34",
+          "hit_to": "125",
+          "hseq": "MELHLGLSFELEVLQQRQGGMRQVAHLVIAMHRMKHTFQKSDSIHTPLGMECTDEQLCSIIMDNLVEECVMERVQEPEGAMAKKAEGTFKRM",
+          "identity": "66",
+          "midline": "MELH GL+F+LEVLQQ Q GMRQVAHLV+ +HRMKHTFQKSDS HTPLGMECTD+QL  IIMDNL+E          EGA+ KKAEGTFKR+",
+          "positive": "74",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE----------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "335"
+        }
+      ],
+      "id": "gb|KAK6316272.1|",
+      "len": "282"
+    },
+    {
+      "accession": "XP_045081295",
+      "def": "interleukin-1 beta-like [Coregonus clupeaformis]",
+      "hsps": [
+        {
+          "align_len": "92",
+          "bit_score": "133.65",
+          "evalue": "6.94891e-36",
+          "gaps": "10",
+          "hit_from": "34",
+          "hit_to": "125",
+          "hseq": "MELHLGLSFELEVLQQRQGGMRQVAHLVIAMHRMKHTFQKSDSIHTPLGMECTDEQLCSIIMDNLVEECVMERVQEPEGAMAKKAEGTFKRM",
+          "identity": "66",
+          "midline": "MELH GL+F+LEVLQQ Q GMRQVAHLV+ +HRMKHTFQKSDS HTPLGMECTD+QL  IIMDNL+E          EGA+ KKAEGTFKR+",
+          "positive": "74",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE----------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "335"
+        }
+      ],
+      "id": "ref|XP_045081295.1|",
+      "len": "282"
+    },
+    {
+      "accession": "XP_064797058",
+      "def": "LOW QUALITY PROTEIN: interleukin-1 beta [Oncorhynchus masou masou]",
+      "hsps": [
+        {
+          "align_len": "92",
+          "bit_score": "131.339",
+          "evalue": "2.11527e-35",
+          "gaps": "18",
+          "hit_from": "1",
+          "hit_to": "84",
+          "hseq": "MELHKGLTFDLEVLQQH--------HLVMVLHRMKHXFQKSDSTHTALGMECTDDQLSSIIMDNLLEECVMERVQEPEGAVDKQAEGTFKRL",
+          "identity": "70",
+          "midline": "MELHKGLTFDLEVLQQH        HLVMVLHRMKH FQKSDSTHT LGMECTDDQLS IIMDNLLE          EGAVDK+AEGTFKRL",
+          "positive": "71",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE----------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "329"
+        }
+      ],
+      "id": "ref|XP_064797058.1|",
+      "len": "242"
+    },
+    {
+      "accession": "XP_055729852",
+      "def": "LOW QUALITY PROTEIN: interleukin-1 beta [Salvelinus fontinalis]",
+      "hsps": [
+        {
+          "align_len": "92",
+          "bit_score": "122.094",
+          "evalue": "1.56848e-31",
+          "gaps": "14",
+          "hit_from": "1",
+          "hit_to": "88",
+          "hseq": "MELHMGLTFDLE--XQGQVGMRQVAHLVMVLHRMXNSFQKSDSTHTPLGMVCTHEQX--IIMDNLLEECVMERVQEPEGAVDKKAEGTFKRL",
+          "identity": "68",
+          "midline": "MELH GLTFDLE   Q QVGMRQVAHLVMVLHRM ++FQKSDSTHTPLGM CT +Q   IIMDNLLE          EGAVDKKAEGTFKRL",
+          "positive": "71",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLE----------EGAVDKKAEGTFKRL",
+          "query_from": "1",
+          "query_to": "82",
+          "score": "305"
+        }
+      ],
+      "id": "ref|XP_055729852.1|",
+      "len": "274"
+    },
+    {
+      "accession": "XP_041706025",
+      "def": "interleukin-1 beta [Coregonus clupeaformis]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "119.013",
+          "evalue": "2.51642e-30",
+          "gaps": "10",
+          "hit_from": "39",
+          "hit_to": "128",
+          "hseq": "LHTGLSLDLEVIHQRGVGMREVAHLVIALHRMKNPFQKSDSTQTPLGMECTDEQFCSIIMDNLVEECVMVPNQKPVGAVTKKATGTFERM",
+          "identity": "58",
+          "midline": "LH GL+ DLEV+ Q  VGMR+VAHLV+ LHRMK+ FQKSDST TPLGMECTD+Q   IIMDNL+EE          GAV KKA GTF+R+",
+          "positive": "67",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "297"
+        }
+      ],
+      "id": "ref|XP_041706025.1|",
+      "len": "281"
+    },
+    {
+      "accession": "KAK6305017",
+      "def": "hypothetical protein J4Q44_G00237970 [Coregonus suidteri] >emb|CAB1332372.1| unnamed protein product [Coregonus sp. 'balchen']",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "117.472",
+          "evalue": "1.14172e-29",
+          "gaps": "10",
+          "hit_from": "39",
+          "hit_to": "128",
+          "hseq": "LHTGLSLDLEVIHQRGVGMREVAHLVIALHRMKNPFQKSDSTQTPLGMECTDEQFCSIIMDNLVEECVMVSNQKPVGAVTQKATGTFERM",
+          "identity": "57",
+          "midline": "LH GL+ DLEV+ Q  VGMR+VAHLV+ LHRMK+ FQKSDST TPLGMECTD+Q   IIMDNL+EE          GAV +KA GTF+R+",
+          "positive": "67",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "293"
+        }
+      ],
+      "id": "gb|KAK6305017.1|",
+      "len": "281"
+    },
+    {
+      "accession": "XP_021456957",
+      "def": "interleukin-1 beta [Oncorhynchus mykiss]",
+      "hsps": [
+        {
+          "align_len": "64",
+          "bit_score": "113.235",
+          "evalue": "1.53391e-28",
+          "gaps": "2",
+          "hit_from": "1",
+          "hit_to": "64",
+          "hseq": "MRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEECVMERVQEPEGAFKRL",
+          "identity": "54",
+          "midline": "MRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE  +++  + EG FKRL",
+          "positive": "58",
+          "qseq": "MRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDK--KAEGTFKRL",
+          "query_from": "21",
+          "query_to": "82",
+          "score": "282"
+        }
+      ],
+      "id": "ref|XP_021456957.2|",
+      "len": "223"
+    },
+    {
+      "accession": "XP_064828615",
+      "def": "interleukin-1 beta-like [Oncorhynchus masou masou]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "111.694",
+          "evalue": "1.82285e-27",
+          "gaps": "10",
+          "hit_from": "38",
+          "hit_to": "127",
+          "hseq": "LHAGLSLDLEVILQHRGGMRQVAHLVIALHRMKNPFQKSDSTHTPLDTQCTDEQLCSIIMDNLVEEGVMVSIQEPMGVVPKKEKGTFEQI",
+          "identity": "55",
+          "midline": "LH GL+ DLEV+ QH+ GMRQVAHLV+ LHRMK+ FQKSDSTHTPL  +CTD+QL  IIMDNL+EE          G V KK +GTF+++",
+          "positive": "67",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "278"
+        }
+      ],
+      "id": "ref|XP_064828615.1|",
+      "len": "283"
+    },
+    {
+      "accession": "XP_071219144",
+      "def": "interleukin-1 beta-like [Salvelinus alpinus]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "110.538",
+          "evalue": "4.95004e-27",
+          "gaps": "10",
+          "hit_from": "38",
+          "hit_to": "127",
+          "hseq": "LHAPLNLDLEVILQHRGGMRQVAHLVIALHRMKNPFRKSDSTHTPLDVECTDEQFCSIIMDNLLEECVMVPIQEPRGAVTKKERGTFEQI",
+          "identity": "55",
+          "midline": "LH  L  DLEV+ QH+ GMRQVAHLV+ LHRMK+ F+KSDSTHTPL +ECTD+Q   IIMDNLLEE          GAV KK  GTF+++",
+          "positive": "65",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "275"
+        }
+      ],
+      "id": "ref|XP_071219144.1|",
+      "len": "279"
+    },
+    {
+      "accession": "XP_023843097",
+      "def": "interleukin-1 beta [Salvelinus sp. IW2-2015]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "110.538",
+          "evalue": "5.28416e-27",
+          "gaps": "10",
+          "hit_from": "38",
+          "hit_to": "127",
+          "hseq": "LHAPLNLDLEVILQHRGGMRQVAHLVIALHRMKNPFRKSDSTHTPLDVECTDEQFCSIIMDNLLEECVMVPIQEPRGAVTKKERGTFEQI",
+          "identity": "55",
+          "midline": "LH  L  DLEV+ QH+ GMRQVAHLV+ LHRMK+ F+KSDSTHTPL +ECTD+Q   IIMDNLLEE          GAV KK  GTF+++",
+          "positive": "65",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "275"
+        }
+      ],
+      "id": "ref|XP_023843097.1|",
+      "len": "278"
+    },
+    {
+      "accession": "CDQ91616",
+      "def": "unnamed protein product [Oncorhynchus mykiss]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "108.612",
+          "evalue": "1.84857e-26",
+          "gaps": "10",
+          "hit_from": "23",
+          "hit_to": "112",
+          "hseq": "LQAGLSLDLEVILQHRGGMRQVAHLVIALHRMKNPFQKSDSTHTPLDMECTGEQFCSIIMDNLVEECVMVSIQEPMGVVTKKVKGTFEQI",
+          "identity": "54",
+          "midline": "L  GL+ DLEV+ QH+ GMRQVAHLV+ LHRMK+ FQKSDSTHTPL MECT +Q   IIMDNL+EE          G V KK +GTF+++",
+          "positive": "65",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "270"
+        }
+      ],
+      "id": "emb|CDQ91616.1|",
+      "len": "266"
+    },
+    {
+      "accession": "XP_021446171",
+      "def": "interleukin-1 beta-like [Oncorhynchus mykiss]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "108.612",
+          "evalue": "2.61333e-26",
+          "gaps": "10",
+          "hit_from": "38",
+          "hit_to": "127",
+          "hseq": "LQAGLSLDLEVILQHRGGMRQVAHLVIALHRMKNPFQKSDSTHTPLDMECTGEQFCSIIMDNLVEECVMVSIQEPMGVVTKKVKGTFEQI",
+          "identity": "54",
+          "midline": "L  GL+ DLEV+ QH+ GMRQVAHLV+ LHRMK+ FQKSDSTHTPL MECT +Q   IIMDNL+EE          G V KK +GTF+++",
+          "positive": "65",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "270"
+        }
+      ],
+      "id": "ref|XP_021446171.1|",
+      "len": "281"
+    },
+    {
+      "accession": "XP_070991038",
+      "def": "interleukin-1 beta-like [Oncorhynchus clarkii lewisi]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "108.612",
+          "evalue": "3.24072e-26",
+          "gaps": "10",
+          "hit_from": "38",
+          "hit_to": "127",
+          "hseq": "LQAGLSLDLEVILQHRGGMRQVAHLVIALHRMKNPFQKSDSTHTPLDMECTEEQFCSIIMDNLVEDCVMVSIQEPMGVVTKKVKGTFEQI",
+          "identity": "53",
+          "midline": "L  GL+ DLEV+ QH+ GMRQVAHLV+ LHRMK+ FQKSDSTHTPL MECT++Q   IIMDNL+E+          G V KK +GTF+++",
+          "positive": "66",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "270"
+        }
+      ],
+      "id": "ref|XP_070991038.1|",
+      "len": "280"
+    },
+    {
+      "accession": "XP_024252817",
+      "def": "interleukin-1 beta [Oncorhynchus tshawytscha] >ref|XP_024252818.1| interleukin-1 beta [Oncorhynchus tshawytscha]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "108.227",
+          "evalue": "4.55254e-26",
+          "gaps": "10",
+          "hit_from": "38",
+          "hit_to": "127",
+          "hseq": "LQAGLSLDLEVILQHQGGMRRVAHLVIALHRMKNPSQKSDSTHTPLDMECTDEQFCSIIMDNLVEECVMVSIQEPMGVVTKKVKGTFEQI",
+          "identity": "54",
+          "midline": "L  GL+ DLEV+ QHQ GMR+VAHLV+ LHRMK+  QKSDSTHTPL MECTD+Q   IIMDNL+EE          G V KK +GTF+++",
+          "positive": "65",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "269"
+        }
+      ],
+      "id": "ref|XP_024252817.1|",
+      "len": "281"
+    },
+    {
+      "accession": "XP_029624663",
+      "def": "interleukin-1 beta-like [Salmo trutta] >ref|XP_029624664.1| interleukin-1 beta-like [Salmo trutta]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "107.071",
+          "evalue": "9.71088e-26",
+          "gaps": "10",
+          "hit_from": "38",
+          "hit_to": "127",
+          "hseq": "LHAGLSLDLEVILQHRGGMRQVAHLVIALHRMKNPFQKSDSTRTPMDMEGTDEQFCSIIMDNLVEECVMVPIQEPMGAVTKKEKGTFEQI",
+          "identity": "54",
+          "midline": "LH GL+ DLEV+ QH+ GMRQVAHLV+ LHRMK+ FQKSDST TP+ ME TD+Q   IIMDNL+EE          GAV KK +GTF+++",
+          "positive": "66",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "266"
+        }
+      ],
+      "id": "ref|XP_029624663.1|",
+      "len": "281"
+    },
+    {
+      "accession": "XP_035615050",
+      "def": "interleukin-1 beta-like [Oncorhynchus keta]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "104.76",
+          "evalue": "7.49006e-25",
+          "gaps": "13",
+          "hit_from": "38",
+          "hit_to": "124",
+          "hseq": "LHAGLSLDLEVILQHRGGMRQVAHLVIALHRMKNPWQKSDSTHTPLDMECTD---CSIIMDNLVEECVMVSIQEPMGVVTKKVKGTFEQI",
+          "identity": "54",
+          "midline": "LH GL+ DLEV+ QH+ GMRQVAHLV+ LHRMK+ +QKSDSTHTPL MECTD     IIMDNL+EE          G V KK +GTF+++",
+          "positive": "65",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "260"
+        }
+      ],
+      "id": "ref|XP_035615050.1|",
+      "len": "278"
+    },
+    {
+      "accession": "XP_038821079",
+      "def": "interleukin-1 beta-like [Salvelinus namaycush]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "103.99",
+          "evalue": "1.5551e-24",
+          "gaps": "10",
+          "hit_from": "38",
+          "hit_to": "127",
+          "hseq": "LHADLSLDLEVILQHRGGMRQVAHLVIALHRMKNPFRKSDSTHTSLDVECTDEQFCSIIMDNLVEECVMVPIQGPMGTVAKKEKGTFEQI",
+          "identity": "52",
+          "midline": "LH  L+ DLEV+ QH+ GMRQVAHLV+ LHRMK+ F+KSDSTHT L +ECTD+Q   IIMDNL+EE          G V KK +GTF+++",
+          "positive": "65",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "258"
+        }
+      ],
+      "id": "ref|XP_038821079.1|",
+      "len": "280"
+    },
+    {
+      "accession": "XP_013983483",
+      "def": "interleukin-1 beta [Salmo salar] >emb|CCH63760.1| interleukin-1 b3 [Salmo salar]",
+      "hsps": [
+        {
+          "align_len": "84",
+          "bit_score": "103.605",
+          "evalue": "1.98899e-24",
+          "gaps": "4",
+          "hit_from": "38",
+          "hit_to": "121",
+          "hseq": "LHAGLSLDLEVILQHRGGMRQVAHLVIALHRMKNPFQKSDSTHTSMDMECTDEQFCSIIMDNLVEECVMVPMQEPMGAGTFEQI",
+          "identity": "50",
+          "midline": "LH GL+ DLEV+ QH+ GMRQVAHLV+ LHRMK+ FQKSDSTHT + MECTD+Q   IIMDNL+EE  +    +    GTF+++",
+          "positive": "63",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAV----DKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "257"
+        }
+      ],
+      "id": "ref|XP_013983483.1|",
+      "len": "275"
+    },
+    {
+      "accession": "XP_029501789",
+      "def": "interleukin-1 beta-like [Oncorhynchus nerka]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "103.605",
+          "evalue": "2.77066e-24",
+          "gaps": "12",
+          "hit_from": "38",
+          "hit_to": "125",
+          "hseq": "LQAGLSLDLEVIVQHRGGMRQVAHLVIALHRMKNPCQKSDSTHTPLDMECTDEQFRSIIMDNLVEECVMVSIQEPMGVVTKK--GTFEQI",
+          "identity": "54",
+          "midline": "L  GL+ DLEV+ QH+ GMRQVAHLV+ LHRMK+  QKSDSTHTPL MECTD+Q   IIMDNL+EE          G V KK  GTF+++",
+          "positive": "64",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "257"
+        }
+      ],
+      "id": "ref|XP_029501789.1|",
+      "len": "279"
+    },
+    {
+      "accession": "XP_020321644",
+      "def": "interleukin-1 beta [Oncorhynchus kisutch]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "102.834",
+          "evalue": "4.18309e-24",
+          "gaps": "10",
+          "hit_from": "23",
+          "hit_to": "112",
+          "hseq": "LQADLSLDLEVILQHRGGMRQVAHLVIALHRMKNPIQKSDSTHTPLDMECTDKQFCSILIDNLVEECVMVSIQEPMGVVTKKVKGTFEQI",
+          "identity": "51",
+          "midline": "L   L+ DLEV+ QH+ GMRQVAHLV+ LHRMK+  QKSDSTHTPL MECTD Q   I++DNL+EE          G V KK +GTF+++",
+          "positive": "63",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "255"
+        }
+      ],
+      "id": "ref|XP_020321644.1|",
+      "len": "266"
+    },
+    {
+      "accession": "XP_055791808",
+      "def": "interleukin-1 beta-like [Salvelinus fontinalis]",
+      "hsps": [
+        {
+          "align_len": "90",
+          "bit_score": "102.834",
+          "evalue": "4.60627e-24",
+          "gaps": "10",
+          "hit_from": "38",
+          "hit_to": "127",
+          "hseq": "LHADLSLDLEVILQHRGGMRQVAHLVIALHRMKNPFRKSDSTHTSLDVECTEEQFCSIILDNLVEECVMVPIQEPMGTVTKKEKGTFKQI",
+          "identity": "51",
+          "midline": "LH  L+ DLEV+ QH+ GMRQVAHLV+ LHRMK+ F+KSDSTHT L +ECT++Q   II+DNL+EE          G V KK +GTFK++",
+          "positive": "65",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "255"
+        }
+      ],
+      "id": "ref|XP_055791808.1|",
+      "len": "280"
+    },
+    {
+      "accession": "XP_046224247",
+      "def": "interleukin-1 beta isoform X1 [Oncorhynchus gorbuscha]",
+      "hsps": [
+        {
+          "align_len": "42",
+          "bit_score": "60.8474",
+          "evalue": "2.46595e-08",
+          "gaps": "9",
+          "hit_from": "1",
+          "hit_to": "42",
+          "hseq": "MECTDDQLSSIIMDNLLECVMERVLEPEGAVDKQAEGTFKRL",
+          "identity": "31",
+          "midline": "MECTDDQLS IIMDNLLE         EGAVDK+AEGTFKRL",
+          "positive": "32",
+          "qseq": "MECTDDQLSGIIMDNLLE---------EGAVDKKAEGTFKRL",
+          "query_from": "50",
+          "query_to": "82",
+          "score": "146"
+        }
+      ],
+      "id": "ref|XP_046224247.1|",
+      "len": "255"
+    },
+    {
+      "accession": "KAJ7988286",
+      "def": "hypothetical protein DPEC_G00322000 [Dallia pectoralis]",
+      "hsps": [
+        {
+          "align_len": "89",
+          "bit_score": "59.3066",
+          "evalue": "1.01492e-07",
+          "gaps": "11",
+          "hit_from": "39",
+          "hit_to": "126",
+          "hseq": "LHKGLRVEVEYAPSGQRCLKKVAHLVIALQRMKHTPKISDSTHNSLWLERSDDPCS-VIINTVFQEQIMVQVQQPVGEANTRPNAVFKR",
+          "identity": "34",
+          "midline": "LHKGL  ++E     Q  +++VAHLV+ L RMKHT + SDSTH  L +E +DD  S +I++ + +E          G  + +    FKR",
+          "positive": "50",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE----------GAVDKKAEGTFKR",
+          "query_from": "3",
+          "query_to": "81",
+          "score": "142"
+        }
+      ],
+      "id": "gb|KAJ7988286.1|",
+      "len": "287"
+    },
+    {
+      "accession": "KAI1900935",
+      "def": "hypothetical protein AGOR_G00054950 [Albula goreensis]",
+      "hsps": [
+        {
+          "align_len": "67",
+          "bit_score": "56.6102",
+          "evalue": "8.2861e-07",
+          "gaps": "10",
+          "hit_from": "14",
+          "hit_to": "70",
+          "hseq": "DLHEGL--QLEV-TQHPHSLRQVANLIVMLQRMKHN-------HTPVGMEFSDDDLLNIMLENVLEE",
+          "identity": "33",
+          "midline": "+LH+GL   LEV  QH   +RQVA+L+++L RMKH        HTP+GME +DD L  I+++N+LEE",
+          "positive": "46",
+          "qseq": "ELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "2",
+          "query_to": "68",
+          "score": "135"
+        }
+      ],
+      "id": "gb|KAI1900935.1|",
+      "len": "246"
+    },
+    {
+      "accession": "CCH63761",
+      "def": "interleukin-1 b4, partial [Salmo salar]",
+      "hsps": [
+        {
+          "align_len": "40",
+          "bit_score": "51.2174",
+          "evalue": "3.66227e-06",
+          "gaps": "10",
+          "hit_from": "1",
+          "hit_to": "40",
+          "hseq": "MECTDDQLFSIVMDNLLEECVMERVQEPEGAVDKKAEGTF",
+          "identity": "27",
+          "midline": "MECTDDQL  I+MDNLLE          EGAVDKKAEGTF",
+          "positive": "28",
+          "qseq": "MECTDDQLSGIIMDNLLE----------EGAVDKKAEGTF",
+          "query_from": "50",
+          "query_to": "79",
+          "score": "121"
+        }
+      ],
+      "id": "emb|CCH63761.1|",
+      "len": "40"
+    },
+    {
+      "accession": "KAI1900936",
+      "def": "hypothetical protein AGOR_G00054960 [Albula goreensis]",
+      "hsps": [
+        {
+          "align_len": "67",
+          "bit_score": "54.299",
+          "evalue": "7.86962e-06",
+          "gaps": "10",
+          "hit_from": "52",
+          "hit_to": "108",
+          "hseq": "DLHEGL--QLEV-TQHPHSLRQVANLIVMLQRMKHN-------HTPVGTEFSDDDLLNIMLENVLEE",
+          "identity": "32",
+          "midline": "+LH+GL   LEV  QH   +RQVA+L+++L RMKH        HTP+G E +DD L  I+++N+LEE",
+          "positive": "45",
+          "qseq": "ELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "2",
+          "query_to": "68",
+          "score": "129"
+        }
+      ],
+      "id": "gb|KAI1900936.1|",
+      "len": "284"
+    },
+    {
+      "accession": "XP_030624267",
+      "def": "interleukin-1 beta-like [Chanos chanos]",
+      "hsps": [
+        {
+          "align_len": "56",
+          "bit_score": "51.2174",
+          "evalue": "8.81599e-05",
+          "gaps": "7",
+          "hit_from": "49",
+          "hit_to": "97",
+          "hseq": "QSPKNMRQVANVIISLHRMKH-------SHKPQGTEFTDNELYNIIMENVVEECVV",
+          "identity": "26",
+          "midline": "Q    MRQVA++++ LHRMKH       +H P G E TD++L  IIM+N++EE  V",
+          "positive": "36",
+          "qseq": "QHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAV",
+          "query_from": "16",
+          "query_to": "71",
+          "score": "121"
+        }
+      ],
+      "id": "ref|XP_030624267.1|",
+      "len": "273"
+    },
+    {
+      "accession": "KAL0965199",
+      "def": "hypothetical protein UPYG_G00278090 [Umbra pygmaea]",
+      "hsps": [
+        {
+          "align_len": "91",
+          "bit_score": "50.447",
+          "evalue": "0.000135363",
+          "gaps": "22",
+          "hit_from": "6",
+          "hit_to": "85",
+          "hseq": "LTKGMSLDLELLPYCSGGMKKAAHLVIALRRMKNTFQLSNHT-----------DIQNMITDNLFEEHVMEQIQDCVETLGSNRLKGMFRRM",
+          "identity": "31",
+          "midline": "L KG++ DLE+L     GM++ AHLV+ L RMK+TFQ S+ T            +  +I DNL EE  +++           + +G F+R+",
+          "positive": "48",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDK-----------KAEGTFKRL",
+          "query_from": "3",
+          "query_to": "82",
+          "score": "119"
+        }
+      ],
+      "id": "gb|KAL0965199.1|",
+      "len": "255"
+    },
+    {
+      "accession": "KAG9354885",
+      "def": "hypothetical protein JZ751_001598 [Albula glossodonta]",
+      "hsps": [
+        {
+          "align_len": "67",
+          "bit_score": "50.447",
+          "evalue": "0.000173722",
+          "gaps": "10",
+          "hit_from": "17",
+          "hit_to": "73",
+          "hseq": "DLHEGL--QLEV-TQHPHSLRQVANLIVMLQRMKH-------NHTPVGTEFSDDDLLNIMLEIVLEE",
+          "identity": "31",
+          "midline": "+LH+GL   LEV  QH   +RQVA+L+++L RMKH        HTP+G E +DD L  I+++ +LEE",
+          "positive": "44",
+          "qseq": "ELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "2",
+          "query_to": "68",
+          "score": "119"
+        },
+        {
+          "align_len": "67",
+          "bit_score": "50.447",
+          "evalue": "0.000173722",
+          "gaps": "10",
+          "hit_from": "249",
+          "hit_to": "305",
+          "hseq": "DLHEGL--QLEV-TQHPHSLRQVANLIVMLQRMKH-------NHTPVGTEFSDDDLLNIMLEIVLEE",
+          "identity": "31",
+          "midline": "+LH+GL   LEV  QH   +RQVA+L+++L RMKH        HTP+G E +DD L  I+++ +LEE",
+          "positive": "44",
+          "qseq": "ELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "2",
+          "query_to": "68",
+          "score": "119"
+        }
+      ],
+      "id": "gb|KAG9354885.1|",
+      "len": "481"
+    },
+    {
+      "accession": "XP_031434077",
+      "def": "interleukin-1 beta-like isoform X1 [Clupea harengus]",
+      "hsps": [
+        {
+          "align_len": "66",
+          "bit_score": "50.0618",
+          "evalue": "0.000240561",
+          "gaps": "10",
+          "hit_from": "44",
+          "hit_to": "99",
+          "hseq": "LHSGI--DLEVSEQPQ-NLRNVVNLVIALHRMKKT-QKVQST------EFTDDELCNIFLENLVEE",
+          "identity": "33",
+          "midline": "LH G+  DLEV +Q Q  +R V +LV+ LHRMK T QK  ST      E TDD+L  I ++NL+EE",
+          "positive": "42",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "3",
+          "query_to": "68",
+          "score": "118"
+        }
+      ],
+      "id": "ref|XP_031434077.1|",
+      "len": "273"
+    },
+    {
+      "accession": "XP_031434078",
+      "def": "interleukin-1 beta-like isoform X2 [Clupea harengus]",
+      "hsps": [
+        {
+          "align_len": "66",
+          "bit_score": "50.0618",
+          "evalue": "0.000242344",
+          "gaps": "10",
+          "hit_from": "43",
+          "hit_to": "98",
+          "hseq": "LHSGI--DLEVSEQPQ-NLRNVVNLVIALHRMKKT-QKVQST------EFTDDELCNIFLENLVEE",
+          "identity": "33",
+          "midline": "LH G+  DLEV +Q Q  +R V +LV+ LHRMK T QK  ST      E TDD+L  I ++NL+EE",
+          "positive": "42",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "3",
+          "query_to": "68",
+          "score": "118"
+        }
+      ],
+      "id": "ref|XP_031434078.1|",
+      "len": "272"
+    },
+    {
+      "accession": "XRL35783",
+      "def": "interleukin-1 beta [Anguilla japonica]",
+      "hsps": [
+        {
+          "align_len": "65",
+          "bit_score": "48.9062",
+          "evalue": "0.000481152",
+          "gaps": "10",
+          "hit_from": "18",
+          "hit_to": "72",
+          "hseq": "HEGL--QLEVCQ-HSHGFRRFANIVVAVQRMKHG-------HTPRGTEFSDDELISILLENVIEE",
+          "identity": "28",
+          "midline": "H+GL   LEV Q H  G R+ A++V+ + RMKH        HTP G E +DD+L  I+++N++EE",
+          "positive": "41",
+          "qseq": "HKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "4",
+          "query_to": "68",
+          "score": "115"
+        }
+      ],
+      "id": "gb|XRL35783.1|",
+      "len": "249"
+    },
+    {
+      "accession": "XP_012688405",
+      "def": "interleukin-1 beta-like isoform X1 [Clupea harengus]",
+      "hsps": [
+        {
+          "align_len": "78",
+          "bit_score": "48.521",
+          "evalue": "0.000847456",
+          "gaps": "10",
+          "hit_from": "44",
+          "hit_to": "111",
+          "hseq": "LHSGI--DLELSEQPQ-NLRNVVNLVIALHRMKKT-QKVQST------EFTDDELCNIFLENLVEEYVTPTVHERTHK",
+          "identity": "35",
+          "midline": "LH G+  DLE+ +Q Q  +R V +LV+ LHRMK T QK  ST      E TDD+L  I ++NL+EE       E T K",
+          "positive": "45",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFK",
+          "query_from": "3",
+          "query_to": "80",
+          "score": "114"
+        }
+      ],
+      "id": "ref|XP_012688405.2|",
+      "len": "273"
+    },
+    {
+      "accession": "XP_031434133",
+      "def": "interleukin-1 beta-like isoform X2 [Clupea harengus]",
+      "hsps": [
+        {
+          "align_len": "78",
+          "bit_score": "48.521",
+          "evalue": "0.000854067",
+          "gaps": "10",
+          "hit_from": "43",
+          "hit_to": "110",
+          "hseq": "LHSGI--DLELSEQPQ-NLRNVVNLVIALHRMKKT-QKVQST------EFTDDELCNIFLENLVEEYVTPTVHERTHK",
+          "identity": "35",
+          "midline": "LH G+  DLE+ +Q Q  +R V +LV+ LHRMK T QK  ST      E TDD+L  I ++NL+EE       E T K",
+          "positive": "45",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFK",
+          "query_from": "3",
+          "query_to": "80",
+          "score": "114"
+        }
+      ],
+      "id": "ref|XP_031434133.1|",
+      "len": "272"
+    },
+    {
+      "accession": "XP_036450789",
+      "def": "interleukin-1 beta [Colossoma macropomum]",
+      "hsps": [
+        {
+          "align_len": "72",
+          "bit_score": "47.7506",
+          "evalue": "0.00134633",
+          "gaps": "10",
+          "hit_from": "42",
+          "hit_to": "103",
+          "hseq": "DLHKGLRIEI---SEHPHSMRQVANIIIALHKIKHT-QKVQST------EFTDHALFNIVMESIVEESVVMK",
+          "identity": "30",
+          "midline": "+LHKGL  ++    +H   MRQVA++++ LH++KHT QK  ST      E TD  L  I+M++++EE  V K",
+          "positive": "45",
+          "qseq": "ELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDK",
+          "query_from": "2",
+          "query_to": "73",
+          "score": "112"
+        }
+      ],
+      "id": "ref|XP_036450789.1|",
+      "len": "277"
+    },
+    {
+      "accession": "XP_063067181",
+      "def": "interleukin-1 beta [Engraulis encrasicolus]",
+      "hsps": [
+        {
+          "align_len": "67",
+          "bit_score": "44.2838",
+          "evalue": "0.0270827",
+          "gaps": "10",
+          "hit_from": "345",
+          "hit_to": "401",
+          "hseq": "ELHSGI--HLEVSEEPH-SLRQVVNLVIALQRMK-TKQQAQST------EFTDDELCSILLDNLVEE",
+          "identity": "31",
+          "midline": "ELH G+   LEV ++    +RQV +LV+ L RMK T Q++ ST      E TDD+L  I++DNL+EE",
+          "positive": "43",
+          "qseq": "ELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "2",
+          "query_to": "68",
+          "score": "103"
+        },
+        {
+          "align_len": "79",
+          "bit_score": "43.8986",
+          "evalue": "0.0381487",
+          "gaps": "10",
+          "hit_from": "45",
+          "hit_to": "113",
+          "hseq": "ELHSGI--HLEVSEEPH-SLRQVVNLVIALQRMK-TKQQAQST------EFTDDELCSILLENLVEEYVKPRVHEQTYE",
+          "identity": "32",
+          "midline": "ELH G+   LEV ++    +RQV +LV+ L RMK T Q++ ST      E TDD+L  I+++NL+EE    +  E T++",
+          "positive": "48",
+          "qseq": "ELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFK",
+          "query_from": "2",
+          "query_to": "80",
+          "score": "102"
+        }
+      ],
+      "id": "ref|XP_063067181.1|",
+      "len": "575"
+    },
+    {
+      "accession": "QPD07666",
+      "def": "interleukin-1 beta [Piaractus mesopotamicus] >gb|QPD07668.1| interleukin-1 beta [Piaractus mesopotamicus]",
+      "hsps": [
+        {
+          "align_len": "69",
+          "bit_score": "44.2838",
+          "evalue": "0.0290502",
+          "gaps": "10",
+          "hit_from": "41",
+          "hit_to": "99",
+          "hseq": "LHRGLR--IEITEQPH-SMRQVANFVIALNKFKHT-QKVQST------EFTDNELFNIILERVIEESVV",
+          "identity": "29",
+          "midline": "LH+GL   +E+ +Q    MRQVA+ V+ L++ KHT QK  ST      E TD++L  II++ ++EE  V",
+          "positive": "43",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAV",
+          "query_from": "3",
+          "query_to": "71",
+          "score": "103"
+        }
+      ],
+      "id": "gb|QPD07666.1|",
+      "len": "273"
+    },
+    {
+      "accession": "XP_036450755",
+      "def": "interleukin-1 beta-like [Colossoma macropomum] >ref|XP_036450757.1| interleukin-1 beta-like [Colossoma macropomum]",
+      "hsps": [
+        {
+          "align_len": "69",
+          "bit_score": "43.5134",
+          "evalue": "0.046141",
+          "gaps": "10",
+          "hit_from": "41",
+          "hit_to": "99",
+          "hseq": "LHKGL--QIEITKQPH-SMRQVANFIIALNKFKHT-QKVRST------EFTDNELFNIILESVIEESVV",
+          "identity": "29",
+          "midline": "LHKGL   +E+ +Q    MRQVA+ ++ L++ KHT QK  ST      E TD++L  II+++++EE  V",
+          "positive": "44",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAV",
+          "query_from": "3",
+          "query_to": "71",
+          "score": "101"
+        }
+      ],
+      "id": "ref|XP_036450755.1|",
+      "len": "273"
+    },
+    {
+      "accession": "XP_031433542",
+      "def": "interleukin-1 beta-like [Clupea harengus] >ref|XP_031434076.1| interleukin-1 beta-like [Clupea harengus]",
+      "hsps": [
+        {
+          "align_len": "60",
+          "bit_score": "42.3578",
+          "evalue": "0.115182",
+          "gaps": "8",
+          "hit_from": "48",
+          "hit_to": "99",
+          "hseq": "IDLKVSEQPQ-NVRNVVNLVIALHRMMKT-QKVQST------EFTDDELCNIFLENLVEE",
+          "identity": "28",
+          "midline": " DL+V +Q Q  +R V +LV+ LHRM  T QK  ST      E TDD+L  I ++NL+EE",
+          "positive": "37",
+          "qseq": "FDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "9",
+          "query_to": "68",
+          "score": "98"
+        }
+      ],
+      "id": "ref|XP_031433542.1|",
+      "len": "273"
+    },
+    {
+      "accession": "KAJ8400071",
+      "def": "hypothetical protein AAFF_G00401100 [Aldrovandia affinis]",
+      "hsps": [
+        {
+          "align_len": "58",
+          "bit_score": "41.2022",
+          "evalue": "0.282017",
+          "gaps": "7",
+          "hit_from": "64",
+          "hit_to": "114",
+          "hseq": "LEVQVSRTPDMRQVANLIIALERMKHS-QKIMST------ECSDQDLLSIMMESVVEE",
+          "identity": "26",
+          "midline": "LEV       MRQVA+L++ L RMKH+ QK  ST      EC+D  L  I+M++++EE",
+          "positive": "36",
+          "qseq": "LEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "11",
+          "query_to": "68",
+          "score": "95"
+        }
+      ],
+      "id": "gb|KAJ8400071.1|",
+      "len": "306"
+    },
+    {
+      "accession": "KAJ8339510",
+      "def": "hypothetical protein SKAU_G00362960 [Synaphobranchus kaupii]",
+      "hsps": [
+        {
+          "align_len": "80",
+          "bit_score": "41.2022",
+          "evalue": "0.289609",
+          "gaps": "9",
+          "hit_from": "19",
+          "hit_to": "89",
+          "hseq": "LRLEDALEVEVEVSQTP--GMRQVANLIIALNRMKH-------SQTLRSSEFSDHELMNILMESVFEERVMLDVQDSTFN",
+          "identity": "27",
+          "midline": "+ L   L  ++EV Q    GMRQVA+L++ L+RMKH       + T    E +D +L  I+M+++ EE  +    + TF ",
+          "positive": "43",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFK",
+          "query_from": "1",
+          "query_to": "80",
+          "score": "95"
+        }
+      ],
+      "id": "gb|KAJ8339510.1|",
+      "len": "261"
+    },
+    {
+      "accession": "KAJ8415462",
+      "def": "hypothetical protein AAFF_G00424420 [Aldrovandia affinis]",
+      "hsps": [
+        {
+          "align_len": "68",
+          "bit_score": "40.817",
+          "evalue": "0.373676",
+          "gaps": "8",
+          "hit_from": "9",
+          "hit_to": "69",
+          "hseq": "DLEKAPRCDLQEGLQLEVTQYPHVANLIVALQRMEHS-------HTPLGTEFSDDDLLNSMLENMVEE",
+          "identity": "26",
+          "midline": "+L K    DL E LQ        VA+L++ L RM+H+       HTPLG E +DD L   +++N++EE",
+          "positive": "38",
+          "qseq": "ELHKGLTFDL-EVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "2",
+          "query_to": "68",
+          "score": "94"
+        }
+      ],
+      "id": "gb|KAJ8415462.1|",
+      "len": "245"
+    },
+    {
+      "accession": "XP_062869891",
+      "def": "interleukin-1 beta [Trichomycterus rosablanca]",
+      "hsps": [
+        {
+          "align_len": "72",
+          "bit_score": "41.2022",
+          "evalue": "0.37683",
+          "gaps": "14",
+          "hit_from": "41",
+          "hit_to": "100",
+          "hseq": "DLHKGIRIEL-TEQPH--SMRQVANIVIALHRLKNIHKTQSADLTHQ---------KLFNVIIENVVEECKV",
+          "identity": "28",
+          "midline": "+LHKG+  +L   Q H   MRQVA++V+ LHR+K  H  Q +D TH          +L  +I++N++EE  V",
+          "positive": "42",
+          "qseq": "ELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMK--HTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAV",
+          "query_from": "2",
+          "query_to": "71",
+          "score": "95"
+        }
+      ],
+      "id": "ref|XP_062869891.1|",
+      "len": "281"
+    },
+    {
+      "accession": "KAJ8339512",
+      "def": "hypothetical protein SKAU_G00362980 [Synaphobranchus kaupii]",
+      "hsps": [
+        {
+          "align_len": "79",
+          "bit_score": "40.4318",
+          "evalue": "0.674902",
+          "gaps": "9",
+          "hit_from": "19",
+          "hit_to": "88",
+          "hseq": "LRLEDALEVEVEVSQPP--GMRQVANLIIALNRMKH-------SQTLRSSKFSDRELMNILMESVFEERVMLDVQDSTF",
+          "identity": "26",
+          "midline": "+ L   L  ++EV Q    GMRQVA+L++ L+RMKH       + T    + +D +L  I+M+++ EE  +    + TF",
+          "positive": "43",
+          "qseq": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTF",
+          "query_from": "1",
+          "query_to": "79",
+          "score": "93"
+        }
+      ],
+      "id": "gb|KAJ8339512.1|",
+      "len": "261"
+    },
+    {
+      "accession": "XP_017549212",
+      "def": "interleukin-1 beta-like [Pygocentrus nattereri]",
+      "hsps": [
+        {
+          "align_len": "69",
+          "bit_score": "40.0466",
+          "evalue": "0.760756",
+          "gaps": "10",
+          "hit_from": "43",
+          "hit_to": "101",
+          "hseq": "LHNGLWIEISD-QPHS--MKQVANVIIASHRFKHT-QKFQST------EFTNHELFNIILESIIEESAV",
+          "identity": "28",
+          "midline": "LH GL  ++   Q H   M+QVA++++  HR KHT QK  ST      E T+ +L  II+++++EE AV",
+          "positive": "42",
+          "qseq": "LHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAV",
+          "query_from": "3",
+          "query_to": "71",
+          "score": "92"
+        }
+      ],
+      "id": "ref|XP_017549212.1|",
+      "len": "275"
+    },
+    {
+      "accession": "KAG9354884",
+      "def": "hypothetical protein JZ751_001597 [Albula glossodonta]",
+      "hsps": [
+        {
+          "align_len": "42",
+          "bit_score": "39.6614",
+          "evalue": "1.24818",
+          "gaps": "7",
+          "hit_from": "18",
+          "hit_to": "52",
+          "hseq": "LVVMLQRMKHN-------HTPVGTEFSDDDLLNIMLENVLEE",
+          "identity": "20",
+          "midline": "LV++L RMKH        HTP+G E +DD L  I+++N+LEE",
+          "positive": "28",
+          "qseq": "LVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEE",
+          "query_from": "27",
+          "query_to": "68",
+          "score": "91"
+        }
+      ],
+      "id": "gb|KAG9354884.1|",
+      "len": "228"
+    },
+    {
+      "accession": "XP_035246356",
+      "def": "interleukin-1 beta isoform X2 [Anguilla anguilla] >ref|XP_035246357.1| interleukin-1 beta isoform X2 [Anguilla anguilla]",
+      "hsps": [
+        {
+          "align_len": "61",
+          "bit_score": "38.891",
+          "evalue": "2.50484",
+          "gaps": "7",
+          "hit_from": "131",
+          "hit_to": "184",
+          "hseq": "VEVKVSRRPCMRQVADIIIALNRLKH-------WQMLMGTDCVDNKLLIGMMERLLEAGAI",
+          "identity": "21",
+          "midline": "+EV    +  MRQVA +++ L+R+KH           +G +C D++L   +M+ LLE GA+",
+          "positive": "35",
+          "qseq": "LEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAV",
+          "query_from": "11",
+          "query_to": "71",
+          "score": "89"
+        }
+      ],
+      "id": "ref|XP_035246356.1|",
+      "len": "359"
+    },
+    {
+      "accession": "XP_035246355",
+      "def": "interleukin-1 beta isoform X1 [Anguilla anguilla]",
+      "hsps": [
+        {
+          "align_len": "61",
+          "bit_score": "38.5058",
+          "evalue": "2.81824",
+          "gaps": "7",
+          "hit_from": "132",
+          "hit_to": "185",
+          "hseq": "VEVKVSRRPCMRQVADIIIALNRLKH-------WQMLMGTDCVDNKLLIGMMERLLEAGAI",
+          "identity": "21",
+          "midline": "+EV    +  MRQVA +++ L+R+KH           +G +C D++L   +M+ LLE GA+",
+          "positive": "35",
+          "qseq": "LEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAV",
+          "query_from": "11",
+          "query_to": "71",
+          "score": "88"
+        }
+      ],
+      "id": "ref|XP_035246355.1|",
+      "len": "360"
+    },
+    {
+      "accession": "XP_064163844",
+      "def": "interleukin-1 beta isoform X2 [Anguilla rostrata]",
+      "hsps": [
+        {
+          "align_len": "61",
+          "bit_score": "37.7354",
+          "evalue": "5.38327",
+          "gaps": "7",
+          "hit_from": "131",
+          "hit_to": "184",
+          "hseq": "VEVKVSRRPCMRQVADTIIALNRLKH-------WQMLMGTDCVDNKLLIGMMESLLEAGAI",
+          "identity": "21",
+          "midline": "+EV    +  MRQVA  ++ L+R+KH           +G +C D++L   +M++LLE GA+",
+          "positive": "35",
+          "qseq": "LEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAV",
+          "query_from": "11",
+          "query_to": "71",
+          "score": "86"
+        }
+      ],
+      "id": "ref|XP_064163844.1|",
+      "len": "361"
+    },
+    {
+      "accession": "XP_064163843",
+      "def": "interleukin-1 beta isoform X1 [Anguilla rostrata]",
+      "hsps": [
+        {
+          "align_len": "61",
+          "bit_score": "37.7354",
+          "evalue": "5.71097",
+          "gaps": "7",
+          "hit_from": "132",
+          "hit_to": "185",
+          "hseq": "VEVKVSRRPCMRQVADTIIALNRLKH-------WQMLMGTDCVDNKLLIGMMESLLEAGAI",
+          "identity": "21",
+          "midline": "+EV    +  MRQVA  ++ L+R+KH           +G +C D++L   +M++LLE GA+",
+          "positive": "35",
+          "qseq": "LEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAV",
+          "query_from": "11",
+          "query_to": "71",
+          "score": "86"
+        }
+      ],
+      "id": "ref|XP_064163843.1|",
+      "len": "362"
+    },
+    {
+      "accession": "XP_023682201",
+      "def": "interleukin-1 beta [Paramormyrops kingsleyae] >ref|XP_023682202.2| interleukin-1 beta [Paramormyrops kingsleyae]",
+      "hsps": [
+        {
+          "align_len": "77",
+          "bit_score": "36.965",
+          "evalue": "9.93287",
+          "gaps": "10",
+          "hit_from": "39",
+          "hit_to": "105",
+          "hseq": "DLHSGIRLEVTL---HPHNMRQVANLIITMHRIKNNQRLK-------GTEFSDQELLNIMLESVVEECVVRDVADQT",
+          "identity": "23",
+          "midline": "+LH G+  ++ +   H   MRQVA+L++ +HR+K+  +         G E +D +L  I++++++EE  V   A+ T",
+          "positive": "44",
+          "qseq": "ELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGT",
+          "query_from": "2",
+          "query_to": "78",
+          "score": "84"
+        }
+      ],
+      "id": "ref|XP_023682201.2|",
+      "len": "272"
+    }
+  ],
+  "query": "MELHKGLTFDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFKRL",
+  "statistics": {
+    "db_len": "1627372539",
+    "db_num": "919895638",
+    "eff_space": "0",
+    "entropy": "0.14",
+    "hsp_len": "0",
+    "kappa": "0.041",
+    "lambda": "0.267"
+  }
+}

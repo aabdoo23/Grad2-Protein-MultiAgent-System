@@ -1,0 +1,84 @@
+{
+  "databases": {
+    "afdb-swissprot": {
+      "hits": [
+        {
+          "alnLength": 33,
+          "dbAln": "LNEPLSWVKGTGIFLILLGLIFVLPKKNQTSDK",
+          "eval": 9.77,
+          "prob": 0.034,
+          "qAln": "LGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFK",
+          "score": 21,
+          "seqId": 21.2,
+          "tSeq": "MAHLTLSIRGLLLALMSVLLISVAQLSMKWGMGTLNQLWSDLVMLWQGEDYSSLFSQALAPVMAVGAGLFCYALSMACWVMALKRLPLSIAYPLLSLSYVLVYLGAVYLPWLNEPLSWVKGTGIFLILLGLIFVLPKKNQTSDKS",
+          "target": "AF-A8FRQ8-F1-model_v4 Probable 4-amino-4-deoxy-L-arabinose-phosphoundecaprenol flippase subunit ArnF",
+          "target_id": "AF-A8FRQ8-F1-model_v4",
+          "taxName": "Shewanella sediminis HAW-EB3"
+        }
+      ],
+      "total_hits": 1
+    },
+    "afdb50": {
+      "hits": [
+        {
+          "alnLength": 75,
+          "dbAln": "TIFEALEISESQKNDLNETLSAITKEIIKGDIKKPSMVAERLRDTLSYSELVFIATQYTLENA---EKIGRLIDQ",
+          "eval": 6.173,
+          "prob": 0.15,
+          "qAln": "EVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDST-----HTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFKR",
+          "score": 36,
+          "seqId": 14.6,
+          "tSeq": "MNINHEASTIFEALEISESQKNDLNETLSAITKEIIKGDIKKPSMVAERLRDTLSYSELVFIATQYTLENAEKIGRLIDQEIHKELGTRITEMLRNLGKDLDT",
+          "target": "AF-A0A5C7JQB5-F1-model_v4 Uncharacterized protein",
+          "target_id": "AF-A0A5C7JQB5-F1-model_v4",
+          "taxName": "Spirochaetes bacterium"
+        },
+        {
+          "alnLength": 68,
+          "dbAln": "QMGAEQIA---FGIAQMKKYQLVTGGDAMTDGIGIITQPRLKK-TWDMLVKNKLIDASKVPFEQTYTL",
+          "eval": 9.426,
+          "prob": 0.069,
+          "qAln": "QVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGME-CTDDQLSGIIMDNLLEEGAVDK---KAEGTFKR",
+          "score": 27,
+          "seqId": 20.5,
+          "tSeq": "MADTIKKRPAAVAAFVKASMEGWKSYLQDPIAGNQLISKANPQMGAEQIAFGIAQMKKYQLVTGGDAMTDGIGIITQPRLKKTWDMLVKNKLIDASKVPFEQTYTLDMVKDAGVMP",
+          "target": "AF-A0A4P1AKI9-F1-model_v4 Uncharacterized protein",
+          "target_id": "AF-A0A4P1AKI9-F1-model_v4",
+          "taxName": "Raoultella ornithinolytica"
+        },
+        {
+          "alnLength": 82,
+          "dbAln": "LMQGFTHMLKADFLKQAGLSEALVNHSYQWVEK-------------KVAFKPPMLQWQSALRNGLLEAGVLPDNG-FTYDHV",
+          "eval": 6.624,
+          "prob": 0.069,
+          "qAln": "LHKGLT--FDLEVLQQHQVGMRQVAHLVMVLHRMKHTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFKRL",
+          "score": 27,
+          "seqId": 15.8,
+          "tSeq": "MESTIAEHAFLVADQSLMQGFTHMLKADFLKQAGLSEALVNHSYQWVEKKVAFKPPMLQWQSALRNGLLEAGVLPDNGFTYDHVYGTKVYFYATVQKIIFSTKVFSRPRADGVIFEDAMGVRLWAFLTRDSKSEVILAAGMVDNPLNILFIPSRLPVELSLVSIVGITRFDSYIVACSGVSFAPSWTQRVARELASILNQVVFPSFEALWCLSFTGKIFSTKSDGEHPLVPRSPGKHLIGVLKGSTCRGIDAPLPWEALVVMVD",
+          "target": "AF-A0A061G1H1-F1-model_v4 Glucose-methanol-choline (GMC) oxidoreductase family protein",
+          "target_id": "AF-A0A061G1H1-F1-model_v4",
+          "taxName": "Theobroma cacao"
+        },
+        {
+          "alnLength": 68,
+          "dbAln": "RRVAALEAEIDRLRLEIAERDRRMGKYENAHAPSSTGSLYNERRAAFRKKMAEDGYADEDGDGGGPEP",
+          "eval": 8.784,
+          "prob": 0.063,
+          "qAln": "RQVAHLVMVLHRMK-------HTFQKSDSTHTPLGMECTDDQLSGIIMDNLLEEGAVDKKAEGTFKRL",
+          "score": 26,
+          "seqId": 17.6,
+          "tSeq": "MSRKSETAILREELARLAVENRELREMASRLEAASSRRVAALEAEIDRLRLEIAERDRRMGKYENAHAPSSTGSLYNERRAAFRKKMAEDGYADEDGDGGGPEPDGDGDGGKAEGEPSRRGPPAGHAGISHKNKADRTVVLKVYRCGTCGRGHLRKLPPVVKMAYDFAGGNSMIVECVAYVMKRGSCKRCGGMITTATAPLIPGTSFGPGILGFIEEYYAGRCTDQTISYFFDALYGFAVSQNAVWNARKAIRNLLSGTYREILGHIAEAPFVQFDEAPVRMNGKRGYIWLATIRDATYIVAAPSRGAAVLDIHFGKILDIPAVSDGYVVYDMLPIRQRCWVHLLREAEWYAIRNGESDISCYYRLLSVYRAIKGRKSAGSSECLSLERAVLEIASSY",
+          "target": "AF-A0A843BHL6-F1-model_v4 Transposase",
+          "target_id": "AF-A0A843BHL6-F1-model_v4",
+          "taxName": "Thaumarchaeota archaeon"
+        }
+      ],
+      "total_hits": 1
+    },
+    "pdb100": {
+      "hits": [],
+      "total_hits": 0
+    }
+  },
+  "success": true
+}

@@ -527,9 +527,11 @@ if options.baseUrl:
 
 # No options... print help.
 if numOpts < 2:
-    print_usage()
+    # print_usage()
+    pass
 elif options.help:
-    print_usage()
+    # print_usage()
+    pass
 # List parameters
 elif options.params:
     printGetParameters()
@@ -677,4 +679,4 @@ else:
         print('\nParameter "--email" is missing in your command. It is required!\n')
 
     print(u'Error: unrecognised argument combination', file=sys.stderr)
-    print_usage()
+    # print_usage()
