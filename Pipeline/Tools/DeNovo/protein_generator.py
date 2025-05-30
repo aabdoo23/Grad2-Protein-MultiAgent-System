@@ -5,4 +5,4 @@ class ProteinGenerator:
         # Placeholder: invoke your protein generation model.
         # Return a dictionary with at least a 'sequence' key.
         sequence = "MKTAYIAKQRQISFVKSHFSRQDILDLWIYHTQGYFP"
-        return {"success": True, "sequence": sequence, "info": "Protein generated based on prompt."}
+        return {"success": True, "sequence": sequence, "info": f"Protein generated based on prompt: {prompt}."}

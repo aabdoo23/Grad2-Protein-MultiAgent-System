@@ -72,106 +72,134 @@ class DownloadHandler:
         zip_buffer = io.BytesIO()
         
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            # Create a report directory
             report_dir = "report"
-            
-            # Generate summary report for all items
             summary_report = self.report_generator.generate_multiple_items_report(items)
             zipf.writestr(f"{report_dir}/summary_report.txt", summary_report)
             
-            # Process each item
             for idx, item in enumerate(items, start=1):
-                # Create item-specific directory based on the item type
-                
-                # Get item type and data
-                typ = item.get('outputType')
+                typ = item.get('outputType') # This is often the input handle name from the frontend connection
                 data = item.get('data', {})
-                item_dir = f"item_{idx}_{typ}"
+                # Determine a more specific item type if possible, e.g., from data structure
+                item_specific_type = typ 
+                if 'docking_poses' in data and 'output_dir' in data: # Check for docking result structure
+                    item_specific_type = 'docking_results'
                 
-                if typ == 'sequence':
+                item_dir_name = f"item_{idx}_{item_specific_type}"
+
+                if item_specific_type == 'docking_results':
+                    docking_output_dir = data.get('output_dir')
+                    if docking_output_dir and os.path.isdir(docking_output_dir):
+                        # Add all files from the docking output directory to the zip
+                        for root, _, files in os.walk(docking_output_dir):
+                            for file in files:
+                                file_path = os.path.join(root, file)
+                                # arcname is the path inside the zip file
+                                arcname = os.path.join(item_dir_name, os.path.relpath(file_path, docking_output_dir))
+                                zipf.write(file_path, arcname)
+                        # Optionally, add a report for the docking results
+                        docking_report = self.report_generator.generate_docking_report(data) # Assume this method exists
+                        zipf.writestr(f"{item_dir_name}/docking_summary_report.txt", docking_report)
+                    else:
+                        print(f"Docking output directory not found or is not a directory: {docking_output_dir}")
+                        zipf.writestr(f"{item_dir_name}/error.txt", f"Docking output directory not found: {docking_output_dir}")
+                
+                elif typ == 'sequence':
                     # Handle sequence data
                     if data.get('sequence'):
                         # Create FASTA file
                         sequence_name = data.get('sequence_name') or f'seq{str(idx)}'
                         fasta = f">{sequence_name}\n{data.get('sequence')}\n"
-                        zipf.writestr(f"{item_dir}/sequence.fasta", fasta)
+                        zipf.writestr(f"{item_dir_name}/sequence.fasta", fasta)
                         
                         # Create sequence report
                         seq_report = self.report_generator.generate_sequence_report(data)
-                        zipf.writestr(f"{item_dir}/sequence_report.txt", seq_report)
+                        zipf.writestr(f"{item_dir_name}/sequence_report.txt", seq_report)
                 
                 elif typ == 'structure':
                     # Handle structure data
                     if data.get('pdb_file'):
                         pdb_path = data.get('pdb_file')
                         if os.path.exists(pdb_path):
-                            zipf.write(pdb_path, f"{item_dir}/structure.pdb")
+                            zipf.write(pdb_path, f"{item_dir_name}/structure.pdb")
                             
                             # Create structure report
                             struct_report = self.report_generator.generate_structure_report(data)
-                            zipf.writestr(f"{item_dir}/structure_report.txt", struct_report)
+                            zipf.writestr(f"{item_dir_name}/structure_report.txt", struct_report)
                 
                 elif typ == 'results':
                     # Handle search results
                     if isinstance(data.get('results'), dict):
-                        results = data['results']
+                        results_data = data['results']
                         
                         # Generate results report
                         results_report = self.report_generator.generate_search_report(
-                            results, 
-                            data.get('search_type', 'unknown')
+                            results_data, 
+                            data.get('search_type', 'unknown_search')
                         )
-                        zipf.writestr(f"{item_dir}/results_report.txt", results_report)
+                        zipf.writestr(f"{item_dir_name}/results_report.txt", results_report)
                         
                         # Process MSA sequences
-                        if results.get('msa', {}).get('sequences'):
-                            msa_content = self.file_formatter.format_fasta_sequences(results['msa']['sequences'])
-                            zipf.writestr(f"{item_dir}/msa_sequences.fasta", msa_content)
+                        if results_data.get('msa', {}).get('sequences'):
+                            msa_content = self.file_formatter.format_fasta_sequences(results_data['msa']['sequences'])
+                            zipf.writestr(f"{item_dir_name}/msa_sequences.fasta", msa_content)
                         
                         # Process alignments
-                        if results.get('alignments', {}).get('databases'):
-                            for db_name, db_data in results['alignments']['databases'].items():
+                        if results_data.get('alignments', {}).get('databases'):
+                            for db_name, db_data in results_data['alignments']['databases'].items():
                                 hits_csv = self.file_formatter.generate_hits_csv(db_data['hits'])
-                                zipf.writestr(f"{item_dir}/{db_name}_hits.csv", hits_csv)
+                                zipf.writestr(f"{item_dir_name}/{db_name}_hits.csv", hits_csv)
                         
                         # Add original results
-                        zipf.writestr(f"{item_dir}/original_results.json", json.dumps(results, indent=2))
+                        zipf.writestr(f"{item_dir_name}/original_results.json", json.dumps(results_data, indent=2))
 
                 elif typ == 'database':
                     # Handle BLAST database files
                     if data.get('database'):
-                        db_path = data['database'].get('path')+"\.."
-                        if db_path and os.path.exists(db_path):
-                            # Add all files in the database folder
-                            for root, dirs, files in os.walk(db_path):
-                                for file in files:
-                                    file_path = os.path.join(root, file)
-                                    arcname = os.path.join(item_dir, os.path.relpath(file_path, db_path))
-                                    zipf.write(file_path, arcname)
-                            # Create database report
+                        db_info = data['database']
+                        db_path_base = db_info.get('path')
+                        # Assuming db_path_base is the path to one of the db files (e.g. .pdb or .phr)
+                        # and the actual db files are in its parent directory.
+                        if db_path_base and os.path.exists(os.path.dirname(db_path_base)):
+                            db_dir_to_zip = os.path.dirname(db_path_base)
+                            for root, _, files_in_db_dir in os.walk(db_dir_to_zip):
+                                for file_in_db in files_in_db_dir:
+                                    # Only add files that belong to this specific BLAST database, 
+                                    # using the db_name from db_info as part of the check.
+                                    # This avoids zipping other unrelated dbs if they are in the same root folder.
+                                    if file_in_db.startswith(db_info.get('name')):
+                                        file_path_to_add = os.path.join(root, file_in_db)
+                                        arcname = os.path.join(item_dir_name, os.path.relpath(file_path_to_add, db_dir_to_zip))
+                                        zipf.write(file_path_to_add, arcname)
                             db_report = self.report_generator.generate_database_report(data)
-                            zipf.writestr(f"{item_dir}/database_report.txt", db_report)
+                            zipf.writestr(f"{item_dir_name}/database_report.txt", db_report)
                         else:
-                            print(f"Database file not found at {db_path}")
+                            print(f"Database directory not found based on path {db_path_base}")
+                            zipf.writestr(f"{item_dir_name}/error.txt", f"Database directory not found for {db_path_base}")
 
                 elif typ == 'fasta':
                     # Handle FASTA files
                     if data.get('fasta_file'):
                         fasta_path = data['fasta_file']
                         if os.path.exists(fasta_path):
-                            zipf.write(fasta_path, f"{item_dir}/sequences.fasta")
+                            zipf.write(fasta_path, f"{item_dir_name}/sequences.fasta")
                             
                             # Create FASTA report
                             fasta_report = self.report_generator.generate_fasta_report(data)
-                            zipf.writestr(f"{item_dir}/fasta_report.txt", fasta_report)
+                            zipf.writestr(f"{item_dir_name}/fasta_report.txt", fasta_report)
                 
-                # Add item metadata
+                else: # Fallback for unknown types or types not requiring special file handling
+                    if data:
+                         zipf.writestr(f"{item_dir_name}/data.json", json.dumps(data, indent=2))
+                    else:
+                        zipf.writestr(f"{item_dir_name}/info.txt", f"Item type '{typ}' had no specific data to zip.")
+
                 metadata = {
-                    'type': typ,
+                    'type': item_specific_type,
+                    'original_input_type': typ, # Keep original type for reference
                     'timestamp': datetime.now().isoformat(),
                     'description': data.get('description', '')
                 }
-                zipf.writestr(f"{item_dir}/metadata.json", json.dumps(metadata, indent=2))
+                zipf.writestr(f"{item_dir_name}/metadata.json", json.dumps(metadata, indent=2))
         
         zip_buffer.seek(0)
         return zip_buffer

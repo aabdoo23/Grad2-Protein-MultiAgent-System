@@ -208,9 +208,8 @@ class PipelineController:
             return self.build_database(params)
         elif name == 'perform_docking':
             # Extract docking parameters
-            protein_file = params.get('protein_file')
-            ligand_file = params.get('ligand_file')
-            output_dir = params.get('output_dir')
+            protein_file = params.get('pdb_file')  # Changed from protein_file to pdb_file
+            ligand_file = params.get('molecule', {}).get('molecule_file')  # Get molecule_file from molecule object
             center_x = params.get('center_x')
             center_y = params.get('center_y')
             center_z = params.get('center_z')
@@ -221,13 +220,12 @@ class PipelineController:
             num_modes = params.get('num_modes', 10)
             cpu = params.get('cpu', 4)
 
-            if not all([protein_file, ligand_file, output_dir, center_x, center_y, center_z, size_x, size_y, size_z]):
+            if not all([protein_file, ligand_file, center_x, center_y, center_z, size_x, size_y, size_z]):
                 return {"success": False, "error": "Missing required docking parameters"}
 
             result = self.docking_tool.perform_docking(
                 protein_file=protein_file,
                 ligand_file=ligand_file,
-                output_dir=output_dir,
                 center_x=center_x,
                 center_y=center_y,
                 center_z=center_z,

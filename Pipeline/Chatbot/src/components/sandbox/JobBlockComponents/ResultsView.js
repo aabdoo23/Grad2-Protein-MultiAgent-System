@@ -3,9 +3,11 @@ import SequenceGenerationResults from '../../result-viewers/SequenceGenerationRe
 import { downloadService } from '../../../services/api';
 import BlastResults from '../../BlastResults';
 import { BASE_URL } from '../../../config/config';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, onToggleResults, initViewer, formatMetric }) => {
+    const [selectedPose, setSelectedPose] = useState(null);
+
     const renderDownloadButton = () => {
       if (!blockOutput) return null;
   
@@ -26,6 +28,15 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
             case 'alphafold2_predict':
             case 'esmfold_predict':
               response = await downloadService.downloadStructure(blockOutput.pdb_file);
+              break;
+  
+            case 'perform_docking':
+              if (blockOutput.output_dir) {
+                response = await downloadService.downloadFilesAsZip([{ path: blockOutput.output_dir, name: `docking_results_${blockInstanceId}` }]);
+              } else {
+                console.error('No output directory specified for docking results download.');
+                return;
+              }
               break;
   
             case 'colabfold_search':
@@ -68,9 +79,9 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
         if (isResultsOpen && initViewer && blockOutput?.pdb_file && 
             (blockType.id === 'openfold_predict' || blockType.id === 'alphafold2_predict' || blockType.id === 'esmfold_predict')) {
             
-            const fetchPdbContent = async () => {
+            const fetchPdbContent = async (filePath) => {
                 try {
-                    const response = await fetch(`${BASE_URL}/api/pdb-content?filePath=${encodeURIComponent(blockOutput.pdb_file)}`);
+                    const response = await fetch(`${BASE_URL}/api/pdb-content?filePath=${encodeURIComponent(filePath)}`);
                     if (!response.ok) {
                         const errorText = await response.text();
                         throw new Error(`Failed to fetch PDB content: ${response.status} ${response.statusText}. ${errorText}`);
@@ -87,12 +98,36 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
                 }
             };
 
-            fetchPdbContent();
+            fetchPdbContent(blockOutput.pdb_file);
+        } else if (isResultsOpen && initViewer && blockType.id === 'perform_docking') {
+            if (selectedPose && selectedPose.complex_pdb_file) {
+                const fetchPdbContent = async (filePath) => {
+                    try {
+                        const response = await fetch(`${BASE_URL}/api/pdb-content?filePath=${encodeURIComponent(filePath)}`);
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            throw new Error(`Failed to fetch PDB content: ${response.status} ${response.statusText}. ${errorText}`);
+                        }
+                        const pdbContent = await response.text();
+                        if (pdbContent) {
+                            initViewer(viewerDomId, pdbContent, blockInstanceId);
+                        } else {
+                            initViewer(viewerDomId, null, blockInstanceId, 'Fetched PDB content for pose is empty.');
+                        }
+                    } catch (error) {
+                        console.error('Error fetching PDB content for pose:', error);
+                        initViewer(viewerDomId, null, blockInstanceId, `Error fetching PDB for pose: ${error.message}`);
+                    }
+                };
+                fetchPdbContent(selectedPose.complex_pdb_file);
+            } else if (blockOutput?.docking_poses?.length > 0 && !selectedPose) {
+                setSelectedPose(blockOutput.docking_poses[0]);
+            }
         } else if (isResultsOpen && initViewer && !blockOutput?.pdb_file && 
                    (blockType.id === 'openfold_predict' || blockType.id === 'alphafold2_predict' || blockType.id === 'esmfold_predict')) {
             initViewer(viewerDomId, null, blockInstanceId, 'PDB file path missing in block output.');
         }
-    }, [isResultsOpen, blockOutput, blockType.id, blockInstanceId, initViewer, viewerDomId]);
+    }, [isResultsOpen, blockOutput, blockType.id, blockInstanceId, initViewer, viewerDomId, selectedPose]);
 
     const renderResults = () => {
       if (!blockOutput) return null;
@@ -172,6 +207,41 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
               {renderDownloadButton()}
             </div>
           );
+  
+        case 'perform_docking':
+            if (!blockOutput.docking_poses || blockOutput.docking_poses.length === 0) {
+                return <div className="text-white p-3">No docking poses found.</div>;
+            }
+            return (
+                <div className="bg-[#1a2b34] rounded-lg p-3">
+                    <h3 className="text-lg font-semibold text-white mb-2">Docking Results</h3>
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <div
+                                id={viewerDomId}
+                                className="nodrag relative w-full h-[400px] rounded-lg mb-3 bg-gray-800 border border-gray-700 molstar-viewer-container overflow-hidden"
+                            />
+                        </div>
+                        <div className="w-1/3 max-h-[420px] overflow-y-auto custom-scrollbar pr-2">
+                            {blockOutput.docking_poses.map((pose) => (
+                                <div
+                                    key={pose.mode}
+                                    onClick={() => setSelectedPose(pose)}
+                                    className={`p-2 mb-2 rounded-md cursor-pointer transition-all ${selectedPose?.mode === pose.mode ? 'bg-[#13a4ec] text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`}
+                                >
+                                    <p className="font-semibold">Mode {pose.mode}</p>
+                                    <p className="text-xs">Affinity: {formatMetric(pose.affinity)} kcal/mol</p>
+                                    <p className="text-xs">RMSD L.B.: {formatMetric(pose.rmsd_lb)} Å</p>
+                                    <p className="text-xs">RMSD U.B.: {formatMetric(pose.rmsd_ub)} Å</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex justify-end mt-3">
+                        {renderDownloadButton()} 
+                    </div>
+                </div>
+            );
   
         case 'colabfold_search':
         case 'ncbi_blast_search':

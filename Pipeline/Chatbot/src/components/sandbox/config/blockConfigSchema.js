@@ -138,5 +138,52 @@ export const blockConfigSchema = {
       placeholder: 'Enter custom database name (optional)',
       defaultValue: ''
     }
+  },
+  perform_docking: {
+    center_x: {
+      type: 'number',
+      label: 'Center X',
+      defaultValue: 0
+    },
+    center_y: { 
+      type: 'number',
+      label: 'Center Y',
+      defaultValue: 0
+    },
+    center_z: {
+      type: 'number',
+      label: 'Center Z',
+      defaultValue: 0
+    },
+    size_x: {
+      type: 'number',
+      label: 'Size X',
+      defaultValue: 20
+    },
+    size_y: {
+      type: 'number',
+      label: 'Size Y',
+      defaultValue: 20
+    },
+    size_z: {
+      type: 'number',
+      label: 'Size Z',
+      defaultValue: 20
+    },
+    exhaustiveness: {
+      type: 'number',
+      label: 'Exhaustiveness',
+      defaultValue: 16
+    },
+    num_modes: {
+      type: 'number',
+      label: 'Number of Modes',
+      defaultValue: 10
+    },
+    cpu: { 
+      type: 'number',
+      label: 'CPU',
+      defaultValue: 4
+    }
   }
 }; 

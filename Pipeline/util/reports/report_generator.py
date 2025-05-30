@@ -187,6 +187,51 @@ class ReportGenerator:
         
         return "\n".join(report)
 
+    @staticmethod
+    def generate_docking_report(data: Dict[str, Any]) -> str:
+        """Generate a summary report for docking results."""
+        report_lines = []
+        report_lines.append("=" * 80)
+        report_lines.append("Docking Results Summary Report")
+        report_lines.append("=" * 80)
+        report_lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+        output_dir = data.get('output_dir')
+        if output_dir:
+            report_lines.append(f"Output Directory: {output_dir}")
+        
+        output_files = data.get('output_files', {})
+        if output_files:
+            report_lines.append("\nKey Output Files:")
+            report_lines.append(f"  Protein PDBQT: {output_files.get('protein_pdbqt', 'N/A')}")
+            report_lines.append(f"  Ligand PDBQT: {output_files.get('ligand_pdbqt', 'N/A')}")
+            report_lines.append(f"  All Poses PDBQT: {output_files.get('all_poses_pdbqt', 'N/A')}")
+            report_lines.append(f"  Log File: {output_files.get('log_file', 'N/A')}")
+            report_lines.append(f"  Configuration File: {output_files.get('config_file', 'N/A')}")
+
+        docking_poses = data.get('docking_poses', [])
+        if docking_poses:
+            report_lines.append("\nDocking Poses Summary:")
+            report_lines.append("-" * 30)
+            report_lines.append(f"Total Poses Generated: {len(docking_poses)}")
+            
+            # Sort poses by affinity (best first)
+            sorted_poses = sorted(docking_poses, key=lambda p: p.get('affinity', 0))
+            
+            report_lines.append("\nTop Poses (Sorted by Affinity):")
+            for i, pose in enumerate(sorted_poses[:5]): # Display top 5 or fewer
+                report_lines.append(f"  Mode {pose.get('mode', 'N/A')}:")
+                report_lines.append(f"    Affinity: {pose.get('affinity', 'N/A')} kcal/mol")
+                report_lines.append(f"    RMSD L.B.: {pose.get('rmsd_lb', 'N/A')} Å")
+                report_lines.append(f"    RMSD U.B.: {pose.get('rmsd_ub', 'N/A')} Å")
+                report_lines.append(f"    Complex PDB: {os.path.basename(pose.get('complex_pdb_file', 'N/A'))}")
+                report_lines.append(f"    Ligand PDB: {os.path.basename(pose.get('ligand_pdb_file', 'N/A'))}")
+        else:
+            report_lines.append("\nNo docking poses information available.")
+        
+        report_lines.append("\n" + "=" * 80)
+        return "\n".join(report_lines)
+
     def _format_size(self, size_bytes: int) -> str:
         """Format file size in human-readable format."""
         for unit in ['B', 'KB', 'MB', 'GB']:

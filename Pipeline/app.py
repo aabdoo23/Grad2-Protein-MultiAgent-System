@@ -29,8 +29,10 @@ app.secret_key = "YOUR_SECRET_KEY"  # Needed for session management
 
 # Configure static file serving
 STATIC_PDB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'pdb_files')
+STATIC_DOCKING_RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'docking_results')
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
 os.makedirs(STATIC_PDB_DIR, exist_ok=True)
+os.makedirs(STATIC_DOCKING_RESULTS_DIR, exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Allowed file extensions
@@ -51,20 +53,20 @@ def get_pdb_content():
         return jsonify({'error': 'filePath parameter is required'}), 400
 
     try:
-        # Normalize and get real absolute path for security check.
-        # os.path.realpath resolves symlinks and normalizes the path (e.g., handles '..')
         requested_abs_path = os.path.realpath(file_path_param)
         
-        # Get the real absolute path of the allowed base directory
-        allowed_base_dir_abs = os.path.realpath(STATIC_PDB_DIR)
+        allowed_base_pdb_abs = os.path.realpath(STATIC_PDB_DIR)
+        allowed_base_docking_abs = os.path.realpath(STATIC_DOCKING_RESULTS_DIR)
 
-        # Security check: Ensure the requested path is within the allowed base directory.
-        # This prevents directory traversal attacks.
-        if not requested_abs_path.startswith(allowed_base_dir_abs):
+        # Security check: Ensure the requested path is within one of the allowed base directories.
+        is_in_pdb_dir = requested_abs_path.startswith(allowed_base_pdb_abs)
+        is_in_docking_dir = requested_abs_path.startswith(allowed_base_docking_abs)
+
+        if not (is_in_pdb_dir or is_in_docking_dir):
             app.logger.warning(
                 f"Forbidden access attempt to PDB path: '{file_path_param}' "
                 f"(resolved: '{requested_abs_path}'). "
-                f"It is not within allowed base: '{allowed_base_dir_abs}'."
+                f"It is not within allowed bases: '{allowed_base_pdb_abs}' or '{allowed_base_docking_abs}'."
             )
             return jsonify({'error': 'Access to the requested file path is forbidden.'}), 403
 

@@ -151,5 +151,25 @@ export const blockTypes = [
         pfam_ids: [],
         db_name: ""
       }
+    },
+    {
+      id: 'perform_docking',
+      name: 'Molecular Docking',
+      type: 'Docking',
+      description: 'Perform molecular docking between a protein and ligand using AutoDock Vina',
+      color: '#7209b7',
+      inputs: ['structure', 'molecule'],
+      outputs: ['results'],
+      config: {
+        center_x: 0,
+        center_y: 0,
+        center_z: 0,
+        size_x: 20,
+        size_y: 20,
+        size_z: 20,
+        exhaustiveness: 16,
+        num_modes: 10,
+        cpu: 4
+      }
     }
   ];
