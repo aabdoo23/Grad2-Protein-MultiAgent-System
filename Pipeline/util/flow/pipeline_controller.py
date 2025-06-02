@@ -88,34 +88,49 @@ class PipelineController:
                 params = self._chain_job_parameters(previous_job.result, job)
         
         if name == 'file_upload':
-            # Get the file path and output type from parameters
             file_path = params.get('filePath')
-            output_type = params.get('outputType')
+            output_type = params.get('outputType') # This is 'structure', 'molecule', or 'sequence' (singular)
             
             if not file_path or not output_type:
                 return {"success": False, "error": "Missing file path or output type"}
             
-            # Construct the full file path
-            full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', file_path)
+            if not os.path.exists(file_path):
+                return {"success": False, "error": f"File not found at path: {file_path}"}
             
-            if not os.path.exists(full_path):
-                return {"success": False, "error": "File not found"}
-            
-            # Return the appropriate output based on file type
             if output_type == 'structure':
                 result = {
                     "success": True,
-                    "pdb_file": file_path,
+                    "filePath": file_path, # Changed from pdb_file to filePath for consistency
                     "outputType": "structure"
                 }
             elif output_type == 'molecule':
                 result = {
                     "success": True,
-                    "molecule_file": file_path,
+                    "filePath": file_path, # Changed from molecule_file to filePath for consistency
                     "outputType": "molecule"
                 }
+            elif output_type == 'sequence': # Input 'outputType' from frontend is 'sequence'
+                sequences_list = params.get('sequences', []) # Parsed by app.py's upload_file
+                num_sequences = len(sequences_list)
+
+                if num_sequences == 1:
+                    result = {
+                        "success": True,
+                        "filePath": file_path,
+                        "outputType": "sequence", 
+                        "sequence": sequences_list[0]
+                    }
+                elif num_sequences > 1:
+                    result = {
+                        "success": True,
+                        "filePath": file_path,
+                        "outputType": "sequences_list", 
+                        "sequences_list": sequences_list
+                    }
+                else:
+                    result = {"success": False, "error": "No sequences found in the uploaded FASTA file."}
             else:
-                return {"success": False, "error": "Invalid output type"}
+                return {"success": False, "error": f"Invalid output type for file_upload: {output_type}"}
                 
         elif name == PipelineFunction.GENERATE_PROTEIN.value:
             result = self.protein_generator.generate(params.get("prompt", ""))

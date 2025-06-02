@@ -6,7 +6,7 @@ export const blockTypes = [
       description: 'Upload PDB, SDF, or MOL2 files for structure or molecule analysis',
       color: '#653239',
       inputs: [],
-      outputs: ['structure', 'molecule', 'sequence'],
+      outputs: ['structure', 'molecule', 'sequence', 'sequences_list'],
       config: {
         acceptedFileTypes: {
           structure: ['.pdb'],
@@ -39,7 +39,7 @@ export const blockTypes = [
       type: 'Iterate',
       description: 'Iterate through sequences from FASTA file or pasted sequences',
       color: '#073b4c',
-      inputs: ['fasta'],
+      inputs: ['sequences_list'],
       outputs: ['sequence'],
       config:{}
     },

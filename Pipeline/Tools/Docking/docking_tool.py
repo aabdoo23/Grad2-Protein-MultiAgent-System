@@ -9,15 +9,17 @@ import re
 
 class DockingTool:
     def __init__(self):
-        # Default paths - these should be configured based on your system setup
-        self.mgltools_python_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-                                                "Tools","Docking","Util","MGLTools-1.5.7", "python.exe")
-        self.prepare_receptor_script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-                                                       "Tools","Docking","Util","MGLTools-1.5.7", "Lib", "site-packages", 
-                                                       "AutoDockTools", "Utilities24", "prepare_receptor4.py")
-        self.vina_executable = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-                                          "Tools","Docking","Util","vina.exe")
-        # Set up static directory for results
+        # Linux paths
+        # prepare_receptor_script_path = "C:\Users\saleh\source\repos\Grad2-Protein-MultiAgent-System\Pipeline\Tools\Docking\Util\Linux\mgltools_x86_64Linux2_1.5.7\MGLToolsPckgs\MGLToolsPckgs\AutoDockTools\Utilities24\prepare_receptor4.py"
+
+        self.mgltools_python_path = os.path.join("Tools","Docking","Util","Linux","mgltools_x86_64Linux2_1.5.7","Python2.7_x86_64Linux2","bin","MGLpython2.7")
+        self.prepare_receptor_script_path = os.path.join("Tools","Docking","Util","Linux","mgltools_x86_64Linux2_1.5.7","MGLToolsPckgs","MGLToolsPckgs","AutoDockTools","Utilities24","prepare_receptor4.py")
+        self.vina_executable = os.path.join("Tools","Docking","Util","Linux","vina_1.2.7_linux_x86_64")
+        if os.name=='nt':
+            self.mgltools_python_path = os.path.join("Tools","Docking","Util","MGLTools-1.5.7","python.exe")
+            self.prepare_receptor_script_path = os.path.join("Tools","Docking","Util","MGLTools-1.5.7","Lib","site-packages","AutoDockTools","Utilities24","prepare_receptor4.py")
+            self.vina_executable = os.path.join("Tools","Docking","Util","vina.exe")
+
         self.static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'static', 'docking_results')
         os.makedirs(self.static_dir, exist_ok=True)
 

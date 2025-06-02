@@ -468,103 +468,134 @@ const SandboxPage = () => {
     }
 
     if (block.type === 'sequence_iterator') {
-      // Get sequences from either FASTA input or pasted sequences
-      let sequences = [];
+      // Get sequences from input connection or pasted sequences
+      let currentRunParams = { ...block.parameters }; // Use this for parameter values in this run
+      let sequencesArray; // This will hold the actual array of sequences to iterate
       
       // Check if we need to load data (first run or explicit load)
-      const shouldLoadData = params?.loadData || (block.status === 'idle' && !block.parameters.loadedSequences);
+      // Use currentRunParams here for reading loadedSequences status
+      const shouldLoadData = params?.loadData || (block.status === 'idle' && !currentRunParams.loadedSequences);
       
       if (shouldLoadData) {
-        // Check for FASTA input from connected block
+        let determinedSequences = []; // This was the 'sequences' variable in the original code
+        
+        // Check for 'sequences_list' input from a connected block
         const blockConnectionData = connections[blockId];
-        if (blockConnectionData && blockConnectionData.fasta) {
-          const fastaConnection = Array.isArray(blockConnectionData.fasta) 
-            ? blockConnectionData.fasta[0] 
-            : blockConnectionData.fasta;
-          console.log("fastaConnection", fastaConnection);
-          console.log("blockOutputs", blockOutputs[fastaConnection.source]);
+        if (blockConnectionData && blockConnectionData.sequences_list) {
+          const inputConnection = Array.isArray(blockConnectionData.sequences_list) 
+            ? blockConnectionData.sequences_list[0] 
+            : blockConnectionData.sequences_list;
           
-          if (fastaConnection && blockOutputs[fastaConnection.source]) {
-            const fastaOutput = blockOutputs[fastaConnection.source];
-            // Handle both direct sequences array and FASTA file path
-            if (fastaOutput.sequences) {
-              sequences = fastaOutput.sequences;
-            } else if (fastaOutput.fasta_file) {
-              // If we have a FASTA file path, use the backend API to read it
+          console.log("Sequence Iterator: Checking input connection:", inputConnection);
+          
+          if (inputConnection && blockOutputs[inputConnection.source]) {
+            const sourceOutputData = blockOutputs[inputConnection.source];
+            console.log("Sequence Iterator: Data from connected source:", sourceOutputData);
+
+            if (sourceOutputData.sequences && Array.isArray(sourceOutputData.sequences)) {
+              determinedSequences = sourceOutputData.sequences;
+              console.log("Sequence Iterator: Using sequences array from input connection.", determinedSequences);
+            } else if (sourceOutputData.filePath || sourceOutputData.fasta_file) {
+              const filePathToRead = sourceOutputData.filePath || sourceOutputData.fasta_file;
+              console.log("Sequence Iterator: Attempting to read sequences from file path:", filePathToRead);
               try {
-                const response = await jobService.readFastaFile(fastaOutput.fasta_file);
+                const response = await jobService.readFastaFile(filePathToRead);
                 if (response.success && response.sequences) {
-                  sequences = response.sequences;
+                  determinedSequences = response.sequences;
                 } else {
-                  console.error('Failed to read FASTA file:', response.error);
+                  const errorMsg = `Failed to read sequence file: ${response.error || 'Unknown error'}`;
+                  console.error(`Sequence Iterator: ${errorMsg}`);
+                  showErrorToast(errorMsg);
                   updateBlockInStore(blockId, { status: 'failed' });
                   return;
                 }
               } catch (error) {
-                console.error('Error reading FASTA file:', error);
+                const errorMsg = `Error reading sequence file: ${error.message || 'Unknown error'}`;
+                console.error(`Sequence Iterator: ${errorMsg}`);
+                showErrorToast(errorMsg);
                 updateBlockInStore(blockId, { status: 'failed' });
                 return;
               }
+            } else {
+              console.warn("Sequence Iterator: Connected input source does not contain 'sequences' array or a 'filePath'/'fasta_file'. Source Block ID:", inputConnection.source, "Output:", sourceOutputData);
             }
+          } else {
+            console.warn("Sequence Iterator: Input connection found for 'sequences_list', but no output data from source block:", inputConnection?.source);
           }
         }
         
-        // If no FASTA input, use pasted sequences from parameters
-        if (sequences.length === 0 && block.parameters.sequences) {
-          sequences = block.parameters.sequences;
+        // If no sequences from input connection, use pasted sequences from parameters
+        // Read from currentRunParams.sequences instead of block.parameters.sequences
+        if (determinedSequences.length === 0 && currentRunParams.sequences && Array.isArray(currentRunParams.sequences) && currentRunParams.sequences.length > 0) {
+          console.log("Sequence Iterator: Using pasted sequences from block parameters.", currentRunParams.sequences);
+          determinedSequences = currentRunParams.sequences;
         }
 
-        if (sequences.length === 0) {
+        if (determinedSequences.length === 0) {
+          showErrorToast('Sequence Iterator: No sequences found from input connection or parameters.');
           updateBlockInStore(blockId, { status: 'failed' });
           return;
         }
 
-        // Store the loaded sequences in the block parameters
+        // Prepare the parameters object for the store and for this run's logic
+        currentRunParams = {
+          ...block.parameters, // Base on the original store state to preserve other parameters
+          loadedSequences: determinedSequences,
+          currentIndex: 0,
+          totalSequences: determinedSequences.length,
+          completedSequences: 0 // Reset completed count when loading new data
+        };
         updateBlockInStore(blockId, {
-          parameters: {
-            ...block.parameters,
-            loadedSequences: sequences,
-            currentIndex: 0,
-            totalSequences: sequences.length,
-            completedSequences: 0
-          }
+          parameters: currentRunParams
         });
+        sequencesArray = determinedSequences;
+        // The direct mutation of block.parameters is removed.
       } else {
-        // Use already loaded sequences
-        sequences = block.parameters.loadedSequences || [];
+        // Use already loaded sequences from currentRunParams
+        sequencesArray = currentRunParams.loadedSequences || [];
       }
 
-      const currentIndex = block.parameters.currentIndex || 0;
+      // Use currentRunParams for parameter values, and sequencesArray for the list
+      const currentIndex = currentRunParams.currentIndex || 0;
+      const totalSequences = currentRunParams.totalSequences || (sequencesArray ? sequencesArray.length : 0);
+      let completedSequencesCount = currentRunParams.completedSequences || 0;
 
-      if (sequences.length === 0) {
-        updateBlockInStore(blockId, { status: 'failed' });
+      if (!sequencesArray || sequencesArray.length === 0 || currentIndex >= sequencesArray.length) {
+        console.log('Sequence Iterator: All sequences processed or no sequences available.');
+        updateBlockInStore(blockId, { 
+          status: 'completed', 
+          parameters: { ...currentRunParams } // Persist the final state of currentRunParams
+        });
+        if (loopConfig.isEnabled && loopConfig.iterationType === 'sequence' && loopConfig.sequenceBlockId === blockId) {
+            console.log("Sequence iterator is the loop's sequence provider and has finished. Stopping loop.");
+            stopLoop(); 
+        }
         return;
       }
 
-      const currentSequence = sequences[currentIndex];
+      const currentSequence = sequencesArray[currentIndex];
+      completedSequencesCount++;
 
-      const remainingSequences = [...sequences];
-      remainingSequences.splice(currentIndex, 1);
-
+      // Prepare parameters for the next state update, based on currentRunParams
+      const parametersForNextStoreUpdate = {
+        ...currentRunParams,
+        currentIndex: currentIndex + 1,
+        completedSequences: completedSequencesCount
+      };
       updateBlockInStore(blockId, {
-        status: 'completed',
-        parameters: {
-          ...block.parameters,
-          loadedSequences: sequences, // Keep the loaded sequences
-          currentIndex: (currentIndex + 1) % sequences.length, // Move to next sequence
-          totalSequences: sequences.length,
-          completedSequences: (block.parameters.completedSequences || 0) + 1
-        }
+        status: 'completed', 
+        parameters: parametersForNextStoreUpdate
       });
 
       const output = {
         sequence: currentSequence,
-        info: `Sequence ${currentIndex + 1} of ${sequences.length}`,
-        sequence_name: `sequence_${currentIndex + 1}`,
+        info: `Sequence ${currentIndex + 1} of ${totalSequences}`,
+        sequence_name: currentSequence.name || currentSequence.id || `sequence_${currentIndex + 1}`,
         progress: {
-          completed: (block.parameters.completedSequences || 0) + 1,
-          total: block.parameters.totalSequences || sequences.length,
-          remaining: remainingSequences.length
+          current: currentIndex + 1,
+          completed: completedSequencesCount,
+          total: totalSequences,
+          remaining: totalSequences - (currentIndex + 1)
         }
       };
 
@@ -611,9 +642,28 @@ const SandboxPage = () => {
               const sourceOutput = blockOutputs[conn.source];
               console.log(`Getting ${conn.sourceHandle} from block ${conn.source}:`, sourceOutput);
               switch (conn.sourceHandle) {
-                case 'sequence': blockInputs.sequence = sourceOutput.sequence; blockInputs.sequence_name = sourceOutput.sequence_name; break;
-                case 'structure': blockInputs.pdb_file = sourceOutput.pdb_file; break;
-                case 'molecule': blockInputs.molecule_file = sourceOutput.molecule_file; break;
+                case 'sequence':
+                  if (sourceOutput.sequence !== undefined) { // If source explicitly provides a single sequence
+                    blockInputs.sequence = sourceOutput.sequence;
+                    blockInputs.sequence_name = sourceOutput.sequence_name || `sequence_from_${conn.source}`;
+                  } else if (sourceOutput.sequences && Array.isArray(sourceOutput.sequences) && sourceOutput.sequences.length > 0) {
+                    // Handle output from blocks like file_upload which have a 'sequences' array
+                    blockInputs.sequence = sourceOutput.sequences[0]; // Take the first sequence
+                    // Attempt to derive a name, e.g., from filePath if available
+                    if (sourceOutput.filePath) {
+                      const fileName = sourceOutput.filePath.split(/[\\\\/]/).pop(); // Handles both Windows and Unix paths
+                      blockInputs.sequence_name = `${fileName}_seq1`;
+                    } else {
+                      blockInputs.sequence_name = `sequence_1_from_${conn.source}`;
+                    }
+                  }
+                  break;
+                case 'structure': 
+                  blockInputs.pdb_file = sourceOutput.pdb_file || sourceOutput.filePath; // file_upload uses filePath for structure
+                  break;
+                case 'molecule': 
+                  blockInputs.molecule_file = sourceOutput.molecule_file || sourceOutput.filePath; // file_upload uses filePath for molecule
+                  break;
                 case 'metrics': blockInputs.metrics = sourceOutput.metrics; break;
                 case 'results': blockInputs.results = sourceOutput.results; break;
                 default: blockInputs[targetHandle] = sourceOutput;
@@ -1084,4 +1134,4 @@ const SandboxPage = () => {
   );
 };
 
-export default SandboxPage; 
+export default SandboxPage;

@@ -31,6 +31,38 @@ const JobBlock = ({
   // Access blockType from the data prop
   const safeBlockType = data.blockType || defaultBlockType;
 
+  const getDisplayedOutputPorts = () => {
+    if (safeBlockType.id !== 'file_upload') {
+      return safeBlockType.outputs;
+    }
+
+    const jobResult = data.blockOutput;
+    const jobResultOutputType = jobResult?.success ? jobResult.outputType : null;
+    const initialUploadType = data.parameters?.outputType;
+
+    if (jobResultOutputType) {
+      if (jobResultOutputType === 'structure') return ['structure'];
+      if (jobResultOutputType === 'molecule') return ['molecule'];
+      if (jobResultOutputType === 'sequence') return ['sequence']; 
+      if (jobResultOutputType === 'sequences_list') return ['sequences_list'];
+      return []; 
+    }
+
+    if (initialUploadType) {
+      // File has been selected, but job hasn't run or result isn't processed yet
+      if (initialUploadType === 'structure') return ['structure'];
+      if (initialUploadType === 'molecule') return ['molecule'];
+      if (initialUploadType === 'sequence') {
+        // FASTA file selected, could be single or multiple. Show both 'sequence' and 'sequences_list' as potential outputs.
+        return ['sequence', 'sequences_list'];
+      }
+      return []; // Fallback for unknown initialUploadType
+    }
+
+    // No file selected yet for upload block, show all its potential outputs as defined in blockTypes.js
+    return safeBlockType.outputs; // e.g., ['structure', 'molecule', 'sequence', 'sequences_list']
+  };
+
   const handleResize = ({ width, height }) => {
     if (data.updateBlock) {
       data.updateBlock({ width, height });
@@ -68,8 +100,6 @@ const JobBlock = ({
 
       data.onUpdateParameters(parameters);
 
-      // Use onRunBlock from data prop
-      data.onRunBlock();
     } catch (error) {
       console.error('Error uploading file:', error);
       showErrorToast(`File upload failed: ${error.message || 'Unknown error'}`);
@@ -192,13 +222,13 @@ const JobBlock = ({
           >
             {renderBlockContent()}
             <BlockActions
-              hasConfig={!!safeBlockType.config}
+              hasConfig={!!safeBlockType.config && safeBlockType.id !== 'file_upload'}
               isConfigOpen={isConfigOpen}
               onToggleConfig={() => setIsConfigOpen(!isConfigOpen)}
               onRunBlock={() => data.onRunBlock()}
               isRunning={data.status === 'running'}
             />
-            {safeBlockType.config && (
+            {safeBlockType.config && safeBlockType.id !== 'file_upload' && (
               <BlockConfig
                 blockType={safeBlockType}
                 isConfigOpen={isConfigOpen}
@@ -210,7 +240,15 @@ const JobBlock = ({
                 initialParams={data.parameters || {}}
               />
             )}
-            {data.status === 'completed' && (
+            {/* Custom indicator for successful file upload */}
+            {safeBlockType.id === 'file_upload' && data.parameters?.filePath && (
+              <div className="p-2 mt-2 text-sm text-green-400 bg-green-900/30 rounded">
+                File <span className="font-semibold">{data.parameters.filePath.split(/[\\\\/]/).pop()}</span> loaded.
+                Type: <span className="font-semibold">{data.parameters.outputType}</span>.
+              </div>
+            )}
+            {/* ResultsView for other blocks when completed */}
+            {safeBlockType.id !== 'file_upload' && data.status === 'completed' && (
               <ResultsView
                 blockType={safeBlockType}
                 blockOutput={data.blockOutput}
@@ -225,10 +263,7 @@ const JobBlock = ({
 
           {/* Output Ports Section */}
           <div className="flex flex-col justify-center items-end p-2 space-y-2">
-            {(safeBlockType.id === 'file_upload' && data.parameters?.outputType
-              ? safeBlockType.outputs.filter(output => output === data.parameters.outputType)
-              : safeBlockType.outputs
-            ).map((output) => (
+            {getDisplayedOutputPorts().map((output) => (
               <div key={`output-${output}`} className="relative flex items-center">
                 <BlockPort type={output} isInput={false} />
                 <Handle
@@ -246,4 +281,4 @@ const JobBlock = ({
   );
 };
 
-export default JobBlock; 
+export default JobBlock;
