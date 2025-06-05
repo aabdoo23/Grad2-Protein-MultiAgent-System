@@ -37,9 +37,7 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
                 console.error('No output directory specified for docking results download.');
                 return;
               }
-              break;
-  
-            case 'colabfold_search':
+              break;            case 'colabfold_search':
             case 'ncbi_blast_search':
             case 'local_blast_search':
             case 'search_structure':
@@ -47,6 +45,13 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
                 blockOutput.results,
                 blockType.id.includes('search') ? 'similarity' : 'structure'
               );
+              break;
+
+            case 'predict_binding_sites':
+              response = await downloadService.downloadFilesAsZip([
+                { path: blockOutput.predictions_csv, name: `binding_sites_predictions_${blockInstanceId}.csv` },
+                { path: blockOutput.result_path, name: `p2rank_results_${blockInstanceId}` }
+              ]);
               break;
   
             default:
@@ -253,9 +258,7 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
               </div>
               <BlastResults results={blockOutput.results} />
             </div>
-          ) : null;
-  
-        case 'search_structure':
+          ) : null;        case 'search_structure':
           return blockOutput.results ? (
             <div className="bg-[#1a2b34] rounded-lg p-3">
               <div className="text-white text-sm mb-2">Search Results:</div>
@@ -263,6 +266,140 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
               {renderDownloadButton()}
             </div>
           ) : null;
+
+        case 'predict_binding_sites':
+          return (
+            <div className="bg-[#1a2b34] rounded-lg p-3">
+              <h3 className="text-lg font-semibold text-white mb-3">Binding Site Predictions</h3>
+              
+              {/* Summary Statistics */}
+              {blockOutput.summary && (
+                <div className="mb-4 p-3 bg-[#0f1419] rounded-lg">
+                  <h4 className="text-sm font-semibold text-[#13a4ec] mb-2">Summary</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Total Sites:</span>
+                      <span className="text-white font-medium">{blockOutput.summary.total_sites}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Max Score:</span>
+                      <span className="text-white font-medium">{formatMetric(blockOutput.summary.max_score)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Min Score:</span>
+                      <span className="text-white font-medium">{formatMetric(blockOutput.summary.min_score)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Avg Score:</span>
+                      <span className="text-white font-medium">{formatMetric(blockOutput.summary.avg_score)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Binding Sites List */}
+              {blockOutput.binding_sites && blockOutput.binding_sites.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-[#13a4ec] mb-2">Predicted Binding Sites</h4>
+                  <div className="max-h-[400px] overflow-y-auto custom-scrollbar space-y-2">
+                    {blockOutput.binding_sites.map((site, index) => (
+                      <div
+                        key={index}
+                        className={`p-3 rounded-lg border-l-4 ${
+                          site.rank === 1 ? 'bg-green-900/30 border-green-500' :
+                          site.rank === 2 ? 'bg-blue-900/30 border-blue-500' :
+                          site.rank === 3 ? 'bg-yellow-900/30 border-yellow-500' :
+                          'bg-gray-900/30 border-gray-500'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              site.rank === 1 ? 'bg-green-600 text-white' :
+                              site.rank === 2 ? 'bg-blue-600 text-white' :
+                              site.rank === 3 ? 'bg-yellow-600 text-black' :
+                              'bg-gray-600 text-white'
+                            }`}>
+                              #{site.rank}
+                            </span>
+                            <span className="text-white font-semibold">{site.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-[#13a4ec] font-bold text-lg">{formatMetric(site.score)}</div>
+                            <div className="text-xs text-gray-300">Score</div>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <span className="text-gray-300">Probability:</span>
+                            <span className="text-white ml-1">{formatMetric(site.probability)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-300">SAS Points:</span>
+                            <span className="text-white ml-1">{site.sas_points}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-300">Surface Atoms:</span>
+                            <span className="text-white ml-1">{site.surf_atoms}</span>
+                          </div>
+                        </div>
+                          <div className="mt-2 text-xs">
+                          <div className="text-gray-300 mb-1">Center Coordinates:</div>
+                          <div className="font-mono text-white bg-black/20 p-2 rounded">
+                            X: {formatMetric(site.center_x)}, Y: {formatMetric(site.center_y)}, Z: {formatMetric(site.center_z)}
+                          </div>
+                        </div>
+                        
+                        {site.docking_box && (
+                          <div className="mt-2 text-xs">
+                            <div className="text-gray-300 mb-1">Docking Box Dimensions:</div>
+                            <div className="font-mono text-white bg-black/20 p-2 rounded">
+                              <div>Size: {formatMetric(site.docking_box.size_x)} × {formatMetric(site.docking_box.size_y)} × {formatMetric(site.docking_box.size_z)} Å</div>
+                              <div className="mt-1 text-xs text-gray-400">
+                                Center: ({formatMetric(site.docking_box.center_x)}, {formatMetric(site.docking_box.center_y)}, {formatMetric(site.docking_box.center_z)})
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {site.residue_ids && (
+                          <div className="mt-2 text-xs">
+                            <div className="text-gray-300 mb-1">Residues:</div>
+                            <div className="font-mono text-white bg-black/20 p-2 rounded text-wrap break-all">
+                              {site.residue_ids}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}              {/* Top Site Highlight */}
+              {blockOutput.top_site && (
+                <div className="mt-4 p-3 bg-green-900/20 border border-green-500/30 rounded-lg">
+                  <h4 className="text-sm font-semibold text-green-400 mb-2">🎯 Top Binding Site</h4>
+                  <div className="text-sm text-white">
+                    <div className="mb-1">
+                      <strong>{blockOutput.top_site.name}</strong> - Score: <span className="text-green-400 font-bold">{formatMetric(blockOutput.top_site.score)}</span>
+                    </div>
+                    <div className="text-xs text-gray-300">
+                      Center: ({formatMetric(blockOutput.top_site.center_x)}, {formatMetric(blockOutput.top_site.center_y)}, {formatMetric(blockOutput.top_site.center_z)})
+                    </div>
+                    {blockOutput.top_site.docking_box && (
+                      <div className="text-xs text-gray-300 mt-1">
+                        Docking Box: {formatMetric(blockOutput.top_site.docking_box.size_x)} × {formatMetric(blockOutput.top_site.docking_box.size_y)} × {formatMetric(blockOutput.top_site.docking_box.size_z)} Å
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end mt-3">
+                {renderDownloadButton()}
+              </div>
+            </div>
+          );
   
         default:
           return null;

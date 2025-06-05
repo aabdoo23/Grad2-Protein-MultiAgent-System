@@ -1,0 +1,2 @@
+Tools/Docking/P2Rank/p2rank_2.5/jdk-17.0.15+6/lib/modules filter=lfs diff=lfs merge=lfs -text
+Tools/Docking/P2Rank/p2rank_2.5/models/rescore_conservation/model.zst filter=lfs diff=lfs merge=lfs -text

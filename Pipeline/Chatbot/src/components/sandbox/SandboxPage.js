@@ -300,9 +300,7 @@ const SandboxPage = () => {
 
   const runBlock = async (blockId, params = null) => {
     const block = blocks.find(b => b.id === blockId);
-    if (!block) return;
-
-    const currentBlockType = blockTypes.find(bt => bt.id === block.type);
+    if (!block) return;    const currentBlockType = blockTypes.find(bt => bt.id === block.type);
     if (!currentBlockType) {
       console.error(`Unknown block type: ${block.type} for block ID: ${blockId}`);
       showErrorToast(`Cannot run block: Unknown type ${block.type}`);
@@ -310,7 +308,89 @@ const SandboxPage = () => {
       return;
     }
 
-    // Configuration Check (for standard blocks, before specific type handling)
+    // Process block inputs first (needed for auto-population)
+    const blockInputs = params || {};
+    if (!params) {
+      const blockConnectionData = connections[blockId];
+      if (blockConnectionData) {
+        for (const [targetHandle, connections] of Object.entries(blockConnectionData)) {
+          // Handle both array and single connection for backward compatibility
+          const connectionArray = Array.isArray(connections) ? connections : [connections];
+          connectionArray.forEach(conn => {
+            if (conn && blockOutputs[conn.source]) {
+              const sourceOutput = blockOutputs[conn.source];
+              console.log(`Getting ${conn.sourceHandle} from block ${conn.source}:`, sourceOutput);
+              switch (conn.sourceHandle) {
+                case 'sequence':
+                  if (sourceOutput.sequence !== undefined) { // If source explicitly provides a single sequence
+                    blockInputs.sequence = sourceOutput.sequence;
+                    blockInputs.sequence_name = sourceOutput.sequence_name || `sequence_from_${conn.source}`;
+                  } else if (sourceOutput.sequences && Array.isArray(sourceOutput.sequences) && sourceOutput.sequences.length > 0) {
+                    // Handle output from blocks like file_upload which have a 'sequences' array
+                    blockInputs.sequence = sourceOutput.sequences[0]; // Take the first sequence
+                    // Attempt to derive a name, e.g., from filePath if available
+                    if (sourceOutput.filePath) {
+                      const fileName = sourceOutput.filePath.split(/[\\\\/]/).pop(); // Handles both Windows and Unix paths
+                      blockInputs.sequence_name = `${fileName}_seq1`;
+                    } else {
+                      blockInputs.sequence_name = `sequence_1_from_${conn.source}`;
+                    }
+                  }
+                  break;
+                case 'structure': 
+                  blockInputs.pdb_file = sourceOutput.pdb_file || sourceOutput.filePath; // file_upload uses filePath for structure
+                  break;
+                case 'molecule': 
+                  blockInputs.molecule_file = sourceOutput.molecule_file || sourceOutput.filePath; // file_upload uses filePath for molecule
+                  break;
+                case 'metrics': blockInputs.metrics = sourceOutput.metrics; break;
+                case 'results': blockInputs.results = sourceOutput.results; break;
+                case 'binding_sites':
+                  // Handle binding sites output - pass through the data for downstream processing
+                  blockInputs.binding_sites = sourceOutput.binding_sites;
+                  blockInputs.top_site = sourceOutput.top_site;
+                  blockInputs.summary = sourceOutput.summary;
+                  break;
+                default: blockInputs[targetHandle] = sourceOutput;
+              }
+            }
+          });
+        }      }
+    }
+
+    // Auto-populate docking parameters from binding sites data (before configuration validation)
+    let updatedBlock = block;
+    if (block.type === 'perform_docking' && blockInputs.top_site) {
+      console.log('Auto-populating docking parameters from binding sites data:', blockInputs.top_site);
+      
+      // Extract coordinates from the top binding site
+      const topSite = blockInputs.top_site;
+      
+      // Update block parameters with binding site coordinates
+      const updatedParameters = {
+        ...block.parameters,
+        center_x: topSite.center_x || 0,
+        center_y: topSite.center_y || 0,
+        center_z: topSite.center_z || 0
+      };
+      
+      // If the binding site has docking box parameters, use them
+      if (topSite.docking_box) {
+        updatedParameters.size_x = topSite.docking_box.size_x || block.parameters.size_x || 20;
+        updatedParameters.size_y = topSite.docking_box.size_y || block.parameters.size_y || 20;
+        updatedParameters.size_z = topSite.docking_box.size_z || block.parameters.size_z || 20;
+      }
+      
+      // Update the block in the store with the new parameters
+      updateBlockInStore(blockId, { parameters: updatedParameters });
+      
+      // Create updated block object for validation below
+      updatedBlock = { ...block, parameters: updatedParameters };
+      
+      console.log('Updated docking parameters:', updatedParameters);
+    }
+
+    // Configuration Check (for standard blocks, after auto-population)
     if (block.type !== 'file_upload' && block.type !== 'multi_download' && block.type !== 'sequence_iterator') {
       if (block.type === 'perform_docking') {
         const requiredDockingParams = [
@@ -318,7 +398,7 @@ const SandboxPage = () => {
           { name: 'size_x', label: 'Size X' }, { name: 'size_y', label: 'Size Y' }, { name: 'size_z', label: 'Size Z' }
         ];
         for (const param of requiredDockingParams) {
-          const value = block.parameters[param.name];
+          const value = updatedBlock.parameters[param.name];
           if (value === undefined || value === null || 
               (typeof value === 'string' && value.trim() === '') || 
               isNaN(parseFloat(value))) {
@@ -625,84 +705,38 @@ const SandboxPage = () => {
         } else {
           console.log('No connected blocks found for sequence iterator');
         }
-      }
-
-      return;
-    }
-
-    const blockInputs = params || {};
-    if (!params) {
-      const blockConnectionData = connections[blockId];
-      if (blockConnectionData) {
-        for (const [targetHandle, connections] of Object.entries(blockConnectionData)) {
-          // Handle both array and single connection for backward compatibility
-          const connectionArray = Array.isArray(connections) ? connections : [connections];
-          connectionArray.forEach(conn => {
-            if (conn && blockOutputs[conn.source]) {
-              const sourceOutput = blockOutputs[conn.source];
-              console.log(`Getting ${conn.sourceHandle} from block ${conn.source}:`, sourceOutput);
-              switch (conn.sourceHandle) {
-                case 'sequence':
-                  if (sourceOutput.sequence !== undefined) { // If source explicitly provides a single sequence
-                    blockInputs.sequence = sourceOutput.sequence;
-                    blockInputs.sequence_name = sourceOutput.sequence_name || `sequence_from_${conn.source}`;
-                  } else if (sourceOutput.sequences && Array.isArray(sourceOutput.sequences) && sourceOutput.sequences.length > 0) {
-                    // Handle output from blocks like file_upload which have a 'sequences' array
-                    blockInputs.sequence = sourceOutput.sequences[0]; // Take the first sequence
-                    // Attempt to derive a name, e.g., from filePath if available
-                    if (sourceOutput.filePath) {
-                      const fileName = sourceOutput.filePath.split(/[\\\\/]/).pop(); // Handles both Windows and Unix paths
-                      blockInputs.sequence_name = `${fileName}_seq1`;
-                    } else {
-                      blockInputs.sequence_name = `sequence_1_from_${conn.source}`;
-                    }
-                  }
-                  break;
-                case 'structure': 
-                  blockInputs.pdb_file = sourceOutput.pdb_file || sourceOutput.filePath; // file_upload uses filePath for structure
-                  break;
-                case 'molecule': 
-                  blockInputs.molecule_file = sourceOutput.molecule_file || sourceOutput.filePath; // file_upload uses filePath for molecule
-                  break;
-                case 'metrics': blockInputs.metrics = sourceOutput.metrics; break;
-                case 'results': blockInputs.results = sourceOutput.results; break;
-                default: blockInputs[targetHandle] = sourceOutput;
-              }
-            }
-          });
-        }
-      }
+      }      return;
     }
 
     // Input Data Check (for standard blocks, after blockInputs is populated)
     if (block.type !== 'file_upload' && block.type !== 'multi_download' && block.type !== 'sequence_iterator') {
-      if (currentBlockType.inputs && currentBlockType.inputs.length > 0) {
-        const getInputKeyForHandle = (handleName) => {
+      if (currentBlockType.inputs && currentBlockType.inputs.length > 0) {        const getInputKeyForHandle = (handleName) => {
           switch (handleName) {
             case 'sequence': return 'sequence';
             case 'structure': return 'pdb_file';
             case 'molecule': return 'molecule_file';
             case 'metrics': return 'metrics';
             case 'results': return 'results';
+            case 'binding_sites': return 'binding_sites';
             case 'fasta': return 'fasta_file'; // Used by sequence_iterator if input is a file
             default: return handleName; // Assumes the data is directly under the handle name in blockInputs
           }
-        };
-
-        for (const inputHandleName of currentBlockType.inputs) {
+        };for (const inputHandleName of currentBlockType.inputs) {
+          // Make binding_sites input optional for perform_docking block
+          const isOptionalInput = (block.type === 'perform_docking' && inputHandleName === 'binding_sites');
+          
           const requiredInputKey = getInputKeyForHandle(inputHandleName);
           const blockConnectionData = connections[blockId];
           const connectionForThisInput = blockConnectionData ? blockConnectionData[inputHandleName] : null;
 
-          if (!connectionForThisInput) {
+          if (!connectionForThisInput && !isOptionalInput) {
             showErrorToast(`Block '${currentBlockType.name}' is missing a connection for required input: ${inputHandleName}`);
             updateBlockInStore(blockId, { status: 'failed' });
             return;
           }
           
-          // Check if the actual data is present in blockInputs
-          // This covers cases where the connection exists but the upstream block didn't provide the specific data piece
-          if (blockInputs[requiredInputKey] === undefined || blockInputs[requiredInputKey] === null) {
+          // Check if the actual data is present in blockInputs (only for required inputs)
+          if (!isOptionalInput && (blockInputs[requiredInputKey] === undefined || blockInputs[requiredInputKey] === null)) {
             // It's possible the upstream block completed but its output structure was not as expected or was empty.
              showErrorToast(`Block '${currentBlockType.name}' is missing data for required input: ${inputHandleName} (from key: ${requiredInputKey})`);
             updateBlockInStore(blockId, { status: 'failed' });

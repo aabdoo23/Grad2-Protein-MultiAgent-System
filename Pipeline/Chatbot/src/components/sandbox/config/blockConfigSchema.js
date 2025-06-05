@@ -179,11 +179,10 @@ export const blockConfigSchema = {
       type: 'number',
       label: 'Number of Modes',
       defaultValue: 10
-    },
-    cpu: { 
+    },    cpu: { 
       type: 'number',
       label: 'CPU',
       defaultValue: 4
     }
   }
-}; 
+};

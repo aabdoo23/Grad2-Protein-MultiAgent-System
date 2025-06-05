@@ -10,13 +10,13 @@ from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 from Tools.Search.BLAST.colabfold_msa_search import ColabFold_MSA_Searcher
 from Tools.Search.BLAST.local_blast import LocalBlastSearcher
 from Tools.Docking.docking_tool import DockingTool
+from Tools.Docking.P2Rank.prank_tool import PrankTool
 from util.flow.job_manager import Job
 from Tools.Search.BLAST.database_builder import BlastDatabaseBuilder
 import os
 
 class PipelineController:
-    def __init__(self, conversation_memory, job_manager):
-        # Instantiate all components
+    def __init__(self, conversation_memory, job_manager):        # Instantiate all components
         self.text_processor = TextProcessor()
         self.protein_generator = ProteinGenerator()
         self.esm_predictor = ESM_Predictor()
@@ -32,6 +32,7 @@ class PipelineController:
         self.selected_functions = []
         self.db_builder = BlastDatabaseBuilder()
         self.docking_tool = DockingTool()
+        self.prank_tool = PrankTool()
 
     def process_input(self, session_id: str, text: str) -> Dict[str, Any]:
         # Retrieve conversation history if needed
@@ -217,8 +218,32 @@ class PipelineController:
                     return result
                 else:
                     return {"success": False, "error": result.get("error", "Local BLAST search failed")}
+            else:                return {"success": False, "error": f"Unknown search type: {search_type}"}
+        elif name == PipelineFunction.PREDICT_BINDING_SITES.value:
+            # Extract P2Rank parameters
+            pdb_file = params.get('pdb_file')
+            output_dir = params.get('output_dir')
+            
+            if not pdb_file:
+                return {"success": False, "error": "No PDB file provided for binding site prediction"}
+            
+            # Run P2Rank analysis
+            result = self.prank_tool.run_full_analysis(pdb_file, output_dir)
+            
+            if result.get('success'):
+                # Return comprehensive binding site information
+                return {
+                    "success": True,
+                    "pdb_filename": result['pdb_filename'],
+                    "result_path": result['result_path'],
+                    "predictions_csv": result['predictions_csv'],
+                    "binding_sites": result['binding_sites'],
+                    "summary": result['summary'],
+                    "top_site": result['top_site'],
+                    "message": f"Found {result['summary']['total_sites']} binding sites"
+                }
             else:
-                return {"success": False, "error": f"Unknown search type: {search_type}"}
+                return {"success": False, "error": result.get('error', 'P2Rank prediction failed')}
         elif name == 'build_database':
             return self.build_database(params)
         elif name == 'perform_docking':
@@ -228,15 +253,34 @@ class PipelineController:
             center_x = params.get('center_x')
             center_y = params.get('center_y')
             center_z = params.get('center_z')
-            size_x = params.get('size_x')
-            size_y = params.get('size_y')
-            size_z = params.get('size_z')
+            size_x = params.get('size_x', 20)
+            size_y = params.get('size_y', 20)
+            size_z = params.get('size_z', 20)
             exhaustiveness = params.get('exhaustiveness', 16)
             num_modes = params.get('num_modes', 10)
             cpu = params.get('cpu', 4)
+            
+            # Check if binding site information is available from previous P2Rank analysis
+            top_site = params.get('top_site')
+            auto_center = params.get('auto_center', False)
+            
+            if auto_center and top_site and not all([center_x, center_y, center_z]):
+                # Use P2Rank results for binding site center
+                center_x = top_site.get('center_x')
+                center_y = top_site.get('center_y') 
+                center_z = top_site.get('center_z')
+                
+            # If still no center coordinates, try to run P2Rank automatically
+            if not all([center_x, center_y, center_z]) and protein_file:
+                prank_result = self.prank_tool.run_full_analysis(protein_file)
+                if prank_result.get('success') and prank_result.get('top_site'):
+                    top_site = prank_result['top_site']
+                    center_x = top_site.get('center_x')
+                    center_y = top_site.get('center_y')
+                    center_z = top_site.get('center_z')
 
-            if not all([protein_file, ligand_file, center_x, center_y, center_z, size_x, size_y, size_z]):
-                return {"success": False, "error": "Missing required docking parameters"}
+            if not all([protein_file, ligand_file, center_x, center_y, center_z]):
+                return {"success": False, "error": "Missing required docking parameters (protein_file, ligand_file, center coordinates)"}
 
             result = self.docking_tool.perform_docking(
                 protein_file=protein_file,
@@ -260,15 +304,15 @@ class PipelineController:
             PipelineFunction.PREDICT_STRUCTURE.value: PipelineFunction.GENERATE_PROTEIN.value,
             PipelineFunction.SEARCH_STRUCTURE.value: PipelineFunction.PREDICT_STRUCTURE.value,
             PipelineFunction.EVALUATE_STRUCTURE.value: PipelineFunction.PREDICT_STRUCTURE.value,
-            PipelineFunction.SEARCH_SIMILARITY.value: PipelineFunction.GENERATE_PROTEIN.value
+            PipelineFunction.SEARCH_SIMILARITY.value: PipelineFunction.GENERATE_PROTEIN.value,
+            PipelineFunction.PREDICT_BINDING_SITES.value: PipelineFunction.PREDICT_STRUCTURE.value
         }
-        return dependencies.get(function_name)
+        return dependencies.get(function_name, "")
 
     def _chain_job_parameters(self, previous_result: Dict[str, Any], current_job: Job) -> Dict[str, Any]:
         """Update job parameters based on the previous job's result."""
         params = current_job.parameters.copy()
-        
-        # Map of job types to their output fields and corresponding parameter names
+          # Map of job types to their output fields and corresponding parameter names
         output_mappings = {
             PipelineFunction.GENERATE_PROTEIN.value: {
                 "sequence": "sequence"
@@ -276,6 +320,11 @@ class PipelineController:
             PipelineFunction.PREDICT_STRUCTURE.value: {
                 "pdb_file": "pdb_file",
                 "sequence": "sequence"
+            },
+            PipelineFunction.PREDICT_BINDING_SITES.value: {
+                "binding_sites": "binding_sites",
+                "top_site": "top_site",
+                "predictions_csv": "predictions_csv"
             }
         }
         
