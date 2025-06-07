@@ -79,7 +79,6 @@ const SandboxPage = () => {
       molstarPlugins.current = {};
     };
   }, []);
-
   const initViewer = useCallback(async (viewerId, pdbData, blockId, errorMsg = null) => {
     const domElementId = viewerId || `viewer-${blockId}`;
     const existingElement = document.getElementById(domElementId);
@@ -91,26 +90,45 @@ const SandboxPage = () => {
     // Dispose existing plugin for this ID if it exists
     if (molstarPlugins.current[domElementId]) {
       console.log(`Disposing existing Mol* plugin for ${domElementId}`);
-      molstarPlugins.current[domElementId].dispose();
+      try {
+        molstarPlugins.current[domElementId].dispose();
+      } catch (e) {
+        console.warn(`Error disposing plugin for ${domElementId}:`, e);
+      }
       delete molstarPlugins.current[domElementId];
     }
 
-    existingElement.innerHTML = ''; // Clear previous content (e.g., error messages or old viewer)
+    // Clear content more safely by removing child nodes
+    while (existingElement.firstChild) {
+      existingElement.removeChild(existingElement.firstChild);
+    }
 
     if (errorMsg) {
       console.error(`Error for viewer '${domElementId}': ${errorMsg}`);
-      existingElement.innerHTML = `<p style="color:red; text-align:center; padding:10px;">${errorMsg}</p>`;
+      const errorElement = document.createElement('p');
+      errorElement.style.cssText = 'color:red; text-align:center; padding:10px;';
+      errorElement.textContent = errorMsg;
+      existingElement.appendChild(errorElement);
       return;
     }
 
     if (!pdbData) {
       console.log(`initViewer (${domElementId}): No PDB data provided.`);
-      existingElement.innerHTML = '<p style="color:orange; text-align:center; padding:10px;">No PDB data to display.</p>';
+      const noDataElement = document.createElement('p');
+      noDataElement.style.cssText = 'color:orange; text-align:center; padding:10px;';
+      noDataElement.textContent = 'No PDB data to display.';
+      existingElement.appendChild(noDataElement);
       return;
     }
 
     try {
       console.log(`Initializing Mol* viewer for ID '${domElementId}' with received PDB data.`);
+      
+      // Create a container div for the Mol* viewer
+      const viewerContainer = document.createElement('div');
+      viewerContainer.style.cssText = 'width: 100%; height: 100%;';
+      existingElement.appendChild(viewerContainer);
+      
       const spec = DefaultPluginUISpec();
       spec.layout = {
         ...(spec.layout || {}),
@@ -121,7 +139,7 @@ const SandboxPage = () => {
         },
       };
 
-      const plugin = await createPluginUI(existingElement, spec);
+      const plugin = await createPluginUI(viewerContainer, spec);
       molstarPlugins.current[domElementId] = plugin;
 
       const data = await plugin.builders.data.rawData({ data: pdbData, label: blockId });
@@ -133,10 +151,22 @@ const SandboxPage = () => {
     } catch (e) {
       console.error(`Error initializing Mol* for '${domElementId}':`, e);
       if (molstarPlugins.current[domElementId]) {
-        molstarPlugins.current[domElementId].dispose();
+        try {
+          molstarPlugins.current[domElementId].dispose();
+        } catch (disposeError) {
+          console.warn(`Error disposing plugin after init failure:`, disposeError);
+        }
         delete molstarPlugins.current[domElementId];
       }
-      existingElement.innerHTML = '<p style="color:red; text-align:center; padding:10px;">Failed to load 3D structure into viewer.</p>';
+      
+      // Clear content and show error
+      while (existingElement.firstChild) {
+        existingElement.removeChild(existingElement.firstChild);
+      }
+      const errorElement = document.createElement('p');
+      errorElement.style.cssText = 'color:red; text-align:center; padding:10px;';
+      errorElement.textContent = 'Failed to load 3D structure into viewer.';
+      existingElement.appendChild(errorElement);
     }
   }, []);
 

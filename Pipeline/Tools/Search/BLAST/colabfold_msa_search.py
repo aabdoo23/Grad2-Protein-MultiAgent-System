@@ -5,7 +5,6 @@ from fastapi import HTTPException
 import httpx
 import os
 import logging
-from .phylogenetic_analyzer import PhylogeneticAnalyzer
 from .schema_normalizer import MSASchemaNormalizer
 
 # Set up logging
@@ -17,7 +16,6 @@ PUBLIC_URL = "https://health.api.nvidia.com/v1/biology/colabfold/msa-search/pred
 
 class ColabFold_MSA_Searcher:
     def __init__(self):
-        self.phylogenetic_analyzer = PhylogeneticAnalyzer(email="aabdoo2304@gmail.com")
         self.default_database = "Uniref30_2302"
         self.default_e_value = 0.0001
         self.default_iterations = 1

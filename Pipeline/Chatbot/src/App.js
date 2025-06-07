@@ -4,7 +4,6 @@ import axios from 'axios';
 import JobManager from './components/JobManager';
 import JobStatus from './components/JobStatus';
 import JobConfirmation from './components/JobConfirmation';
-import PhylogeneticTreeViewer from './components/phylotree/PhylogeneticTreeViewer';
 import SandboxPage from './components/sandbox/SandboxPage';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { BASE_URL } from './config/config';
@@ -154,7 +153,6 @@ function App() {
     <Router>
       <Routes>
         <Route path="/sandbox" element={<SandboxPage />} />
-        <Route path="/phylogenetic-tree" element={<PhylogeneticTreeViewer />} />
         <Route path="/" element={
           <div className="flex flex-col min-h-screen h-screen bg-[#111c22]" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
             {/* Header */}

@@ -4,7 +4,6 @@ import re
 from typing import Dict, Any
 from bs4 import BeautifulSoup
 import logging
-from .phylogenetic_analyzer import PhylogeneticAnalyzer
 from .schema_normalizer import MSASchemaNormalizer
 import json
 
@@ -19,7 +18,6 @@ class NCBI_BLAST_Searcher:
         self.default_database = "nr"
         self.max_wait_time = 600  # 10 minutes
         self.poll_interval = 15   # 15 seconds
-        self.phylogenetic_analyzer = PhylogeneticAnalyzer(email="aabdoo2304@gmail.com")
         self.schema_normalizer = MSASchemaNormalizer()
 
     def submit_search(self, sequence: str) -> Dict[str, Any]:
@@ -125,11 +123,6 @@ class NCBI_BLAST_Searcher:
             
             # Process XML results
             results = self._process_xml_results(response.text)
-            
-            # Generate phylogenetic tree
-            tree_file = self.phylogenetic_analyzer.create_phylogenetic_tree(results)
-            if tree_file:
-                results['phylogenetic_tree'] = tree_file
             
             logger.info(f"Successfully retrieved results for BLAST search {rid}")
             return {"success": True, "results": results}
@@ -297,14 +290,6 @@ class NCBI_BLAST_Searcher:
             if status_result['status'] == 'READY':
                 results = self.get_results(rid)
                 if results['success']:
-                    # Generate phylogenetic tree
-                    tree_file = self.phylogenetic_analyzer.create_phylogenetic_tree(results['results'])
-                    if tree_file:
-                        # Read the tree file content
-                        with open(tree_file, 'r') as f:
-                            tree_content = f.read()
-                        results['results']['phylogenetic_tree'] = tree_content
-                    
                     # Normalize results using the schema normalizer
                     normalized_results = self.schema_normalizer.normalize_blast_results(results['results'], results['results'].get('query', ''))
                     

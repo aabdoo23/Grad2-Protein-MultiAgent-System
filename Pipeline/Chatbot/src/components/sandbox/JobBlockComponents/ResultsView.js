@@ -3,10 +3,19 @@ import SequenceGenerationResults from '../../result-viewers/SequenceGenerationRe
 import { downloadService } from '../../../services/api';
 import BlastResults from '../../BlastResults';
 import { BASE_URL } from '../../../config/config';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, onToggleResults, initViewer, formatMetric }) => {
     const [selectedPose, setSelectedPose] = useState(null);
+
+    // Reset selected pose when blockOutput changes
+    useEffect(() => {
+        if (blockType.id === 'perform_docking' && blockOutput?.docking_poses?.length > 0) {
+            setSelectedPose(blockOutput.docking_poses[0]);
+        } else {
+            setSelectedPose(null);
+        }
+    }, [blockOutput, blockType.id]);
 
     const renderDownloadButton = () => {
       if (!blockOutput) return null;
@@ -37,7 +46,8 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
                 console.error('No output directory specified for docking results download.');
                 return;
               }
-              break;            case 'colabfold_search':
+              break;            
+            case 'colabfold_search':
             case 'ncbi_blast_search':
             case 'local_blast_search':
             case 'search_structure':
@@ -77,7 +87,6 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
         </button>
       );
     };
-  
     const viewerDomId = `viewer-${blockInstanceId}`;
 
     useEffect(() => {
@@ -104,35 +113,48 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
             };
 
             fetchPdbContent(blockOutput.pdb_file);
-        } else if (isResultsOpen && initViewer && blockType.id === 'perform_docking') {
-            if (selectedPose && selectedPose.complex_pdb_file) {
-                const fetchPdbContent = async (filePath) => {
-                    try {
-                        const response = await fetch(`${BASE_URL}/api/pdb-content?filePath=${encodeURIComponent(filePath)}`);
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            throw new Error(`Failed to fetch PDB content: ${response.status} ${response.statusText}. ${errorText}`);
-                        }
-                        const pdbContent = await response.text();
-                        if (pdbContent) {
-                            initViewer(viewerDomId, pdbContent, blockInstanceId);
-                        } else {
-                            initViewer(viewerDomId, null, blockInstanceId, 'Fetched PDB content for pose is empty.');
-                        }
-                    } catch (error) {
-                        console.error('Error fetching PDB content for pose:', error);
-                        initViewer(viewerDomId, null, blockInstanceId, `Error fetching PDB for pose: ${error.message}`);
-                    }
-                };
-                fetchPdbContent(selectedPose.complex_pdb_file);
-            } else if (blockOutput?.docking_poses?.length > 0 && !selectedPose) {
-                setSelectedPose(blockOutput.docking_poses[0]);
-            }
         } else if (isResultsOpen && initViewer && !blockOutput?.pdb_file && 
                    (blockType.id === 'openfold_predict' || blockType.id === 'alphafold2_predict' || blockType.id === 'esmfold_predict')) {
             initViewer(viewerDomId, null, blockInstanceId, 'PDB file path missing in block output.');
         }
-    }, [isResultsOpen, blockOutput, blockType.id, blockInstanceId, initViewer, viewerDomId, selectedPose]);
+    }, [isResultsOpen, blockOutput, blockType.id, blockInstanceId, initViewer, viewerDomId]);    // Separate effect for docking pose selection to avoid conflicts
+    useEffect(() => {
+        if (isResultsOpen && initViewer && blockType.id === 'perform_docking') {
+            if (blockOutput?.docking_poses?.length > 0) {
+                // Auto-select first pose if none selected
+                if (!selectedPose) {
+                    setSelectedPose(blockOutput.docking_poses[0]);
+                    return; // Let the next effect cycle handle the viewer initialization
+                }
+                
+                // Initialize viewer with selected pose
+                if (selectedPose && selectedPose.complex_pdb_file) {
+                    const fetchPdbContent = async (filePath) => {
+                        try {
+                            const response = await fetch(`${BASE_URL}/api/pdb-content?filePath=${encodeURIComponent(filePath)}`);
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                throw new Error(`Failed to fetch PDB content: ${response.status} ${response.statusText}. ${errorText}`);
+                            }
+                            const pdbContent = await response.text();
+                            if (pdbContent) {
+                                // Use requestAnimationFrame for better timing with DOM updates
+                                requestAnimationFrame(() => {
+                                    initViewer(viewerDomId, pdbContent, blockInstanceId);
+                                });
+                            } else {
+                                initViewer(viewerDomId, null, blockInstanceId, 'Fetched PDB content for pose is empty.');
+                            }
+                        } catch (error) {
+                            console.error('Error fetching PDB content for pose:', error);
+                            initViewer(viewerDomId, null, blockInstanceId, `Error fetching PDB for pose: ${error.message}`);
+                        }
+                    };
+                    fetchPdbContent(selectedPose.complex_pdb_file);
+                }
+            }
+        }
+    }, [isResultsOpen, blockType.id, blockInstanceId, initViewer, viewerDomId, selectedPose, blockOutput?.docking_poses]);
 
     const renderResults = () => {
       if (!blockOutput) return null;
@@ -176,14 +198,13 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
               <SequenceGenerationResults sequence={blockOutput.sequence} info={blockOutput.info} />
               {renderDownloadButton()}
             </div>
-          );
-  
-        case 'openfold_predict':
+          );        case 'openfold_predict':
         case 'alphafold2_predict':
         case 'esmfold_predict':
           return (
             <div className="bg-[#1a2b34] rounded-lg p-3">
               <div
+                key={`viewer-${blockInstanceId}-${blockType.id}`}
                 id={viewerDomId}
                 className="nodrag relative w-full h-[400px] rounded-lg mb-3 bg-gray-800 border border-gray-700 molstar-viewer-container overflow-hidden"
               />
@@ -220,9 +241,9 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
             return (
                 <div className="bg-[#1a2b34] rounded-lg p-3">
                     <h3 className="text-lg font-semibold text-white mb-2">Docking Results</h3>
-                    <div className="flex gap-4">
-                        <div className="flex-1">
+                    <div className="flex gap-4">                        <div className="flex-1">
                             <div
+                                key={`viewer-${blockInstanceId}-${selectedPose?.mode || 'none'}`}
                                 id={viewerDomId}
                                 className="nodrag relative w-full h-[400px] rounded-lg mb-3 bg-gray-800 border border-gray-700 molstar-viewer-container overflow-hidden"
                             />
@@ -262,7 +283,7 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
           return blockOutput.results ? (
             <div className="bg-[#1a2b34] rounded-lg p-3">
               <div className="text-white text-sm mb-2">Search Results:</div>
-              <FoldSeekResults results={blockOutput.results} originalPdbPath={blockOutput.pdb_file} />
+              <FoldSeekResults results={blockOutput.results} originalPdbPath={blockOutput.pdb_file} initViewer={initViewer} />
               {renderDownloadButton()}
             </div>
           ) : null;
