@@ -15,6 +15,7 @@ class PipelineFunction(Enum):
     SEARCH_SIMILARITY = "search_similarity"
     PREDICT_BINDING_SITES = "predict_binding_sites"
     PERFORM_DOCKING = "perform_docking"
+    BUILD_PHYLOGENETIC_TREE = "build_phylogenetic_tree"
 
     @staticmethod
     def get_description(function_name):
@@ -25,7 +26,8 @@ class PipelineFunction(Enum):
             PipelineFunction.EVALUATE_STRUCTURE.value: "Evaluate structure quality",
             PipelineFunction.SEARCH_SIMILARITY.value: "Search for similar sequences",
             PipelineFunction.PREDICT_BINDING_SITES.value: "Predict protein binding sites",
-            PipelineFunction.PERFORM_DOCKING.value: "Perform molecular docking"
+            PipelineFunction.PERFORM_DOCKING.value: "Perform molecular docking",
+            PipelineFunction.BUILD_PHYLOGENETIC_TREE.value: "Build phylogenetic tree from MSA"
         }
         return descriptions.get(function_name, "Unknown function")
 
@@ -55,6 +57,7 @@ Valid function names and their purposes:
 - search_similarity: Search for similar protein sequences using BLAST or ColabFold MSA
 - search_structure: Search for similar protein structures using FoldSeek
 - perform_docking: Perform molecular docking between protein and ligand
+- build_phylogenetic_tree: Build phylogenetic tree from multiple sequence alignment results
 
 IMPORTANT: Every function in the chain MUST include a "parameters" field, even if it's an empty object {}.
 
@@ -82,6 +85,13 @@ For perform_docking, you can include these parameters:
 - "exhaustiveness": Search exhaustiveness (default: 16)
 - "num_modes": Number of binding modes (default: 10)
 - "auto_center": Use P2Rank results for automatic center determination (default: false)
+
+For build_phylogenetic_tree, you can include these optional parameters:
+- "method": Tree building method ("neighbor_joining", "upgma", "parsimony", default: "neighbor_joining")
+- "distance_model": Distance model for tree construction ("identity", "blosum62", default: "identity")
+- "max_sequences": Maximum number of sequences to include (default: 50)
+- "min_sequence_length": Minimum sequence length to include (default: 50)
+- "remove_gaps": Remove gaps from sequences before analysis (default: true)
 
 Example response format:
 {

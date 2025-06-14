@@ -1,5 +1,6 @@
 import FoldSeekResults from '../../result-viewers/FoldSeekResults';
 import SequenceGenerationResults from '../../result-viewers/SequenceGenerationResults';
+import PhylogeneticTreeResults from '../../result-viewers/PhylogeneticTreeResults';
 import { downloadService } from '../../../services/api';
 import BlastResults from '../../BlastResults';
 import { BASE_URL } from '../../../config/config';
@@ -55,13 +56,23 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
                 blockOutput.results,
                 blockType.id.includes('search') ? 'similarity' : 'structure'
               );
-              break;
-
-            case 'predict_binding_sites':
+              break;            case 'predict_binding_sites':
               response = await downloadService.downloadFilesAsZip([
                 { path: blockOutput.predictions_csv, name: `binding_sites_predictions_${blockInstanceId}.csv` },
                 { path: blockOutput.result_path, name: `p2rank_results_${blockInstanceId}` }
               ]);
+              break;
+
+            case 'build_phylogenetic_tree':
+              if (blockOutput.tree_data?.files) {
+                response = await downloadService.downloadFilesAsZip([
+                  { path: blockOutput.tree_data.files.tree_file, name: `phylogenetic_tree_${blockInstanceId}.nwk` },
+                  { path: blockOutput.tree_data.files.alignment_file, name: `alignment_${blockInstanceId}.fasta` }
+                ]);
+              } else {
+                console.error('No tree files available for download.');
+                return;
+              }
               break;
   
             default:
@@ -417,6 +428,19 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
               )}
 
               <div className="flex justify-end mt-3">
+                {renderDownloadButton()}
+              </div>            </div>
+          );
+
+        case 'build_phylogenetic_tree':
+          return (
+            <div className="p-4">
+              <PhylogeneticTreeResults 
+                treeData={blockOutput.tree_data}
+                alignmentData={blockOutput.alignment_data}
+                metadata={blockOutput.metadata}
+              />
+              <div className="mt-4 flex justify-end">
                 {renderDownloadButton()}
               </div>
             </div>

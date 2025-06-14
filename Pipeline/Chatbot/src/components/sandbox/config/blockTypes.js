@@ -171,8 +171,7 @@ export const blockTypes = [
       num_modes: 10,
       cpu: 4
     }
-  },
-  {
+  },  {
     id: 'predict_binding_sites',
     name: 'Predict Binding Sites',
     type: 'Docking',
@@ -180,5 +179,21 @@ export const blockTypes = [
     color: '#022E4A',
     inputs: ['structure'],
     outputs: ['binding_sites']
+  },
+  {
+    id: 'build_phylogenetic_tree',
+    name: 'Phylogenetic Tree',
+    type: 'Phylogenetic Analysis',
+    description: 'Build phylogenetic tree from BLAST/MSA results',
+    color: '#2D5A27',
+    inputs: ['results'],
+    outputs: ['tree'],
+    config: {
+      tree_method: 'neighbor_joining',
+      distance_model: 'identity',
+      max_sequences: 50,
+      min_sequence_length: 50,
+      remove_gaps: true
+    }
   }
 ];

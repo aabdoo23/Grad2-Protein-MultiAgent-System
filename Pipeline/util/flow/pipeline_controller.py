@@ -9,6 +9,7 @@ from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 from Tools.Search.BLAST.colabfold_msa_search import ColabFold_MSA_Searcher
 from Tools.Search.BLAST.local_blast import LocalBlastSearcher
+from Tools.Search.Phylogeny.phylogenetic_tree_builder import PhylogeneticTreeBuilder
 from Tools.Docking.docking_tool import DockingTool
 from Tools.Docking.P2Rank.prank_tool import PrankTool
 from util.flow.job_manager import Job
@@ -16,7 +17,8 @@ from Tools.Search.BLAST.database_builder import BlastDatabaseBuilder
 import os
 
 class PipelineController:
-    def __init__(self, conversation_memory, job_manager):        # Instantiate all components
+    def __init__(self, conversation_memory, job_manager):
+        # Instantiate all components
         self.text_processor = TextProcessor()
         self.protein_generator = ProteinGenerator()
         self.esm_predictor = ESM_Predictor()
@@ -27,6 +29,7 @@ class PipelineController:
         self.ncbi_blast_searcher = NCBI_BLAST_Searcher()
         self.colabfold_msa_searcher = ColabFold_MSA_Searcher()
         self.local_blast_searcher = LocalBlastSearcher()
+        self.phylo_tree_builder = PhylogeneticTreeBuilder()
         self.conversation_memory = conversation_memory
         self.job_manager = job_manager
         self.selected_functions = []
@@ -238,12 +241,48 @@ class PipelineController:
                     "result_path": result['result_path'],
                     "predictions_csv": result['predictions_csv'],
                     "binding_sites": result['binding_sites'],
-                    "summary": result['summary'],
-                    "top_site": result['top_site'],
+                    "summary": result['summary'],                    "top_site": result['top_site'],
                     "message": f"Found {result['summary']['total_sites']} binding sites"
                 }
             else:
                 return {"success": False, "error": result.get('error', 'P2Rank prediction failed')}
+        elif name == PipelineFunction.BUILD_PHYLOGENETIC_TREE.value:
+            # Extract phylogenetic tree parameters
+            # Check both 'blast_results' and 'results' for backward compatibility
+            blast_results = params.get('blast_results') or params.get('results')
+            tree_method = params.get('tree_method', 'neighbor_joining')
+            distance_model = params.get('distance_model', 'identity')
+            max_sequences = params.get('max_sequences', 50)
+            min_sequence_length = params.get('min_sequence_length', 50)
+            remove_gaps = params.get('remove_gaps', True)
+            
+            if not blast_results:
+                return {"success": False, "error": "No BLAST results provided for phylogenetic tree construction"}
+            
+            # Build phylogenetic tree
+            parameters = {
+                'method': tree_method,
+                'distance_model': distance_model,
+                'max_sequences': max_sequences,
+                'min_sequence_length': min_sequence_length,
+                'remove_gaps': remove_gaps
+            }
+            
+            result = self.phylo_tree_builder.build_tree_from_blast_results(
+                blast_results=blast_results,
+                parameters=parameters
+            )
+            
+            if result.get('success'):
+                return {
+                    "success": True,
+                    "tree_data": result['tree'],
+                    "alignment_data": result['alignment'],
+                    "metadata": result['metadata'],
+                    "message": f"Built phylogenetic tree with {result['alignment']['sequences_used']} sequences using {tree_method} method"
+                }
+            else:
+                return {"success": False, "error": result.get('error', 'Phylogenetic tree construction failed')}
         elif name == 'build_database':
             return self.build_database(params)
         elif name == 'perform_docking':
@@ -293,8 +332,7 @@ class PipelineController:
                 size_z=size_z,
                 exhaustiveness=exhaustiveness,
                 num_modes=num_modes,
-                cpu=cpu
-            )
+                cpu=cpu            )
             
         return result
 
@@ -305,14 +343,16 @@ class PipelineController:
             PipelineFunction.SEARCH_STRUCTURE.value: PipelineFunction.PREDICT_STRUCTURE.value,
             PipelineFunction.EVALUATE_STRUCTURE.value: PipelineFunction.PREDICT_STRUCTURE.value,
             PipelineFunction.SEARCH_SIMILARITY.value: PipelineFunction.GENERATE_PROTEIN.value,
-            PipelineFunction.PREDICT_BINDING_SITES.value: PipelineFunction.PREDICT_STRUCTURE.value
+            PipelineFunction.PREDICT_BINDING_SITES.value: PipelineFunction.PREDICT_STRUCTURE.value,
+            PipelineFunction.BUILD_PHYLOGENETIC_TREE.value: PipelineFunction.SEARCH_SIMILARITY.value
         }
         return dependencies.get(function_name, "")
 
     def _chain_job_parameters(self, previous_result: Dict[str, Any], current_job: Job) -> Dict[str, Any]:
         """Update job parameters based on the previous job's result."""
         params = current_job.parameters.copy()
-          # Map of job types to their output fields and corresponding parameter names
+        
+        # Map of job types to their output fields and corresponding parameter names
         output_mappings = {
             PipelineFunction.GENERATE_PROTEIN.value: {
                 "sequence": "sequence"
@@ -325,6 +365,9 @@ class PipelineController:
                 "binding_sites": "binding_sites",
                 "top_site": "top_site",
                 "predictions_csv": "predictions_csv"
+            },
+            PipelineFunction.SEARCH_SIMILARITY.value: {
+                "results": "blast_results"
             }
         }
         
