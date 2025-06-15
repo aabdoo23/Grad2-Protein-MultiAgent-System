@@ -16,6 +16,7 @@ class PipelineFunction(Enum):
     PREDICT_BINDING_SITES = "predict_binding_sites"
     PERFORM_DOCKING = "perform_docking"
     BUILD_PHYLOGENETIC_TREE = "build_phylogenetic_tree"
+    ANALYZE_RAMACHANDRAN = "analyze_ramachandran"
 
     @staticmethod
     def get_description(function_name):
@@ -27,7 +28,8 @@ class PipelineFunction(Enum):
             PipelineFunction.SEARCH_SIMILARITY.value: "Search for similar sequences",
             PipelineFunction.PREDICT_BINDING_SITES.value: "Predict protein binding sites",
             PipelineFunction.PERFORM_DOCKING.value: "Perform molecular docking",
-            PipelineFunction.BUILD_PHYLOGENETIC_TREE.value: "Build phylogenetic tree from MSA"
+            PipelineFunction.BUILD_PHYLOGENETIC_TREE.value: "Build phylogenetic tree from MSA",
+            PipelineFunction.ANALYZE_RAMACHANDRAN.value: "Generate Ramachandran plot analysis"
         }
         return descriptions.get(function_name, "Unknown function")
 
@@ -58,6 +60,7 @@ Valid function names and their purposes:
 - search_structure: Search for similar protein structures using FoldSeek
 - perform_docking: Perform molecular docking between protein and ligand
 - build_phylogenetic_tree: Build phylogenetic tree from multiple sequence alignment results
+- analyze_ramachandran: Generate Ramachandran plot analysis
 
 IMPORTANT: Every function in the chain MUST include a "parameters" field, even if it's an empty object {}.
 
@@ -92,6 +95,9 @@ For build_phylogenetic_tree, you can include these optional parameters:
 - "max_sequences": Maximum number of sequences to include (default: 50)
 - "min_sequence_length": Minimum sequence length to include (default: 50)
 - "remove_gaps": Remove gaps from sequences before analysis (default: true)
+
+For analyze_ramachandran, you can include these optional parameters:
+- "output_dir": Custom output directory for Ramachandran plot and data files
 
 Example response format:
 {

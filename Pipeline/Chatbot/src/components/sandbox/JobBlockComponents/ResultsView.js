@@ -74,6 +74,22 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
                 return;
               }
               break;
+
+            case 'analyze_ramachandran':
+              const downloadFiles = [];
+              if (blockOutput.plot_path) {
+                downloadFiles.push({ path: blockOutput.plot_path, name: `ramachandran_plot_${blockInstanceId}.png` });
+              }
+              if (blockOutput.data_path) {
+                downloadFiles.push({ path: blockOutput.data_path, name: `ramachandran_data_${blockInstanceId}.json` });
+              }
+              if (downloadFiles.length > 0) {
+                response = await downloadService.downloadFilesAsZip(downloadFiles);
+              } else {
+                console.error('No Ramachandran files available for download.');
+                return;
+              }
+              break;
   
             default:
               console.error('Unknown block type for download:', blockType.id);
@@ -441,6 +457,103 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
                 metadata={blockOutput.metadata}
               />
               <div className="mt-4 flex justify-end">
+                {renderDownloadButton()}
+              </div>
+            </div>
+          );
+  
+        case 'analyze_ramachandran':
+          return (
+            <div className="bg-[#1a2b34] rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Ramachandran Plot Analysis</h3>
+              
+              {/* Statistics Summary */}
+              {blockOutput.statistics && (
+                <div className="mb-4 p-3 bg-[#0f1419] rounded-lg">
+                  <h4 className="text-sm font-semibold text-[#13a4ec] mb-2">Secondary Structure Statistics</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Total Residues:</span>
+                      <span className="text-white font-medium">{blockOutput.statistics.total}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Alpha Helix:</span>
+                      <span className="text-white font-medium">
+                        {blockOutput.statistics.alpha_helix} ({blockOutput.statistics.alpha_percentage?.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Beta Sheet:</span>
+                      <span className="text-white font-medium">
+                        {blockOutput.statistics.beta_sheet} ({blockOutput.statistics.beta_percentage?.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Other/Extended:</span>
+                      <span className="text-white font-medium">
+                        {blockOutput.statistics.other} ({blockOutput.statistics.other_percentage?.toFixed(1)}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Ramachandran Plot */}
+              {blockOutput.plot_base64 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-[#13a4ec] mb-2">Ramachandran Plot</h4>
+                  <div className="bg-white rounded-lg p-2 flex justify-center">
+                    <img 
+                      src={`data:image/png;base64,${blockOutput.plot_base64}`}
+                      alt="Ramachandran Plot"
+                      className="max-w-full h-auto rounded-lg"
+                      style={{ maxHeight: '500px' }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Angle Data Table Preview */}
+              {blockOutput.angle_data && blockOutput.angle_data.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-[#13a4ec] mb-2">
+                    Phi/Psi Angles (showing first 10 residues)
+                  </h4>
+                  <div className="bg-[#0f1419] rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-[#13a4ec] text-white">
+                          <tr>
+                            <th className="px-3 py-2 text-left">Chain</th>
+                            <th className="px-3 py-2 text-left">Residue</th>
+                            <th className="px-3 py-2 text-left">Number</th>
+                            <th className="px-3 py-2 text-left">Phi (°)</th>
+                            <th className="px-3 py-2 text-left">Psi (°)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-gray-300">
+                          {blockOutput.angle_data.slice(0, 10).map((residue, index) => (
+                            <tr key={index} className="border-b border-gray-700">
+                              <td className="px-3 py-2">{residue.chain}</td>
+                              <td className="px-3 py-2 font-mono">{residue.residue_name}</td>
+                              <td className="px-3 py-2">{residue.residue_number}</td>
+                              <td className="px-3 py-2">{residue.phi?.toFixed(1)}</td>
+                              <td className="px-3 py-2">{residue.psi?.toFixed(1)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {blockOutput.angle_data.length > 10 && (
+                      <div className="p-2 text-xs text-gray-400 text-center border-t border-gray-700">
+                        ... and {blockOutput.angle_data.length - 10} more residues
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end">
                 {renderDownloadButton()}
               </div>
             </div>

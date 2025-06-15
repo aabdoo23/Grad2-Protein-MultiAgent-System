@@ -12,6 +12,7 @@ from Tools.Search.BLAST.local_blast import LocalBlastSearcher
 from Tools.Search.Phylogeny.phylogenetic_tree_builder import PhylogeneticTreeBuilder
 from Tools.Docking.docking_tool import DockingTool
 from Tools.Docking.P2Rank.prank_tool import PrankTool
+from Tools.TDStructure.Analysis.ramachandran_analyzer import RamachandranAnalyzer
 from util.flow.job_manager import Job
 from Tools.Search.BLAST.database_builder import BlastDatabaseBuilder
 import os
@@ -36,6 +37,7 @@ class PipelineController:
         self.db_builder = BlastDatabaseBuilder()
         self.docking_tool = DockingTool()
         self.prank_tool = PrankTool()
+        self.ramachandran_analyzer = RamachandranAnalyzer()
 
     def process_input(self, session_id: str, text: str) -> Dict[str, Any]:
         # Retrieve conversation history if needed
@@ -333,6 +335,33 @@ class PipelineController:
                 exhaustiveness=exhaustiveness,
                 num_modes=num_modes,
                 cpu=cpu            )
+        elif name == PipelineFunction.ANALYZE_RAMACHANDRAN.value:
+            # Extract Ramachandran analysis parameters
+            pdb_file = params.get('pdb_file')
+            output_dir = params.get('output_dir')
+            
+            if not pdb_file:
+                return {"success": False, "error": "No PDB file provided for Ramachandran analysis"}
+            
+            # Run Ramachandran analysis
+            result = self.ramachandran_analyzer.generate_ramachandran_analysis(pdb_file, output_dir)
+            
+            if result.get('success'):
+                # Return comprehensive Ramachandran analysis information
+                return {
+                    "success": True,
+                    "pdb_file": result['pdb_file'],
+                    "plot_base64": result['plot_base64'],
+                    "plot_path": result.get('plot_path'),
+                    "data_path": result.get('data_path'),
+                    "statistics": result['statistics'],
+                    "residue_count": result['residue_count'],
+                    "angle_data": result['angle_data'],
+                    "timestamp": result['timestamp'],
+                    "message": f"Generated Ramachandran plot for {result['residue_count']} residues"
+                }
+            else:
+                return {"success": False, "error": result.get('error', 'Ramachandran analysis failed')}
             
         return result
 
@@ -344,7 +373,8 @@ class PipelineController:
             PipelineFunction.EVALUATE_STRUCTURE.value: PipelineFunction.PREDICT_STRUCTURE.value,
             PipelineFunction.SEARCH_SIMILARITY.value: PipelineFunction.GENERATE_PROTEIN.value,
             PipelineFunction.PREDICT_BINDING_SITES.value: PipelineFunction.PREDICT_STRUCTURE.value,
-            PipelineFunction.BUILD_PHYLOGENETIC_TREE.value: PipelineFunction.SEARCH_SIMILARITY.value
+            PipelineFunction.BUILD_PHYLOGENETIC_TREE.value: PipelineFunction.SEARCH_SIMILARITY.value,
+            PipelineFunction.ANALYZE_RAMACHANDRAN.value: PipelineFunction.PREDICT_STRUCTURE.value
         }
         return dependencies.get(function_name, "")
 
@@ -368,6 +398,12 @@ class PipelineController:
             },
             PipelineFunction.SEARCH_SIMILARITY.value: {
                 "results": "blast_results"
+            },
+            PipelineFunction.ANALYZE_RAMACHANDRAN.value: {
+                "plot_base64": "plot_base64",
+                "plot_path": "plot_path",
+                "statistics": "statistics",
+                "angle_data": "angle_data"
             }
         }
         

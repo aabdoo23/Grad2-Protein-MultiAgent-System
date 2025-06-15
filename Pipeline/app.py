@@ -11,6 +11,7 @@ from util.modules.download_handler import DownloadHandler
 import os
 import threading
 import io
+import zipfile
 from datetime import datetime
 import uuid
 from werkzeug.utils import secure_filename
@@ -543,6 +544,50 @@ def get_pfam_data():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/download-files-zip', methods=['POST'])
+def download_files_zip():
+    """Download multiple files as a ZIP archive."""
+    data = request.json or {}
+    files = data.get('files', [])
+    
+    if not files:
+        return jsonify({'success': False, 'error': 'No files provided'}), 400
+    
+    # Create a zip file in memory
+    import zipfile
+    zip_buffer = io.BytesIO()
+    
+    try:
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for file_info in files:
+                file_path = file_info.get('path')
+                file_name = file_info.get('name')
+                
+                if not file_path or not file_name:
+                    continue
+                    
+                if os.path.exists(file_path):
+                    zip_file.write(file_path, file_name)
+                else:
+                    app.logger.warning(f"File not found: {file_path}")
+        
+        zip_buffer.seek(0)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"ramachandran_results_{timestamp}.zip"
+        
+        return send_file(
+            zip_buffer,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        app.logger.error(f"Error creating ZIP file: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to create ZIP file: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

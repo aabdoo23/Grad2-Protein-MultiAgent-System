@@ -195,5 +195,17 @@ export const blockTypes = [
       min_sequence_length: 50,
       remove_gaps: true
     }
+  },
+  {
+    id: 'analyze_ramachandran',
+    name: 'Ramachandran Plot',
+    type: 'Structure Analysis',
+    description: 'Generate Ramachandran plot analysis for protein backbone conformations',
+    color: '#8B4513',
+    inputs: ['structure'],
+    outputs: ['ramachandran_plot'],
+    config: {
+      output_dir: ""
+    }
   }
 ];
