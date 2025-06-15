@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 
 const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, onToggleResults, initViewer, formatMetric }) => {
     const [selectedPose, setSelectedPose] = useState(null);
+    const [showAllResidues, setShowAllResidues] = useState(false);
 
     // Reset selected pose when blockOutput changes
     useEffect(() => {
@@ -511,42 +512,79 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
                     />
                   </div>
                 </div>
-              )}
-
-              {/* Angle Data Table Preview */}
+              )}              {/* Angle Data Table Preview */}
               {blockOutput.angle_data && blockOutput.angle_data.length > 0 && (
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-[#13a4ec] mb-2">
-                    Phi/Psi Angles (showing first 10 residues)
-                  </h4>
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-sm font-semibold text-[#13a4ec]">
+                      Phi/Psi Angles ({showAllResidues ? 'showing all' : 'showing first 10'} residues)
+                    </h4>
+                    {blockOutput.angle_data.length > 10 && (
+                      <button
+                        onClick={() => setShowAllResidues(!showAllResidues)}
+                        className="px-3 py-1 bg-[#13a4ec] text-white rounded text-xs hover:bg-[#0f8fd1] transition-colors"
+                      >
+                        {showAllResidues ? 'Show Less' : 'Show All'}
+                      </button>
+                    )}
+                  </div>
                   <div className="bg-[#0f1419] rounded-lg overflow-hidden">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-[#13a4ec] text-white">
-                          <tr>
-                            <th className="px-3 py-2 text-left">Chain</th>
-                            <th className="px-3 py-2 text-left">Residue</th>
-                            <th className="px-3 py-2 text-left">Number</th>
-                            <th className="px-3 py-2 text-left">Phi (°)</th>
-                            <th className="px-3 py-2 text-left">Psi (°)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-gray-300">
-                          {blockOutput.angle_data.slice(0, 10).map((residue, index) => (
-                            <tr key={index} className="border-b border-gray-700">
-                              <td className="px-3 py-2">{residue.chain}</td>
-                              <td className="px-3 py-2 font-mono">{residue.residue_name}</td>
-                              <td className="px-3 py-2">{residue.residue_number}</td>
-                              <td className="px-3 py-2">{residue.phi?.toFixed(1)}</td>
-                              <td className="px-3 py-2">{residue.psi?.toFixed(1)}</td>
+                      <div className={showAllResidues ? "max-h-96 overflow-y-auto" : ""}>
+                        <table className="w-full text-sm">
+                          <thead className="bg-[#13a4ec] text-white sticky top-0">
+                            <tr>
+                              <th className="px-3 py-2 text-left">Chain</th>
+                              <th className="px-3 py-2 text-left">Residue</th>
+                              <th className="px-3 py-2 text-left">Number</th>
+                              <th className="px-3 py-2 text-left">Phi (°)</th>
+                              <th className="px-3 py-2 text-left">Psi (°)</th>
+                              <th className="px-3 py-2 text-left">Secondary Structure</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="text-gray-300">
+                            {(showAllResidues ? blockOutput.angle_data : blockOutput.angle_data.slice(0, 10)).map((residue, index) => {
+                              // Classify secondary structure based on phi/psi angles
+                              const phi = residue.phi;
+                              const psi = residue.psi;
+                              let secStruct = 'Other/Extended';
+                              let structColor = 'text-gray-300';
+                              
+                              if (-90 <= phi && phi <= -30 && -70 <= psi && psi <= 50) {
+                                secStruct = 'Alpha Helix';
+                                structColor = 'text-red-400';
+                              } else if ((-180 <= phi && phi <= -90 && 90 <= psi && psi <= 180) || 
+                                         (-180 <= phi && phi <= -90 && -180 <= psi && psi <= -90)) {
+                                secStruct = 'Beta Sheet';
+                                structColor = 'text-blue-400';
+                              } else if (30 <= phi && phi <= 90 && -20 <= psi && psi <= 80) {
+                                secStruct = 'Left-handed Helix';
+                                structColor = 'text-green-400';
+                              }
+                              
+                              return (
+                                <tr key={showAllResidues ? `all-${index}` : `preview-${index}`} className="border-b border-gray-700 hover:bg-gray-800/50">
+                                  <td className="px-3 py-2">{residue.chain}</td>
+                                  <td className="px-3 py-2 font-mono">{residue.residue_name}</td>
+                                  <td className="px-3 py-2">{residue.residue_number}</td>
+                                  <td className="px-3 py-2">{residue.phi?.toFixed(1)}</td>
+                                  <td className="px-3 py-2">{residue.psi?.toFixed(1)}</td>
+                                  <td className={`px-3 py-2 text-xs font-medium ${structColor}`}>{secStruct}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                    {blockOutput.angle_data.length > 10 && (
+                    {!showAllResidues && blockOutput.angle_data.length > 10 && (
                       <div className="p-2 text-xs text-gray-400 text-center border-t border-gray-700">
                         ... and {blockOutput.angle_data.length - 10} more residues
+                      </div>
+                    )}
+                    {showAllResidues && (
+                      <div className="p-2 text-xs text-gray-400 text-center border-t border-gray-700">
+                        Total: {blockOutput.angle_data.length} residues displayed
                       </div>
                     )}
                   </div>

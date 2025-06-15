@@ -252,6 +252,28 @@ class DownloadHandler:
                             fasta_report = self.report_generator.generate_fasta_report(data)
                             zipf.writestr(f"{item_dir_name}/fasta_report.txt", fasta_report)
                 
+                elif typ == 'ramachandran_plot':
+                    # Handle Ramachandran plot results
+                    if data.get('plot_path') or data.get('data_path'):
+                        # Add plot image if available
+                        plot_path = data.get('plot_path')
+                        if plot_path and os.path.exists(plot_path):
+                            zipf.write(plot_path, f"{item_dir_name}/ramachandran_plot.png")
+                        
+                        # Add data JSON if available
+                        data_path = data.get('data_path')
+                        if data_path and os.path.exists(data_path):
+                            zipf.write(data_path, f"{item_dir_name}/ramachandran_data.json")
+                        
+                        # Generate Ramachandran report
+                        ramachandran_report = self.report_generator.generate_ramachandran_report(data)
+                        zipf.writestr(f"{item_dir_name}/ramachandran_report.txt", ramachandran_report)
+                        
+                        # Add angle data as CSV
+                        if data.get('angle_data'):
+                            angle_csv = self.file_formatter.format_ramachandran_angles_csv(data['angle_data'])
+                            zipf.writestr(f"{item_dir_name}/phi_psi_angles.csv", angle_csv)
+
                 else: # Fallback for unknown types or types not requiring special file handling
                     if data:
                          zipf.writestr(f"{item_dir_name}/data.json", json.dumps(data, indent=2))
@@ -294,4 +316,4 @@ class DownloadHandler:
             mimetype='application/zip',
             as_attachment=True,
             download_name=filename
-        ) 
+        )

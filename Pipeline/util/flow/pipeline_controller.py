@@ -326,15 +326,15 @@ class PipelineController:
             result = self.docking_tool.perform_docking(
                 protein_file=protein_file,
                 ligand_file=ligand_file,
-                center_x=center_x,
-                center_y=center_y,
+                center_x=center_x,                center_y=center_y,
                 center_z=center_z,
                 size_x=size_x,
                 size_y=size_y,
                 size_z=size_z,
                 exhaustiveness=exhaustiveness,
                 num_modes=num_modes,
-                cpu=cpu            )
+                cpu=cpu
+            )
         elif name == PipelineFunction.ANALYZE_RAMACHANDRAN.value:
             # Extract Ramachandran analysis parameters
             pdb_file = params.get('pdb_file')
@@ -342,6 +342,11 @@ class PipelineController:
             
             if not pdb_file:
                 return {"success": False, "error": "No PDB file provided for Ramachandran analysis"}
+            
+            # Set default output directory if not provided
+            if not output_dir:
+                output_dir = os.path.join('static', 'ramachandran_results')
+                os.makedirs(output_dir, exist_ok=True)
             
             # Run Ramachandran analysis
             result = self.ramachandran_analyzer.generate_ramachandran_analysis(pdb_file, output_dir)
