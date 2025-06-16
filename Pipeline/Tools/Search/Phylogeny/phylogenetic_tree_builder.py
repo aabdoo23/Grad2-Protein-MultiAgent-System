@@ -1,7 +1,6 @@
 from typing import Dict, Any, List, Optional
 import logging
 import os
-import tempfile
 from datetime import datetime
 import json
 from Bio import SeqIO, AlignIO, Phylo
@@ -10,7 +9,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Align import MultipleSeqAlignment
 from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
 from Bio.Phylo.TreeConstruction import ParsimonyTreeConstructor, ParsimonyScorer
-from Bio.Phylo import write, read
+from Bio.Phylo._io import write, read
 import numpy as np
 
 # Set up logging
@@ -20,11 +19,28 @@ logger = logging.getLogger(__name__)
 class PhylogeneticTreeBuilder:
     """Build phylogenetic trees from MSA data from BLAST searches."""
     
-    def __init__(self):
-        self.temp_dir = tempfile.mkdtemp()
-        logger.info(f"PhylogeneticTreeBuilder initialized with temp dir: {self.temp_dir}")
+    def __init__(self, static_dir: Optional[str] = None):
+        # Use static directory for consistent file management
+        if static_dir is None:
+            # Default to static/phylo_results relative to the project root
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.join(current_dir, "..", "..", "..")
+            static_dir = os.path.join(project_root, "static", "phylo_results")
+        
+        self.static_dir = os.path.abspath(static_dir)
+        
+        # Create directory if it doesn't exist
+        os.makedirs(self.static_dir, exist_ok=True)
+        
+        # Create session-specific subdirectory
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.session_dir = os.path.join(self.static_dir, f"session_{timestamp}")
+        os.makedirs(self.session_dir, exist_ok=True)
+        
+        logger.info(f"PhylogeneticTreeBuilder initialized with static dir: {self.static_dir}")
+        logger.info(f"Session directory: {self.session_dir}")
     
-    def build_tree_from_blast_results(self, blast_results: Dict[str, Any], parameters: Dict[str, Any] = None) -> Dict[str, Any]:
+    def build_tree_from_blast_results(self, blast_results: Dict[str, Any], parameters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Build a phylogenetic tree from BLAST results MSA data.
         
@@ -107,7 +123,9 @@ class PhylogeneticTreeBuilder:
                     "min_sequence_length": min_sequence_length,
                     "remove_gaps": remove_gaps,
                     "timestamp": datetime.now().isoformat(),
-                    "source_type": blast_results.get("metadata", {}).get("search_type", "unknown")
+                    "source_type": blast_results.get("metadata", {}).get("search_type", "unknown"),
+                    "session_dir": self.session_dir,
+                    "static_dir": self.static_dir
                 }
             }
             
@@ -199,7 +217,7 @@ class PhylogeneticTreeBuilder:
             tree = constructor.nj(distance_matrix)
             
             # Convert tree to Newick format
-            tree_file = os.path.join(self.temp_dir, "tree.nwk")
+            tree_file = os.path.join(self.session_dir, "tree.nwk")
             write(tree, tree_file, "newick")
             
             with open(tree_file, 'r') as f:
@@ -227,7 +245,7 @@ class PhylogeneticTreeBuilder:
             tree = constructor.upgma(distance_matrix)
             
             # Convert tree to Newick format
-            tree_file = os.path.join(self.temp_dir, "tree.nwk")
+            tree_file = os.path.join(self.session_dir, "tree.nwk")
             write(tree, tree_file, "newick")
             
             with open(tree_file, 'r') as f:
@@ -257,10 +275,10 @@ class PhylogeneticTreeBuilder:
             nj_constructor = DistanceTreeConstructor()
             starting_tree = nj_constructor.nj(distance_matrix)
             
-            tree = constructor.build_tree(alignment, starting_tree)
+            tree = constructor.build_tree(alignment)
             
             # Convert tree to Newick format
-            tree_file = os.path.join(self.temp_dir, "tree.nwk")
+            tree_file = os.path.join(self.session_dir, "tree.nwk")
             write(tree, tree_file, "newick")
             
             with open(tree_file, 'r') as f:
@@ -332,20 +350,20 @@ class PhylogeneticTreeBuilder:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             
             # Save tree in Newick format
-            newick_file = os.path.join(self.temp_dir, f"phylo_tree_{timestamp}.nwk")
+            newick_file = os.path.join(self.session_dir, f"phylo_tree_{timestamp}.nwk")
             write(tree, newick_file, "newick")
             
             # Save tree in Nexus format
-            nexus_file = os.path.join(self.temp_dir, f"phylo_tree_{timestamp}.nex")
+            nexus_file = os.path.join(self.session_dir, f"phylo_tree_{timestamp}.nex")
             write(tree, nexus_file, "nexus")
             
             # Save alignment in FASTA format
-            fasta_file = os.path.join(self.temp_dir, f"alignment_{timestamp}.fasta")
+            fasta_file = os.path.join(self.session_dir, f"alignment_{timestamp}.fasta")
             with open(fasta_file, 'w') as f:
                 SeqIO.write(alignment, f, "fasta")
             
             # Save alignment in PHYLIP format
-            phylip_file = os.path.join(self.temp_dir, f"alignment_{timestamp}.phy")
+            phylip_file = os.path.join(self.session_dir, f"alignment_{timestamp}.phy")
             with open(phylip_file, 'w') as f:
                 AlignIO.write(alignment, f, "phylip")
             
@@ -360,12 +378,14 @@ class PhylogeneticTreeBuilder:
             logger.error(f"Error saving files: {str(e)}")
             return {"error": f"Failed to save files: {str(e)}"}
     
-    def cleanup(self):
-        """Clean up temporary files."""
+    def cleanup(self, remove_session_dir: bool = False):
+        """Clean up files. Optionally remove the entire session directory."""
         try:
             import shutil
-            if os.path.exists(self.temp_dir):
-                shutil.rmtree(self.temp_dir)
-                logger.info(f"Cleaned up temp directory: {self.temp_dir}")
+            if remove_session_dir and os.path.exists(self.session_dir):
+                shutil.rmtree(self.session_dir)
+                logger.info(f"Cleaned up session directory: {self.session_dir}")
+            else:
+                logger.info(f"Session files preserved in: {self.session_dir}")
         except Exception as e:
-            logger.warning(f"Failed to cleanup temp directory: {str(e)}")
+            logger.warning(f"Failed to cleanup session directory: {str(e)}")

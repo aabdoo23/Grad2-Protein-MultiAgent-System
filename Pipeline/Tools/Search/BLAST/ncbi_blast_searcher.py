@@ -157,6 +157,9 @@ class NCBI_BLAST_Searcher:
             # Extract hits
             hits = []
             for hit in soup.find_all('Hit'):
+                hit_len_elem = hit.find('Hit_len')
+                hit_len_value = int(hit_len_elem.text) if hit_len_elem and hit_len_elem.text else 0
+                
                 hit_data = {
                     'id': hit.find('Hit_id').text if hit.find('Hit_id') else '',
                     'def': hit.find('Hit_def').text if hit.find('Hit_def') else '',
@@ -164,9 +167,16 @@ class NCBI_BLAST_Searcher:
                     'len': hit.find('Hit_len').text if hit.find('Hit_len') else '',
                     'hsps': []
                 }
-                
                 # Extract HSPs (High-scoring Segment Pairs)
                 for hsp in hit.find_all('Hsp'):
+                    identity_elem = hsp.find('Hsp_identity')
+                    identity_value = ''
+                    if identity_elem and identity_elem.text and hit_len_value > 0:
+                        try:
+                            identity_value = float(identity_elem.text) / hit_len_value * 100
+                        except (ValueError, ZeroDivisionError):
+                            identity_value = ''
+
                     hsp_data = {
                         'bit_score': hsp.find('Hsp_bit-score').text if hsp.find('Hsp_bit-score') else '',
                         'score': hsp.find('Hsp_score').text if hsp.find('Hsp_score') else '',
@@ -175,7 +185,7 @@ class NCBI_BLAST_Searcher:
                         'query_to': hsp.find('Hsp_query-to').text if hsp.find('Hsp_query-to') else '',
                         'hit_from': hsp.find('Hsp_hit-from').text if hsp.find('Hsp_hit-from') else '',
                         'hit_to': hsp.find('Hsp_hit-to').text if hsp.find('Hsp_hit-to') else '',
-                        'identity': hsp.find('Hsp_identity').text if hsp.find('Hsp_identity') else '',
+                        'identity': identity_value,
                         'positive': hsp.find('Hsp_positive').text if hsp.find('Hsp_positive') else '',
                         'gaps': hsp.find('Hsp_gaps').text if hsp.find('Hsp_gaps') else '',
                         'align_len': hsp.find('Hsp_align-len').text if hsp.find('Hsp_align-len') else '',

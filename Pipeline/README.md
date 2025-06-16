@@ -188,3 +188,217 @@ This system is highly relevant for bioinformaticians as it:
 ## Future Directions
 - Implement new tools on command
 - Add visualization for external results
+
+# Citings:
+- ## P2Rank
+
+### 
+
+If you use P2Rank, please cite relevant papers: 
+
+
+* [Software article](https://doi.org/10.1186/s13321-018-0285-8) about P2Rank pocket prediction tool  
+ Krivak R, Hoksza D. ***P2Rank: machine learning based tool for rapid and accurate prediction of ligand binding sites from protein structure.*** Journal of Cheminformatics. 2018 Aug.  
+~~~bibtex
+@article{p2rank,
+    title={{P2Rank: machine learning based tool for rapid and accurate prediction of ligand binding sites from protein structure}},
+    author={Kriv{\'a}k, Radoslav and Hoksza, David},
+    journal={Journal of cheminformatics},
+    volume={10},
+    number={1},
+    pages={39},
+    year={2018},
+    publisher={Nature Publishing Group},
+    doi={10.1186/s13321-018-0285-8}
+}
+~~~
+
+* [Latest web-server article](https://doi.org/10.1093/nar/gkaf421) about updates in P2Rank and [prankweb.cz](https://prankweb.cz)
+ Polak L, Skoda P, Riedlova K, Krivak R, Novotny M, Hoksza D. ***PrankWeb 4: a modular web server for protein–ligand binding site prediction and downstream analysis.*** Nucleic Acids Research, 2025 May.
+~~~bibtex
+@article{prankweb4,
+    author = {Polák, Lukáš and Škoda, Petr and Riedlová, Kamila and Krivák, Radoslav and Novotný, Marian and Hoksza, David},
+    title = {PrankWeb 4: a modular web server for protein–ligand binding site prediction and downstream analysis},
+    journal = {Nucleic Acids Research},
+    pages = {gkaf421},
+    year = {2025},
+    month = {05},
+    abstract = {Knowledge of protein–ligand binding sites (LBSs) is crucial for advancing our understanding of biology and developing practical applications in fields such as medicine or biotechnology. PrankWeb is a web server that allows users to predict LBSs from a given three-dimensional structure. It provides access to P2Rank, a state-of-the-art machine learning tool for binding site prediction. Here, we present a new version of PrankWeb enabling the development of both client- and server-side modules acting as postprocessing tasks on the predicted pockets. Furthermore, each module can be associated with a visualization module that acts on the results provided by both client- and server-side modules. This newly developed system was utilized to implement the ability to dock user-provided molecules into the predicted pockets using AutoDock Vina (server-side module) and to interactively visualize the predicted poses (visualization module). In addition to introducing a modular architecture, we revamped PrankWeb’s interface to better support the modules and enhance user interaction between the 1D and 3D viewers. We introduced a new, faster P2Rank backend or user-friendly exports, including ChimeraX visualization.},
+    issn = {1362-4962},
+    doi = {10.1093/nar/gkaf421},
+    url = {https://doi.org/10.1093/nar/gkaf421},
+    eprint = {https://academic.oup.com/nar/advance-article-pdf/doi/10.1093/nar/gkaf421/63227728/gkaf421.pdf},
+}
+~~~
+
+
+* [Web-server article](https://doi.org/10.1093/nar/gkac389) about updates in the web interface [prankweb.cz](https://prankweb.cz)  
+ Jakubec D, Skoda P, Krivak R, Novotny M, Hoksza D. ***PrankWeb 3: accelerated ligand-binding site predictions for experimental and modelled protein structures.*** Nucleic Acids Research, Volume 50, Issue W1, 5 July 2022, Pages W593–W597  
+~~~bibtex
+@article{prankweb3,
+    title = "{PrankWeb 3: accelerated ligand-binding site predictions for experimental and modelled protein structures}",
+    author = {Jakubec, David and Skoda, Petr and Krivak, Radoslav and Novotny, Marian and Hoksza, David},
+    journal = {Nucleic Acids Research},
+    volume = {50},
+    number = {W1},
+    pages = {W593-W597},
+    year = {2022},
+    month = {05},
+    abstract = "{Knowledge of protein–ligand binding sites (LBSs) enables research ranging from protein function annotation to structure-based drug design. To this end, we have previously developed a stand-alone tool, P2Rank, and the web server PrankWeb (https://prankweb.cz/) for fast and accurate LBS prediction. Here, we present significant enhancements to PrankWeb. First, a new, more accurate evolutionary conservation estimation pipeline based on the UniRef50 sequence database and the HMMER3 package is introduced. Second, PrankWeb now allows users to enter UniProt ID to carry out LBS predictions in situations where no experimental structure is available by utilizing the AlphaFold model database. Additionally, a range of minor improvements has been implemented. These include the ability to deploy PrankWeb and P2Rank as Docker containers, support for the mmCIF file format, improved public REST API access, or the ability to batch download the LBS predictions for the whole PDB archive and parts of the AlphaFold database.}",
+    issn = {0305-1048},
+    doi = {10.1093/nar/gkac389},
+}
+~~~
+
+* [Web-server article](https://doi.org/10.1093/nar/gkz424) introducing the web interface at [prankweb.cz](https://prankweb.cz)  
+ Jendele L, Krivak R, Skoda P, Novotny M, Hoksza D. ***PrankWeb: a web server for ligand binding site prediction and visualization.*** Nucleic Acids Research, Volume 47, Issue W1, 02 July 2019, Pages W345-W349 
+~~~bibtex
+@article{prankweb,
+    title="{{P}rank{W}eb: a web server for ligand binding site prediction and visualization}",
+    author="Jendele, L.  and Krivak, R.  and Skoda, P.  and Novotny, M.  and Hoksza, D. ",
+    journal="Nucleic Acids Res.",
+    year="2019",
+    volume="47",
+    number="W1",
+    pages="W345-W349",
+    month="Jul",
+    doi={10.1093/nar/gkz424}
+}
+~~~
+
+* [Conference paper](https://doi.org/10.1007/978-3-319-21233-3_4) introducing P2Rank prediction algorithm  
+ Krivak R, Hoksza D. ***P2RANK: Knowledge-Based Ligand Binding Site Prediction Using Aggregated Local Features.*** International Conference on Algorithms for Computational Biology 2015 Aug 4 (pp. 41-52). Springer
+~~~bibtex
+@inproceedings{p2rank-alcob,
+    title={{P2RANK: Knowledge-Based Ligand Binding Site Prediction Using Aggregated Local Features}},
+    author={Kriv{\'a}k, Radoslav and Hoksza, David},
+    booktitle={International Conference on Algorithms for Computational Biology},
+    pages={41--52},
+    year={2015},
+    organization={Springer},
+    doi={10.1007/978-3-319-21233-3_4}
+}
+~~~
+
+* [Research article](https://doi.org/10.1186/s13321-015-0059-5) about PRANK rescoring algorithm (now included in P2Rank)  
+ Krivak R, Hoksza D. ***Improving protein-ligand binding site prediction accuracy by classification of inner pocket points using local features.*** Journal of Cheminformatics. 2015 Dec.
+~~~bibtex
+@article{prank,
+    author={Kriv{\'a}k, Radoslav and Hoksza, David},
+    title={Improving protein-ligand binding site prediction accuracy by classification of inner pocket points using local features},
+    journal={Journal of Cheminformatics},
+    year={2015},
+    month={Apr},
+    day={01},
+    volume={7},
+    number={1},
+    pages={12},
+    abstract={Protein-ligand binding site prediction from a 3D protein structure plays a pivotal role in rational drug design and can be helpful in drug side-effects prediction or elucidation of protein function. Embedded within the binding site detection problem is the problem of pocket ranking -- how to score and sort candidate pockets so that the best scored predictions correspond to true ligand binding sites. Although there exist multiple pocket detection algorithms, they mostly employ a fairly simple ranking function leading to sub-optimal prediction results.},
+    issn={1758-2946},
+    doi={10.1186/s13321-015-0059-5}
+}
+~~~
+
+- ## Autodock vina
+* [J. Eberhardt, D. Santos-Martins, A. F. Tillack, and S. Forli. (2021). AutoDock Vina 1.2.0: New Docking Methods, Expanded Force Field, and Python Bindings. Journal of Chemical Information and Modeling.](https://pubs.acs.org/doi/10.1021/acs.jcim.1c00203) 
+* [O. Trott and A. J. Olson. (2010). AutoDock Vina: improving the speed and accuracy of docking with a new scoring function, efficient optimization, and multithreading. Journal of computational chemistry, 31(2), 455-461.](https://onlinelibrary.wiley.com/doi/10.1002/jcc.21334)
+
+- ## BlastP
+Camacho, C., Coulouris, G., Avagyan, V., Ma, N., Papadopoulos, J., Bealer, K., and Madden, T.L. 2009. BLAST+: architecture and applications. BMC Bioinformatics, 10, 421.
+
+
+- ## Clustalo
+Sievers F, Wilm A, Dineen D, Gibson TJ, Karplus K, Li W, Lopez R, McWilliam H, Remmert M, Söding J, Thompson JD, Higgins DG. Fast, scalable generation of high-quality protein multiple sequence alignments using Clustal Omega. Mol Syst Biol. 2011 Oct 11;7:539. doi: 10.1038/msb.2011.75. PMID: 21988835; PMCID: PMC3261699.
+
+- ## Colabfold
+Mirdita, M., Schütze, K., Moriwaki, Y. et al. ColabFold: making protein folding accessible to all. Nat Methods 19, 679–682 (2022). https://doi.org/10.1038/s41592-022-01488-1
+
+~~~bibtex
+@article{jumper2021alphafold,
+    title = "Highly accurate protein structure prediction with {AlphaFold}",
+    author   = "Jumper, John and Evans, Richard and Pritzel, Alexander and Green,
+                Tim and Figurnov, Michael and Ronneberger, Olaf and
+                Tunyasuvunakool, Kathryn and Bates, Russ and {\v Z}{\'\i}dek,
+                Augustin and Potapenko, Anna and Bridgland, Alex and Meyer,
+                Clemens and Kohl, Simon A A and Ballard, Andrew J and Cowie,
+                Andrew and Romera-Paredes, Bernardino and Nikolov, Stanislav and
+                Jain, Rishub and Adler, Jonas and Back, Trevor and Petersen, Stig
+                and Reiman, David and Clancy, Ellen and Zielinski, Michal and
+                Steinegger, Martin and Pacholska, Michalina and Berghammer, Tamas
+                and Bodenstein, Sebastian and Silver, David and Vinyals, Oriol
+                and Senior, Andrew W and Kavukcuoglu, Koray and Kohli, Pushmeet
+                and Hassabis, Demis",
+    journal  = "Nature",
+    volume   =  596,
+    number   =  7873,
+    pages    = "583--589",
+    month    =  aug,
+    year     =  2021,
+    language = "en",
+    doi = {10.1038/s41586-021-03819-2},
+}
+~~~
+~~~
+@ARTICLE{mirdita2022colabfold,
+    title   = "ColabFold: making protein folding accessible to all",
+    author  = "Mirdita, Milot and Sch{\"u}tze, Konstantin and Moriwaki, Yoshitaka and Heo, Lim and Ovchinnikov, Sergey and Steinegger, Martin",
+    journal = "Nature Methods",
+    volume  = 19,
+    number  = 6,
+    pages   = "679--682",
+    month   = jun,
+    year    = 2022,
+    language = "en",
+    doi     = {10.1038/s41592-022-01488-1},
+}
+~~~
+~~~
+@ARTICLE{kallenborn2025gpu,
+    title   = "GPU-accelerated homology search with MMseqs2",
+    author  = "Kallenborn, Felix and Chacon, Alejandro and Hundt, Christian and Sirelkhatim, Hassan and Didi, Kieran and Cha, Sooyoung and Dallago, Christian and Mirdita, Milot and Schmidt, Bertil and Steinegger, Martin",
+    journal = "bioRxiv",
+    year    = 2025,
+    month   = jan,
+    day     = 20,
+    language = "en",
+    doi     = {10.1101/2024.11.13.623350},
+}
+~~~
+
+- ## Foldseek
+van Kempen, M., Kim, S.S., Tumescheit, C. et al. Fast and accurate protein structure search with Foldseek. Nat Biotechnol 42, 243–246 (2024). https://doi.org/10.1038/s41587-023-01773-0
+
+- ## Ramplot
+Cite: Kumar, Mayank & Rathore, R. S. (2025). RamPlot: A webserver to draw 2D, 3D, and assorted Ramachandran (φ, ψ) maps. Journal of Applied Crystallography, 58(3), 630-636. DOI :10.1107/S1600576725001669
+
+- ## Usalign
+Zhang, C., Shine, M., Pyle, A.M., & Zhang, Y. (2022). US-align: Universal Structure Alignment of Proteins, Nucleic Acids and Macromolecular Complexes. Nature Methods, 19(2), 195-204. 
+
+- ## Alphafold2
+Jumper, J. et al. “Highly accurate protein structure prediction with AlphaFold.” Nature, 596, pages 583–589 (2021). DOI: 10.1038/s41586-021-03819-2
+
+- ## ESMFold
+~~~
+@article{lin2022language,
+  title={Language models of protein sequences at the scale of evolution enable accurate structure prediction},
+  author={Lin, Zeming and Akin, Halil and Rao, Roshan and Hie, Brian and Zhu, Zhongkai and Lu, Wenting and Smetanin, Nikita and dos Santos Costa, Allan and Fazel-Zarandi, Maryam and Sercu, Tom and Candido, Sal and others},
+  journal={bioRxiv},
+  year={2022},
+  publisher={Cold Spring Harbor Laboratory}
+}
+~~~
+
+- ## Openfold
+~~~
+@article {Ahdritz2022.11.20.517210,
+	author = {Ahdritz, Gustaf and Bouatta, Nazim and Floristean, Christina and Kadyan, Sachin and Xia, Qinghui and Gerecke, William and O{\textquoteright}Donnell, Timothy J and Berenberg, Daniel and Fisk, Ian and Zanichelli, Niccolò and Zhang, Bo and Nowaczynski, Arkadiusz and Wang, Bei and Stepniewska-Dziubinska, Marta M and Zhang, Shang and Ojewole, Adegoke and Guney, Murat Efe and Biderman, Stella and Watkins, Andrew M and Ra, Stephen and Lorenzo, Pablo Ribalta and Nivon, Lucas and Weitzner, Brian and Ban, Yih-En Andrew and Sorger, Peter K and Mostaque, Emad and Zhang, Zhao and Bonneau, Richard and AlQuraishi, Mohammed},
+	title = {{O}pen{F}old: {R}etraining {A}lpha{F}old2 yields new insights into its learning mechanisms and capacity for generalization},
+	elocation-id = {2022.11.20.517210},
+	year = {2022},
+	doi = {10.1101/2022.11.20.517210},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/10.1101/2022.11.20.517210},
+	eprint = {https://www.biorxiv.org/content/early/2022/11/22/2022.11.20.517210.full.pdf},
+	journal = {bioRxiv}
+}
+~~~

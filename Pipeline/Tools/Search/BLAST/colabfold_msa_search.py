@@ -5,7 +5,11 @@ from fastapi import HTTPException
 import httpx
 import os
 import logging
-from .schema_normalizer import MSASchemaNormalizer
+try:
+    from .schema_normalizer import MSASchemaNormalizer
+except ImportError:
+    # Handle case when module is run directly or in tests
+    from schema_normalizer import MSASchemaNormalizer
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
