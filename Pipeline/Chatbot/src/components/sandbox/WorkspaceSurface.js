@@ -204,13 +204,28 @@ const WorkspaceSurface = ({
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
-
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
 
       const reactFlowBounds = event.target.getBoundingClientRect();
-      const blockType = JSON.parse(event.dataTransfer.getData('application/reactflow'));
+      
+      // Check if this is a file drag or a block drag
+      const blockTypeData = event.dataTransfer.getData('application/reactflow');
+      
+      // If no reactflow data, this might be a file drag - ignore it
+      if (!blockTypeData || blockTypeData.trim() === '') {
+        console.log('No block type data found in drag event, ignoring...');
+        return;
+      }
+      
+      let blockType;
+      try {
+        blockType = JSON.parse(blockTypeData);
+      } catch (error) {
+        console.error('Failed to parse block type data:', blockTypeData, error);
+        return;
+      }
 
       const position = {
         x: event.clientX - reactFlowBounds.left,

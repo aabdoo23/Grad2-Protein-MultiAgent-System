@@ -1,9 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import RBButton from 'react-bootstrap/Button';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTree, faExpand } from '@fortawesome/free-solid-svg-icons';
-import PhylogeneticTreeTest from './phylotree/PhylogeneticTreeTest';
+import { useState } from 'react';
 import MSAViewer from './MSAViewer';
 
 // Constants
@@ -25,58 +20,8 @@ const formatSequenceHeader = (name, identity, isQuery = false) => {
 const BlastResults = ({ results }) => {
   // State
   const [expandedHits, setExpandedHits] = useState({});
-  const [treeData, setTreeData] = useState(null);
-  const [showTree, setShowTree] = useState(false);
   const [selectedDb, setSelectedDb] = useState('all');
   const [maxSequences, setMaxSequences] = useState(DEFAULT_MAX_SEQUENCES);
-  const navigate = useNavigate();
-
-  // Effects
-  useEffect(() => {
-    if (results?.phylogenetic_tree) {
-      try {
-        const parsedTree = parseNewick(results.phylogenetic_tree);
-        setTreeData({
-          name: 'Root',
-          children: parsedTree
-        });
-      } catch (error) {
-        console.error('Error parsing phylogenetic tree:', error);
-      }
-    }
-  }, [results?.phylogenetic_tree]);
-
-  // Helper functions
-  const parseNewick = (newick) => {
-    if (!newick) return [];
-    
-    try {
-      const cleanNewick = newick.trim().replace(/\s+/g, '');
-      const parts = cleanNewick.split(';')[0].split(',');
-      
-      return parts.map(part => {
-        const [name, length] = part.split(':');
-        return name ? {
-          name: name.trim(),
-          ...(length && { branchLength: parseFloat(length) })
-        } : null;
-      }).filter(Boolean);
-    } catch (error) {
-      console.error('Error parsing Newick string:', error);
-      return [];
-    }
-  };
-
-  const handleGenerateTree = () => setShowTree(true);
-
-  const handleExpandTree = () => {
-    navigate('/phylogenetic-tree', { 
-      state: { 
-        newick: results.phylogenetic_tree,
-        title: 'Phylogenetic Tree - BLAST Results'
-      } 
-    });
-  };
 
   const toggleHit = (hitId) => {
     setExpandedHits(prev => ({
@@ -174,46 +119,6 @@ const BlastResults = ({ results }) => {
         <div className="bg-[#1a2b34] rounded-lg p-4">
           <h5 className="text-white text-sm font-medium mb-2">Multiple Sequence Alignment</h5>
           <MSAViewer fastaAlignment={processedAlignment} />
-        </div>
-      )}
-
-      {results.phylogenetic_tree && (
-        <div className="bg-[#1a2b34] rounded-lg p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h5 className="text-white text-sm font-medium">Phylogenetic Tree</h5>
-            <div className="flex space-x-2">
-              <RBButton
-                variant="outline-light"
-                size="sm"
-                onClick={handleGenerateTree}
-                disabled={showTree}
-              >
-                <FontAwesomeIcon icon={faTree} className="me-2 text-white" />
-                <span className="text-white">{showTree ? 'Tree Generated' : 'Generate Tree'}</span>
-              </RBButton>
-              {showTree && (
-                <RBButton
-                  variant="outline-light"
-                  size="sm"
-                  onClick={handleExpandTree}
-                >
-                  <FontAwesomeIcon icon={faExpand} className="me-2 text-white" />
-                  <span className="text-white">Expand View</span>
-                </RBButton>
-              )}
-            </div>
-          </div>
-          {showTree && (
-            <div className="tree-container" style={{ height: '400px', width: '100%', overflow: 'auto' }}>
-              <PhylogeneticTreeTest
-                newick={results.phylogenetic_tree}
-                width={800}
-                height={400}
-                padding={20}
-                includeBLAxis={true}
-              />
-            </div>
-          )}
         </div>
       )}
 

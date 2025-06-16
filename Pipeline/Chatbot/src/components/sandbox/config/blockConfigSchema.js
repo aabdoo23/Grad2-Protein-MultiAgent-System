@@ -118,24 +118,11 @@ export const blockConfigSchema = {
       placeholder: 'Enter InterPro IDs and press Enter',
       defaultValue: []
     }
-  },
-  blast_db_builder: {
-    fasta_file: {
-      type: 'text',
-      label: 'FASTA File Path',
-      placeholder: 'Enter path to FASTA file',
-      defaultValue: ''
-    },
-    pfam_ids: {
-      type: 'text',
-      label: 'Pfam IDs',
-      placeholder: 'Enter Pfam IDs and press Enter',
-      defaultValue: []
-    },
+  },  blast_db_builder: {
     db_name: {
       type: 'text',
-      label: 'Database Name',
-      placeholder: 'Enter custom database name (optional)',
+      label: 'Custom Database Name (Optional)',
+      placeholder: 'Enter a name for your database (auto-generated if empty)',
       defaultValue: ''
     }
   },
@@ -179,11 +166,10 @@ export const blockConfigSchema = {
       type: 'number',
       label: 'Number of Modes',
       defaultValue: 10
-    },
-    cpu: { 
+    },    cpu: { 
       type: 'number',
       label: 'CPU',
       defaultValue: 4
     }
   }
-}; 
+};

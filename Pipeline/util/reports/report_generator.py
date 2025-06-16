@@ -232,10 +232,68 @@ class ReportGenerator:
         report_lines.append("\n" + "=" * 80)
         return "\n".join(report_lines)
 
+    @staticmethod
+    def generate_ramachandran_report(data: Dict[str, Any]) -> str:
+        """Generate a text report for Ramachandran plot analysis."""
+        report = []
+        report.append("=" * 80)
+        report.append("Ramachandran Plot Analysis Report")
+        report.append("=" * 80)
+        report.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        report.append("\n")
+        
+        # Basic information
+        pdb_file = data.get('pdb_file', 'Unknown')
+        report.append(f"PDB File: {os.path.basename(pdb_file)}")
+        report.append(f"Timestamp: {data.get('timestamp', 'Unknown')}")
+        report.append(f"Total Residues Analyzed: {data.get('residue_count', 0)}")
+        report.append("\n")
+        
+        # Secondary structure statistics
+        statistics = data.get('statistics', {})
+        if statistics:
+            report.append("Secondary Structure Distribution:")
+            report.append(f"  Alpha Helix: {statistics.get('alpha_helix', 0)} residues ({statistics.get('alpha_percentage', 0):.1f}%)")
+            report.append(f"  Beta Sheet: {statistics.get('beta_sheet', 0)} residues ({statistics.get('beta_percentage', 0):.1f}%)")
+            report.append(f"  Other/Extended: {statistics.get('other', 0)} residues ({statistics.get('other_percentage', 0):.1f}%)")
+            report.append("\n")
+        
+        # Analysis summary
+        report.append("Analysis Summary:")
+        report.append("The Ramachandran plot shows the distribution of phi and psi dihedral angles")
+        report.append("for each amino acid residue in the protein backbone. This analysis helps")
+        report.append("assess the stereochemical quality of the protein structure.")
+        report.append("\n")
+        
+        # Interpretation
+        alpha_pct = statistics.get('alpha_percentage', 0)
+        beta_pct = statistics.get('beta_percentage', 0)
+        other_pct = statistics.get('other_percentage', 0)
+        
+        report.append("Interpretation:")
+        if alpha_pct > 50:
+            report.append("  - High alpha-helical content suggests a predominantly helical structure")
+        elif beta_pct > 30:
+            report.append("  - Significant beta-sheet content indicates extended strand regions")
+        
+        if other_pct > 20:
+            report.append("  - High percentage of 'other' conformations may indicate:")
+            report.append("    * Flexible loops and turns")
+            report.append("    * Potential structural irregularities")
+            report.append("    * Need for further structural validation")
+        
+        report.append("\n")
+        report.append("Files included:")
+        report.append("  - ramachandran_plot.png: Visual representation of phi/psi angles")
+        report.append("  - ramachandran_data.json: Complete analysis data")
+        report.append("  - phi_psi_angles.csv: Tabular data of all dihedral angles")
+        
+        return "\n".join(report)
+
     def _format_size(self, size_bytes: int) -> str:
         """Format file size in human-readable format."""
         for unit in ['B', 'KB', 'MB', 'GB']:
             if size_bytes < 1024.0:
                 return f"{size_bytes:.2f} {unit}"
             size_bytes /= 1024.0
-        return f"{size_bytes:.2f} TB" 
+        return f"{size_bytes:.2f} TB"

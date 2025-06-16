@@ -118,6 +118,19 @@ export const downloadService = {
     }
   },
 
+  // Download files as ZIP
+  downloadFilesAsZip: async (files) => {
+    try {
+      const response = await downloadApi.post('/download-files-zip', {
+        files
+      });
+      return response;
+    } catch (error) {
+      console.error('Error downloading files as ZIP:', error);
+      throw error;
+    }
+  },
+
   // Helper function to handle file download
   handleFileDownload: (response) => {
     if (response && response.data) {
@@ -250,4 +263,4 @@ export const blastService = {
       throw error;
     }
   }
-}; 
+};

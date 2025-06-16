@@ -9,7 +9,10 @@ from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 from Tools.Search.BLAST.colabfold_msa_search import ColabFold_MSA_Searcher
 from Tools.Search.BLAST.local_blast import LocalBlastSearcher
+from Tools.Search.Phylogeny.phylogenetic_tree_builder import PhylogeneticTreeBuilder
 from Tools.Docking.docking_tool import DockingTool
+from Tools.Docking.P2Rank.prank_tool import PrankTool
+from Tools.TDStructure.Analysis.ramachandran_analyzer import RamachandranAnalyzer
 from util.flow.job_manager import Job
 from Tools.Search.BLAST.database_builder import BlastDatabaseBuilder
 import os
@@ -27,11 +30,14 @@ class PipelineController:
         self.ncbi_blast_searcher = NCBI_BLAST_Searcher()
         self.colabfold_msa_searcher = ColabFold_MSA_Searcher()
         self.local_blast_searcher = LocalBlastSearcher()
+        self.phylo_tree_builder = PhylogeneticTreeBuilder()
         self.conversation_memory = conversation_memory
         self.job_manager = job_manager
         self.selected_functions = []
         self.db_builder = BlastDatabaseBuilder()
         self.docking_tool = DockingTool()
+        self.prank_tool = PrankTool()
+        self.ramachandran_analyzer = RamachandranAnalyzer()
 
     def process_input(self, session_id: str, text: str) -> Dict[str, Any]:
         # Retrieve conversation history if needed
@@ -217,8 +223,68 @@ class PipelineController:
                     return result
                 else:
                     return {"success": False, "error": result.get("error", "Local BLAST search failed")}
+            else:                return {"success": False, "error": f"Unknown search type: {search_type}"}
+        elif name == PipelineFunction.PREDICT_BINDING_SITES.value:
+            # Extract P2Rank parameters
+            pdb_file = params.get('pdb_file')
+            output_dir = params.get('output_dir')
+            
+            if not pdb_file:
+                return {"success": False, "error": "No PDB file provided for binding site prediction"}
+            
+            # Run P2Rank analysis
+            result = self.prank_tool.run_full_analysis(pdb_file, output_dir)
+            
+            if result.get('success'):
+                # Return comprehensive binding site information
+                return {
+                    "success": True,
+                    "pdb_filename": result['pdb_filename'],
+                    "result_path": result['result_path'],
+                    "predictions_csv": result['predictions_csv'],
+                    "binding_sites": result['binding_sites'],
+                    "summary": result['summary'],                    "top_site": result['top_site'],
+                    "message": f"Found {result['summary']['total_sites']} binding sites"
+                }
             else:
-                return {"success": False, "error": f"Unknown search type: {search_type}"}
+                return {"success": False, "error": result.get('error', 'P2Rank prediction failed')}
+        elif name == PipelineFunction.BUILD_PHYLOGENETIC_TREE.value:
+            # Extract phylogenetic tree parameters
+            # Check both 'blast_results' and 'results' for backward compatibility
+            blast_results = params.get('blast_results') or params.get('results')
+            tree_method = params.get('tree_method', 'neighbor_joining')
+            distance_model = params.get('distance_model', 'identity')
+            max_sequences = params.get('max_sequences', 50)
+            min_sequence_length = params.get('min_sequence_length', 50)
+            remove_gaps = params.get('remove_gaps', True)
+            
+            if not blast_results:
+                return {"success": False, "error": "No BLAST results provided for phylogenetic tree construction"}
+            
+            # Build phylogenetic tree
+            parameters = {
+                'method': tree_method,
+                'distance_model': distance_model,
+                'max_sequences': max_sequences,
+                'min_sequence_length': min_sequence_length,
+                'remove_gaps': remove_gaps
+            }
+            
+            result = self.phylo_tree_builder.build_tree_from_blast_results(
+                blast_results=blast_results,
+                parameters=parameters
+            )
+            
+            if result.get('success'):
+                return {
+                    "success": True,
+                    "tree_data": result['tree'],
+                    "alignment_data": result['alignment'],
+                    "metadata": result['metadata'],
+                    "message": f"Built phylogenetic tree with {result['alignment']['sequences_used']} sequences using {tree_method} method"
+                }
+            else:
+                return {"success": False, "error": result.get('error', 'Phylogenetic tree construction failed')}
         elif name == 'build_database':
             return self.build_database(params)
         elif name == 'perform_docking':
@@ -228,21 +294,39 @@ class PipelineController:
             center_x = params.get('center_x')
             center_y = params.get('center_y')
             center_z = params.get('center_z')
-            size_x = params.get('size_x')
-            size_y = params.get('size_y')
-            size_z = params.get('size_z')
+            size_x = params.get('size_x', 20)
+            size_y = params.get('size_y', 20)
+            size_z = params.get('size_z', 20)
             exhaustiveness = params.get('exhaustiveness', 16)
             num_modes = params.get('num_modes', 10)
             cpu = params.get('cpu', 4)
+            
+            # Check if binding site information is available from previous P2Rank analysis
+            top_site = params.get('top_site')
+            auto_center = params.get('auto_center', False)
+            
+            if auto_center and top_site and not all([center_x, center_y, center_z]):
+                # Use P2Rank results for binding site center
+                center_x = top_site.get('center_x')
+                center_y = top_site.get('center_y') 
+                center_z = top_site.get('center_z')
+                
+            # If still no center coordinates, try to run P2Rank automatically
+            if not all([center_x, center_y, center_z]) and protein_file:
+                prank_result = self.prank_tool.run_full_analysis(protein_file)
+                if prank_result.get('success') and prank_result.get('top_site'):
+                    top_site = prank_result['top_site']
+                    center_x = top_site.get('center_x')
+                    center_y = top_site.get('center_y')
+                    center_z = top_site.get('center_z')
 
-            if not all([protein_file, ligand_file, center_x, center_y, center_z, size_x, size_y, size_z]):
-                return {"success": False, "error": "Missing required docking parameters"}
+            if not all([protein_file, ligand_file, center_x, center_y, center_z]):
+                return {"success": False, "error": "Missing required docking parameters (protein_file, ligand_file, center coordinates)"}
 
             result = self.docking_tool.perform_docking(
                 protein_file=protein_file,
                 ligand_file=ligand_file,
-                center_x=center_x,
-                center_y=center_y,
+                center_x=center_x,                center_y=center_y,
                 center_z=center_z,
                 size_x=size_x,
                 size_y=size_y,
@@ -251,6 +335,38 @@ class PipelineController:
                 num_modes=num_modes,
                 cpu=cpu
             )
+        elif name == PipelineFunction.ANALYZE_RAMACHANDRAN.value:
+            # Extract Ramachandran analysis parameters
+            pdb_file = params.get('pdb_file')
+            output_dir = params.get('output_dir')
+            
+            if not pdb_file:
+                return {"success": False, "error": "No PDB file provided for Ramachandran analysis"}
+            
+            # Set default output directory if not provided
+            if not output_dir:
+                output_dir = os.path.join('static', 'ramachandran_results')
+                os.makedirs(output_dir, exist_ok=True)
+            
+            # Run Ramachandran analysis
+            result = self.ramachandran_analyzer.generate_ramachandran_analysis(pdb_file, output_dir)
+            
+            if result.get('success'):
+                # Return comprehensive Ramachandran analysis information
+                return {
+                    "success": True,
+                    "pdb_file": result['pdb_file'],
+                    "plot_base64": result['plot_base64'],
+                    "plot_path": result.get('plot_path'),
+                    "data_path": result.get('data_path'),
+                    "statistics": result['statistics'],
+                    "residue_count": result['residue_count'],
+                    "angle_data": result['angle_data'],
+                    "timestamp": result['timestamp'],
+                    "message": f"Generated Ramachandran plot for {result['residue_count']} residues"
+                }
+            else:
+                return {"success": False, "error": result.get('error', 'Ramachandran analysis failed')}
             
         return result
 
@@ -260,9 +376,12 @@ class PipelineController:
             PipelineFunction.PREDICT_STRUCTURE.value: PipelineFunction.GENERATE_PROTEIN.value,
             PipelineFunction.SEARCH_STRUCTURE.value: PipelineFunction.PREDICT_STRUCTURE.value,
             PipelineFunction.EVALUATE_STRUCTURE.value: PipelineFunction.PREDICT_STRUCTURE.value,
-            PipelineFunction.SEARCH_SIMILARITY.value: PipelineFunction.GENERATE_PROTEIN.value
+            PipelineFunction.SEARCH_SIMILARITY.value: PipelineFunction.GENERATE_PROTEIN.value,
+            PipelineFunction.PREDICT_BINDING_SITES.value: PipelineFunction.PREDICT_STRUCTURE.value,
+            PipelineFunction.BUILD_PHYLOGENETIC_TREE.value: PipelineFunction.SEARCH_SIMILARITY.value,
+            PipelineFunction.ANALYZE_RAMACHANDRAN.value: PipelineFunction.PREDICT_STRUCTURE.value
         }
-        return dependencies.get(function_name)
+        return dependencies.get(function_name, "")
 
     def _chain_job_parameters(self, previous_result: Dict[str, Any], current_job: Job) -> Dict[str, Any]:
         """Update job parameters based on the previous job's result."""
@@ -276,6 +395,20 @@ class PipelineController:
             PipelineFunction.PREDICT_STRUCTURE.value: {
                 "pdb_file": "pdb_file",
                 "sequence": "sequence"
+            },
+            PipelineFunction.PREDICT_BINDING_SITES.value: {
+                "binding_sites": "binding_sites",
+                "top_site": "top_site",
+                "predictions_csv": "predictions_csv"
+            },
+            PipelineFunction.SEARCH_SIMILARITY.value: {
+                "results": "blast_results"
+            },
+            PipelineFunction.ANALYZE_RAMACHANDRAN.value: {
+                "plot_base64": "plot_base64",
+                "plot_path": "plot_path",
+                "statistics": "statistics",
+                "angle_data": "angle_data"
             }
         }
         

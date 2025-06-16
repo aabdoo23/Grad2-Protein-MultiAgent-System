@@ -5,6 +5,7 @@ import BlastResults from './BlastResults';
 import FoldSeekResults from './result-viewers/FoldSeekResults';
 import SequenceGenerationResults from './result-viewers/SequenceGenerationResults';
 import EvaluationResults from './result-viewers/EvaluationResults';
+import PhylogeneticTreeResults from './result-viewers/PhylogeneticTreeResults';
 import { AWAIT_TIME, BASE_URL } from '../config/config';
 
 const JobStatus = forwardRef((props, ref) => {
@@ -250,11 +251,16 @@ const JobStatus = forwardRef((props, ref) => {
       case 'generate_protein':
         return <SequenceGenerationResults sequence={job.result.sequence} info={job.result.info} />;
       case 'evaluate_structure':
-        return <EvaluationResults metrics={job.result.metrics} />;
-      case 'search_similarity':
+        return <EvaluationResults metrics={job.result.metrics} />;      case 'search_similarity':
         return <BlastResults results={job.result.results} />;
       case 'search_structure':
         return <FoldSeekResults results={job.result.results} originalPdbPath={job.result.pdb_file} />;
+      case 'build_phylogenetic_tree':
+        return <PhylogeneticTreeResults 
+          treeData={job.result.tree_data}
+          alignmentData={job.result.alignment_data}
+          metadata={job.result.metadata}
+        />;
       default:
         return null;
     }

@@ -1,12 +1,23 @@
 import FoldSeekResults from '../../result-viewers/FoldSeekResults';
 import SequenceGenerationResults from '../../result-viewers/SequenceGenerationResults';
+import PhylogeneticTreeResults from '../../result-viewers/PhylogeneticTreeResults';
 import { downloadService } from '../../../services/api';
 import BlastResults from '../../BlastResults';
 import { BASE_URL } from '../../../config/config';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, onToggleResults, initViewer, formatMetric }) => {
     const [selectedPose, setSelectedPose] = useState(null);
+    const [showAllResidues, setShowAllResidues] = useState(false);
+
+    // Reset selected pose when blockOutput changes
+    useEffect(() => {
+        if (blockType.id === 'perform_docking' && blockOutput?.docking_poses?.length > 0) {
+            setSelectedPose(blockOutput.docking_poses[0]);
+        } else {
+            setSelectedPose(null);
+        }
+    }, [blockOutput, blockType.id]);
 
     const renderDownloadButton = () => {
       if (!blockOutput) return null;
@@ -37,8 +48,7 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
                 console.error('No output directory specified for docking results download.');
                 return;
               }
-              break;
-  
+              break;            
             case 'colabfold_search':
             case 'ncbi_blast_search':
             case 'local_blast_search':
@@ -47,6 +57,39 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
                 blockOutput.results,
                 blockType.id.includes('search') ? 'similarity' : 'structure'
               );
+              break;            case 'predict_binding_sites':
+              response = await downloadService.downloadFilesAsZip([
+                { path: blockOutput.predictions_csv, name: `binding_sites_predictions_${blockInstanceId}.csv` },
+                { path: blockOutput.result_path, name: `p2rank_results_${blockInstanceId}` }
+              ]);
+              break;
+
+            case 'build_phylogenetic_tree':
+              if (blockOutput.tree_data?.files) {
+                response = await downloadService.downloadFilesAsZip([
+                  { path: blockOutput.tree_data.files.tree_file, name: `phylogenetic_tree_${blockInstanceId}.nwk` },
+                  { path: blockOutput.tree_data.files.alignment_file, name: `alignment_${blockInstanceId}.fasta` }
+                ]);
+              } else {
+                console.error('No tree files available for download.');
+                return;
+              }
+              break;
+
+            case 'analyze_ramachandran':
+              const downloadFiles = [];
+              if (blockOutput.plot_path) {
+                downloadFiles.push({ path: blockOutput.plot_path, name: `ramachandran_plot_${blockInstanceId}.png` });
+              }
+              if (blockOutput.data_path) {
+                downloadFiles.push({ path: blockOutput.data_path, name: `ramachandran_data_${blockInstanceId}.json` });
+              }
+              if (downloadFiles.length > 0) {
+                response = await downloadService.downloadFilesAsZip(downloadFiles);
+              } else {
+                console.error('No Ramachandran files available for download.');
+                return;
+              }
               break;
   
             default:
@@ -72,7 +115,6 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
         </button>
       );
     };
-  
     const viewerDomId = `viewer-${blockInstanceId}`;
 
     useEffect(() => {
@@ -99,35 +141,48 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
             };
 
             fetchPdbContent(blockOutput.pdb_file);
-        } else if (isResultsOpen && initViewer && blockType.id === 'perform_docking') {
-            if (selectedPose && selectedPose.complex_pdb_file) {
-                const fetchPdbContent = async (filePath) => {
-                    try {
-                        const response = await fetch(`${BASE_URL}/api/pdb-content?filePath=${encodeURIComponent(filePath)}`);
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            throw new Error(`Failed to fetch PDB content: ${response.status} ${response.statusText}. ${errorText}`);
-                        }
-                        const pdbContent = await response.text();
-                        if (pdbContent) {
-                            initViewer(viewerDomId, pdbContent, blockInstanceId);
-                        } else {
-                            initViewer(viewerDomId, null, blockInstanceId, 'Fetched PDB content for pose is empty.');
-                        }
-                    } catch (error) {
-                        console.error('Error fetching PDB content for pose:', error);
-                        initViewer(viewerDomId, null, blockInstanceId, `Error fetching PDB for pose: ${error.message}`);
-                    }
-                };
-                fetchPdbContent(selectedPose.complex_pdb_file);
-            } else if (blockOutput?.docking_poses?.length > 0 && !selectedPose) {
-                setSelectedPose(blockOutput.docking_poses[0]);
-            }
         } else if (isResultsOpen && initViewer && !blockOutput?.pdb_file && 
                    (blockType.id === 'openfold_predict' || blockType.id === 'alphafold2_predict' || blockType.id === 'esmfold_predict')) {
             initViewer(viewerDomId, null, blockInstanceId, 'PDB file path missing in block output.');
         }
-    }, [isResultsOpen, blockOutput, blockType.id, blockInstanceId, initViewer, viewerDomId, selectedPose]);
+    }, [isResultsOpen, blockOutput, blockType.id, blockInstanceId, initViewer, viewerDomId]);    // Separate effect for docking pose selection to avoid conflicts
+    useEffect(() => {
+        if (isResultsOpen && initViewer && blockType.id === 'perform_docking') {
+            if (blockOutput?.docking_poses?.length > 0) {
+                // Auto-select first pose if none selected
+                if (!selectedPose) {
+                    setSelectedPose(blockOutput.docking_poses[0]);
+                    return; // Let the next effect cycle handle the viewer initialization
+                }
+                
+                // Initialize viewer with selected pose
+                if (selectedPose && selectedPose.complex_pdb_file) {
+                    const fetchPdbContent = async (filePath) => {
+                        try {
+                            const response = await fetch(`${BASE_URL}/api/pdb-content?filePath=${encodeURIComponent(filePath)}`);
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                throw new Error(`Failed to fetch PDB content: ${response.status} ${response.statusText}. ${errorText}`);
+                            }
+                            const pdbContent = await response.text();
+                            if (pdbContent) {
+                                // Use requestAnimationFrame for better timing with DOM updates
+                                requestAnimationFrame(() => {
+                                    initViewer(viewerDomId, pdbContent, blockInstanceId);
+                                });
+                            } else {
+                                initViewer(viewerDomId, null, blockInstanceId, 'Fetched PDB content for pose is empty.');
+                            }
+                        } catch (error) {
+                            console.error('Error fetching PDB content for pose:', error);
+                            initViewer(viewerDomId, null, blockInstanceId, `Error fetching PDB for pose: ${error.message}`);
+                        }
+                    };
+                    fetchPdbContent(selectedPose.complex_pdb_file);
+                }
+            }
+        }
+    }, [isResultsOpen, blockType.id, blockInstanceId, initViewer, viewerDomId, selectedPose, blockOutput?.docking_poses]);
 
     const renderResults = () => {
       if (!blockOutput) return null;
@@ -171,14 +226,13 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
               <SequenceGenerationResults sequence={blockOutput.sequence} info={blockOutput.info} />
               {renderDownloadButton()}
             </div>
-          );
-  
-        case 'openfold_predict':
+          );        case 'openfold_predict':
         case 'alphafold2_predict':
         case 'esmfold_predict':
           return (
             <div className="bg-[#1a2b34] rounded-lg p-3">
               <div
+                key={`viewer-${blockInstanceId}-${blockType.id}`}
                 id={viewerDomId}
                 className="nodrag relative w-full h-[400px] rounded-lg mb-3 bg-gray-800 border border-gray-700 molstar-viewer-container overflow-hidden"
               />
@@ -215,9 +269,9 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
             return (
                 <div className="bg-[#1a2b34] rounded-lg p-3">
                     <h3 className="text-lg font-semibold text-white mb-2">Docking Results</h3>
-                    <div className="flex gap-4">
-                        <div className="flex-1">
+                    <div className="flex gap-4">                        <div className="flex-1">
                             <div
+                                key={`viewer-${blockInstanceId}-${selectedPose?.mode || 'none'}`}
                                 id={viewerDomId}
                                 className="nodrag relative w-full h-[400px] rounded-lg mb-3 bg-gray-800 border border-gray-700 molstar-viewer-container overflow-hidden"
                             />
@@ -253,16 +307,295 @@ const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, o
               </div>
               <BlastResults results={blockOutput.results} />
             </div>
-          ) : null;
-  
-        case 'search_structure':
+          ) : null;        case 'search_structure':
           return blockOutput.results ? (
             <div className="bg-[#1a2b34] rounded-lg p-3">
               <div className="text-white text-sm mb-2">Search Results:</div>
-              <FoldSeekResults results={blockOutput.results} originalPdbPath={blockOutput.pdb_file} />
+              <FoldSeekResults results={blockOutput.results} originalPdbPath={blockOutput.pdb_file} initViewer={initViewer} />
               {renderDownloadButton()}
             </div>
           ) : null;
+
+        case 'predict_binding_sites':
+          return (
+            <div className="bg-[#1a2b34] rounded-lg p-3">
+              <h3 className="text-lg font-semibold text-white mb-3">Binding Site Predictions</h3>
+              
+              {/* Summary Statistics */}
+              {blockOutput.summary && (
+                <div className="mb-4 p-3 bg-[#0f1419] rounded-lg">
+                  <h4 className="text-sm font-semibold text-[#13a4ec] mb-2">Summary</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Total Sites:</span>
+                      <span className="text-white font-medium">{blockOutput.summary.total_sites}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Max Score:</span>
+                      <span className="text-white font-medium">{formatMetric(blockOutput.summary.max_score)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Min Score:</span>
+                      <span className="text-white font-medium">{formatMetric(blockOutput.summary.min_score)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Avg Score:</span>
+                      <span className="text-white font-medium">{formatMetric(blockOutput.summary.avg_score)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Binding Sites List */}
+              {blockOutput.binding_sites && blockOutput.binding_sites.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-[#13a4ec] mb-2">Predicted Binding Sites</h4>
+                  <div className="max-h-[400px] overflow-y-auto custom-scrollbar space-y-2">
+                    {blockOutput.binding_sites.map((site, index) => (
+                      <div
+                        key={index}
+                        className={`p-3 rounded-lg border-l-4 ${
+                          site.rank === 1 ? 'bg-green-900/30 border-green-500' :
+                          site.rank === 2 ? 'bg-blue-900/30 border-blue-500' :
+                          site.rank === 3 ? 'bg-yellow-900/30 border-yellow-500' :
+                          'bg-gray-900/30 border-gray-500'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              site.rank === 1 ? 'bg-green-600 text-white' :
+                              site.rank === 2 ? 'bg-blue-600 text-white' :
+                              site.rank === 3 ? 'bg-yellow-600 text-black' :
+                              'bg-gray-600 text-white'
+                            }`}>
+                              #{site.rank}
+                            </span>
+                            <span className="text-white font-semibold">{site.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-[#13a4ec] font-bold text-lg">{formatMetric(site.score)}</div>
+                            <div className="text-xs text-gray-300">Score</div>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <span className="text-gray-300">Probability:</span>
+                            <span className="text-white ml-1">{formatMetric(site.probability)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-300">SAS Points:</span>
+                            <span className="text-white ml-1">{site.sas_points}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-300">Surface Atoms:</span>
+                            <span className="text-white ml-1">{site.surf_atoms}</span>
+                          </div>
+                        </div>
+                          <div className="mt-2 text-xs">
+                          <div className="text-gray-300 mb-1">Center Coordinates:</div>
+                          <div className="font-mono text-white bg-black/20 p-2 rounded">
+                            X: {formatMetric(site.center_x)}, Y: {formatMetric(site.center_y)}, Z: {formatMetric(site.center_z)}
+                          </div>
+                        </div>
+                        
+                        {site.docking_box && (
+                          <div className="mt-2 text-xs">
+                            <div className="text-gray-300 mb-1">Docking Box Dimensions:</div>
+                            <div className="font-mono text-white bg-black/20 p-2 rounded">
+                              <div>Size: {formatMetric(site.docking_box.size_x)} × {formatMetric(site.docking_box.size_y)} × {formatMetric(site.docking_box.size_z)} Å</div>
+                              <div className="mt-1 text-xs text-gray-400">
+                                Center: ({formatMetric(site.docking_box.center_x)}, {formatMetric(site.docking_box.center_y)}, {formatMetric(site.docking_box.center_z)})
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {site.residue_ids && (
+                          <div className="mt-2 text-xs">
+                            <div className="text-gray-300 mb-1">Residues:</div>
+                            <div className="font-mono text-white bg-black/20 p-2 rounded text-wrap break-all">
+                              {site.residue_ids}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}              {/* Top Site Highlight */}
+              {blockOutput.top_site && (
+                <div className="mt-4 p-3 bg-green-900/20 border border-green-500/30 rounded-lg">
+                  <h4 className="text-sm font-semibold text-green-400 mb-2">🎯 Top Binding Site</h4>
+                  <div className="text-sm text-white">
+                    <div className="mb-1">
+                      <strong>{blockOutput.top_site.name}</strong> - Score: <span className="text-green-400 font-bold">{formatMetric(blockOutput.top_site.score)}</span>
+                    </div>
+                    <div className="text-xs text-gray-300">
+                      Center: ({formatMetric(blockOutput.top_site.center_x)}, {formatMetric(blockOutput.top_site.center_y)}, {formatMetric(blockOutput.top_site.center_z)})
+                    </div>
+                    {blockOutput.top_site.docking_box && (
+                      <div className="text-xs text-gray-300 mt-1">
+                        Docking Box: {formatMetric(blockOutput.top_site.docking_box.size_x)} × {formatMetric(blockOutput.top_site.docking_box.size_y)} × {formatMetric(blockOutput.top_site.docking_box.size_z)} Å
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end mt-3">
+                {renderDownloadButton()}
+              </div>            </div>
+          );
+
+        case 'build_phylogenetic_tree':
+          return (
+            <div className="p-4">
+              <PhylogeneticTreeResults 
+                treeData={blockOutput.tree_data}
+                alignmentData={blockOutput.alignment_data}
+                metadata={blockOutput.metadata}
+              />
+              <div className="mt-4 flex justify-end">
+                {renderDownloadButton()}
+              </div>
+            </div>
+          );
+  
+        case 'analyze_ramachandran':
+          return (
+            <div className="bg-[#1a2b34] rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Ramachandran Plot Analysis</h3>
+              
+              {/* Statistics Summary */}
+              {blockOutput.statistics && (
+                <div className="mb-4 p-3 bg-[#0f1419] rounded-lg">
+                  <h4 className="text-sm font-semibold text-[#13a4ec] mb-2">Secondary Structure Statistics</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Total Residues:</span>
+                      <span className="text-white font-medium">{blockOutput.statistics.total}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Alpha Helix:</span>
+                      <span className="text-white font-medium">
+                        {blockOutput.statistics.alpha_helix} ({blockOutput.statistics.alpha_percentage?.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Beta Sheet:</span>
+                      <span className="text-white font-medium">
+                        {blockOutput.statistics.beta_sheet} ({blockOutput.statistics.beta_percentage?.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Other/Extended:</span>
+                      <span className="text-white font-medium">
+                        {blockOutput.statistics.other} ({blockOutput.statistics.other_percentage?.toFixed(1)}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Ramachandran Plot */}
+              {blockOutput.plot_base64 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-[#13a4ec] mb-2">Ramachandran Plot</h4>
+                  <div className="bg-white rounded-lg p-2 flex justify-center">
+                    <img 
+                      src={`data:image/png;base64,${blockOutput.plot_base64}`}
+                      alt="Ramachandran Plot"
+                      className="max-w-full h-auto rounded-lg"
+                      style={{ maxHeight: '500px' }}
+                    />
+                  </div>
+                </div>
+              )}              {/* Angle Data Table Preview */}
+              {blockOutput.angle_data && blockOutput.angle_data.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-sm font-semibold text-[#13a4ec]">
+                      Phi/Psi Angles ({showAllResidues ? 'showing all' : 'showing first 10'} residues)
+                    </h4>
+                    {blockOutput.angle_data.length > 10 && (
+                      <button
+                        onClick={() => setShowAllResidues(!showAllResidues)}
+                        className="px-3 py-1 bg-[#13a4ec] text-white rounded text-xs hover:bg-[#0f8fd1] transition-colors"
+                      >
+                        {showAllResidues ? 'Show Less' : 'Show All'}
+                      </button>
+                    )}
+                  </div>
+                  <div className="bg-[#0f1419] rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <div className={showAllResidues ? "max-h-96 overflow-y-auto" : ""}>
+                        <table className="w-full text-sm">
+                          <thead className="bg-[#13a4ec] text-white sticky top-0">
+                            <tr>
+                              <th className="px-3 py-2 text-left">Chain</th>
+                              <th className="px-3 py-2 text-left">Residue</th>
+                              <th className="px-3 py-2 text-left">Number</th>
+                              <th className="px-3 py-2 text-left">Phi (°)</th>
+                              <th className="px-3 py-2 text-left">Psi (°)</th>
+                              <th className="px-3 py-2 text-left">Secondary Structure</th>
+                            </tr>
+                          </thead>
+                          <tbody className="text-gray-300">
+                            {(showAllResidues ? blockOutput.angle_data : blockOutput.angle_data.slice(0, 10)).map((residue, index) => {
+                              // Classify secondary structure based on phi/psi angles
+                              const phi = residue.phi;
+                              const psi = residue.psi;
+                              let secStruct = 'Other/Extended';
+                              let structColor = 'text-gray-300';
+                              
+                              if (-90 <= phi && phi <= -30 && -70 <= psi && psi <= 50) {
+                                secStruct = 'Alpha Helix';
+                                structColor = 'text-red-400';
+                              } else if ((-180 <= phi && phi <= -90 && 90 <= psi && psi <= 180) || 
+                                         (-180 <= phi && phi <= -90 && -180 <= psi && psi <= -90)) {
+                                secStruct = 'Beta Sheet';
+                                structColor = 'text-blue-400';
+                              } else if (30 <= phi && phi <= 90 && -20 <= psi && psi <= 80) {
+                                secStruct = 'Left-handed Helix';
+                                structColor = 'text-green-400';
+                              }
+                              
+                              return (
+                                <tr key={showAllResidues ? `all-${index}` : `preview-${index}`} className="border-b border-gray-700 hover:bg-gray-800/50">
+                                  <td className="px-3 py-2">{residue.chain}</td>
+                                  <td className="px-3 py-2 font-mono">{residue.residue_name}</td>
+                                  <td className="px-3 py-2">{residue.residue_number}</td>
+                                  <td className="px-3 py-2">{residue.phi?.toFixed(1)}</td>
+                                  <td className="px-3 py-2">{residue.psi?.toFixed(1)}</td>
+                                  <td className={`px-3 py-2 text-xs font-medium ${structColor}`}>{secStruct}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    {!showAllResidues && blockOutput.angle_data.length > 10 && (
+                      <div className="p-2 text-xs text-gray-400 text-center border-t border-gray-700">
+                        ... and {blockOutput.angle_data.length - 10} more residues
+                      </div>
+                    )}
+                    {showAllResidues && (
+                      <div className="p-2 text-xs text-gray-400 text-center border-t border-gray-700">
+                        Total: {blockOutput.angle_data.length} residues displayed
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                {renderDownloadButton()}
+              </div>
+            </div>
+          );
   
         default:
           return null;

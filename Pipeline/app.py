@@ -11,6 +11,7 @@ from util.modules.download_handler import DownloadHandler
 import os
 import threading
 import io
+import zipfile
 from datetime import datetime
 import uuid
 from werkzeug.utils import secure_filename
@@ -28,11 +29,9 @@ CORS(app, supports_credentials=True, resources={
 app.secret_key = "YOUR_SECRET_KEY"  # Needed for session management
 
 # Configure static file serving
-STATIC_PDB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'pdb_files')
-STATIC_DOCKING_RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'docking_results')
+STATIC_PDB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
 os.makedirs(STATIC_PDB_DIR, exist_ok=True)
-os.makedirs(STATIC_DOCKING_RESULTS_DIR, exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Allowed file extensions
@@ -50,33 +49,63 @@ def get_pdb_content():
     file_path_param = request.args.get('filePath')
     if not file_path_param:
         app.logger.warning("API call to /api/pdb-content missing filePath parameter.")
-        return jsonify({'error': 'filePath parameter is required'}), 400
+        return jsonify({"success": False, "error": "filePath parameter is missing"}), 400
 
     try:
-        requested_abs_path = os.path.realpath(file_path_param)
+        # Check if the file path is within our static directory
+        static_abs_path = os.path.realpath(STATIC_PDB_DIR)
         
-        allowed_base_pdb_abs = os.path.realpath(STATIC_PDB_DIR)
-        allowed_base_docking_abs = os.path.realpath(STATIC_DOCKING_RESULTS_DIR)
-
-        # Security check: Ensure the requested path is within one of the allowed base directories.
-        is_in_pdb_dir = requested_abs_path.startswith(allowed_base_pdb_abs)
-        is_in_docking_dir = requested_abs_path.startswith(allowed_base_docking_abs)
-
-        if not (is_in_pdb_dir or is_in_docking_dir):
-            app.logger.warning(
-                f"Forbidden access attempt to PDB path: '{file_path_param}' "
-                f"(resolved: '{requested_abs_path}'). "
-                f"It is not within allowed bases: '{allowed_base_pdb_abs}' or '{allowed_base_docking_abs}'."
-            )
-            return jsonify({'error': 'Access to the requested file path is forbidden.'}), 403
+        # If it's an absolute path that starts with our static directory, use it as-is
+        if os.path.isabs(file_path_param):
+            requested_abs_path = os.path.realpath(file_path_param)
+            
+            # Security check: Ensure the requested path is within the static directory
+            if not requested_abs_path.startswith(static_abs_path):
+                app.logger.warning(
+                    f"Forbidden access attempt. Path '{requested_abs_path}' not within static directory '{static_abs_path}'."
+                )
+                return jsonify({"success": False, "error": "Access to the specified file is forbidden."}), 403
+        else:
+            # For relative paths, try different subdirectories
+            filename_only = os.path.basename(file_path_param)
+            
+            # Try pdb_files directory first (for FoldseekSearcher results)
+            pdb_files_dir = os.path.join(STATIC_PDB_DIR, 'pdb_files')
+            pdb_files_path = os.path.join(pdb_files_dir, filename_only)
+            
+            # Try docking_results directory (for docking results with subdirectories)
+            docking_results_dir = os.path.join(STATIC_PDB_DIR, 'docking_results')
+            
+            requested_abs_path = None
+            
+            # Check if file exists in pdb_files directory
+            if os.path.exists(pdb_files_path) and os.path.isfile(pdb_files_path):
+                requested_abs_path = os.path.realpath(pdb_files_path)
+            else:
+                # Search in docking_results subdirectories
+                for root, dirs, files in os.walk(docking_results_dir):
+                    if filename_only in files:
+                        potential_path = os.path.join(root, filename_only)
+                        if os.path.isfile(potential_path):
+                            requested_abs_path = os.path.realpath(potential_path)
+                            break
+            
+            if requested_abs_path is None:
+                app.logger.error(f"PDB file '{filename_only}' not found in any allowed directory")
+                return jsonify({"success": False, "error": "PDB file not found."}), 404
+            
+            # Final security check
+            if not requested_abs_path.startswith(static_abs_path):
+                app.logger.warning(f"Security violation: resolved path '{requested_abs_path}' not within static directory")
+                return jsonify({"success": False, "error": "Access to the specified file is forbidden."}), 403
 
         if not os.path.exists(requested_abs_path):
-            app.logger.info(f"PDB file not found at API request: {requested_abs_path}")
-            return jsonify({'error': 'PDB file not found.'}), 404
+            app.logger.error(f"PDB file not found at resolved path: '{requested_abs_path}'")
+            return jsonify({"success": False, "error": "PDB file not found."}), 404
         
         if not os.path.isfile(requested_abs_path):
-            app.logger.warning(f"Requested PDB path via API is not a file: {requested_abs_path}")
-            return jsonify({'error': 'The specified path is not a file.'}), 400
+            app.logger.error(f"Path is not a file: '{requested_abs_path}'")
+            return jsonify({"success": False, "error": "Specified path is not a file."}), 400
 
         with open(requested_abs_path, 'r', encoding='utf-8') as f:
             pdb_content = f.read()
@@ -85,7 +114,7 @@ def get_pdb_content():
 
     except Exception as e:
         app.logger.error(f"Error serving PDB content for path '{file_path_param}': {str(e)}", exc_info=True)
-        return jsonify({'error': f'An internal error occurred while trying to read the PDB file.'}), 500
+        return jsonify({"success": False, "error": "Internal server error while serving PDB content."}), 500
 
 @app.route('/upload-file', methods=['POST'])
 def upload_file():
@@ -515,6 +544,50 @@ def get_pfam_data():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/download-files-zip', methods=['POST'])
+def download_files_zip():
+    """Download multiple files as a ZIP archive."""
+    data = request.json or {}
+    files = data.get('files', [])
+    
+    if not files:
+        return jsonify({'success': False, 'error': 'No files provided'}), 400
+    
+    # Create a zip file in memory
+    import zipfile
+    zip_buffer = io.BytesIO()
+    
+    try:
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for file_info in files:
+                file_path = file_info.get('path')
+                file_name = file_info.get('name')
+                
+                if not file_path or not file_name:
+                    continue
+                    
+                if os.path.exists(file_path):
+                    zip_file.write(file_path, file_name)
+                else:
+                    app.logger.warning(f"File not found: {file_path}")
+        
+        zip_buffer.seek(0)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"ramachandran_results_{timestamp}.zip"
+        
+        return send_file(
+            zip_buffer,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        app.logger.error(f"Error creating ZIP file: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to create ZIP file: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

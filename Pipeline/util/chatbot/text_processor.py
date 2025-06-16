@@ -13,7 +13,10 @@ class PipelineFunction(Enum):
     SEARCH_STRUCTURE = "search_structure"
     EVALUATE_STRUCTURE = "evaluate_structure"
     SEARCH_SIMILARITY = "search_similarity"
+    PREDICT_BINDING_SITES = "predict_binding_sites"
     PERFORM_DOCKING = "perform_docking"
+    BUILD_PHYLOGENETIC_TREE = "build_phylogenetic_tree"
+    ANALYZE_RAMACHANDRAN = "analyze_ramachandran"
 
     @staticmethod
     def get_description(function_name):
@@ -23,7 +26,10 @@ class PipelineFunction(Enum):
             PipelineFunction.SEARCH_STRUCTURE.value: "Search for similar structures",
             PipelineFunction.EVALUATE_STRUCTURE.value: "Evaluate structure quality",
             PipelineFunction.SEARCH_SIMILARITY.value: "Search for similar sequences",
-            PipelineFunction.PERFORM_DOCKING.value: "Perform molecular docking"
+            PipelineFunction.PREDICT_BINDING_SITES.value: "Predict protein binding sites",
+            PipelineFunction.PERFORM_DOCKING.value: "Perform molecular docking",
+            PipelineFunction.BUILD_PHYLOGENETIC_TREE.value: "Build phylogenetic tree from MSA",
+            PipelineFunction.ANALYZE_RAMACHANDRAN.value: "Generate Ramachandran plot analysis"
         }
         return descriptions.get(function_name, "Unknown function")
 
@@ -49,8 +55,12 @@ Return a JSON object with two fields:
 Valid function names and their purposes:
 - generate_protein: Generate a new protein sequence
 - predict_structure: Predict 3D structure of a protein sequence
+- predict_binding_sites: Predict protein binding sites using P2Rank
 - search_similarity: Search for similar protein sequences using BLAST or ColabFold MSA
 - search_structure: Search for similar protein structures using FoldSeek
+- perform_docking: Perform molecular docking between protein and ligand
+- build_phylogenetic_tree: Build phylogenetic tree from multiple sequence alignment results
+- analyze_ramachandran: Generate Ramachandran plot analysis
 
 IMPORTANT: Every function in the chain MUST include a "parameters" field, even if it's an empty object {}.
 
@@ -68,6 +78,26 @@ For local BLAST search, you can also include these optional parameters:
 - "fasta_file": Path to a custom FASTA file to use as database
 - "db_name": Name for the custom database
 - "interpro_ids": List of InterPro IDs to create database from
+
+For predict_binding_sites, you can include these optional parameters:
+- "output_dir": Custom output directory for P2Rank results
+
+For perform_docking, you can include these parameters:
+- "center_x", "center_y", "center_z": Center coordinates for docking box
+- "size_x", "size_y", "size_z": Size of docking box (default: 20,20,20)
+- "exhaustiveness": Search exhaustiveness (default: 16)
+- "num_modes": Number of binding modes (default: 10)
+- "auto_center": Use P2Rank results for automatic center determination (default: false)
+
+For build_phylogenetic_tree, you can include these optional parameters:
+- "method": Tree building method ("neighbor_joining", "upgma", "parsimony", default: "neighbor_joining")
+- "distance_model": Distance model for tree construction ("identity", "blosum62", default: "identity")
+- "max_sequences": Maximum number of sequences to include (default: 50)
+- "min_sequence_length": Minimum sequence length to include (default: 50)
+- "remove_gaps": Remove gaps from sequences before analysis (default: true)
+
+For analyze_ramachandran, you can include these optional parameters:
+- "output_dir": Custom output directory for Ramachandran plot and data files
 
 Example response format:
 {
@@ -106,11 +136,13 @@ Rules:
 9. Do not automatically add additional functions - only include what is explicitly requested
 10. For predict_structure, if it follows generate_protein, do not include sequence parameter
 11. For search_structure, if it follows predict_structure, do not include pdb_file parameter
-12. IMPORTANT: Use EXACTLY the function names listed above - do not use variations like 'blast_search'
-13. The explanation should be clear, concise, and explain what each function will do
-14. For predict_structure, ONLY include the model parameter if EXPLICITLY mentioned in the request
-15. For search_similarity, ONLY include the search_type parameter if EXPLICITLY mentioned in the request
-16. If a model or search type is not explicitly specified, DO NOT include the corresponding parameter
+12. For predict_binding_sites, if it follows predict_structure, do not include pdb_file parameter
+13. For perform_docking, if it follows predict_binding_sites, use auto_center parameter
+14. IMPORTANT: Use EXACTLY the function names listed above - do not use variations like 'blast_search'
+15. The explanation should be clear, concise, and explain what each function will do
+16. For predict_structure, ONLY include the model parameter if EXPLICITLY mentioned in the request
+17. For search_similarity, ONLY include the search_type parameter if EXPLICITLY mentioned in the request
+18. If a model or search type is not explicitly specified, DO NOT include the corresponding parameter
 """
         try:
             response = self.client.chat.completions.create(
@@ -120,8 +152,12 @@ Rules:
                     {"role": "user", "content": text}
                 ],
                 temperature=0.1,
-                max_tokens=500
-            )
+                max_tokens=500            )
+            
+            # Check if response and content exist
+            if not response or not response.choices or not response.choices[0].message.content:
+                return {"success": False, "error": "Empty or invalid response from LLM"}
+                
             response_text = response.choices[0].message.content.strip()
             print("response",response_text)
             if not response_text:

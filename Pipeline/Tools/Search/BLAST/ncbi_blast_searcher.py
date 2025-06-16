@@ -4,7 +4,6 @@ import re
 from typing import Dict, Any
 from bs4 import BeautifulSoup
 import logging
-from .phylogenetic_analyzer import PhylogeneticAnalyzer
 from .schema_normalizer import MSASchemaNormalizer
 import json
 
@@ -19,7 +18,6 @@ class NCBI_BLAST_Searcher:
         self.default_database = "nr"
         self.max_wait_time = 600  # 10 minutes
         self.poll_interval = 15   # 15 seconds
-        self.phylogenetic_analyzer = PhylogeneticAnalyzer(email="aabdoo2304@gmail.com")
         self.schema_normalizer = MSASchemaNormalizer()
 
     def submit_search(self, sequence: str) -> Dict[str, Any]:
@@ -126,11 +124,6 @@ class NCBI_BLAST_Searcher:
             # Process XML results
             results = self._process_xml_results(response.text)
             
-            # Generate phylogenetic tree
-            tree_file = self.phylogenetic_analyzer.create_phylogenetic_tree(results)
-            if tree_file:
-                results['phylogenetic_tree'] = tree_file
-            
             logger.info(f"Successfully retrieved results for BLAST search {rid}")
             return {"success": True, "results": results}
             
@@ -164,6 +157,9 @@ class NCBI_BLAST_Searcher:
             # Extract hits
             hits = []
             for hit in soup.find_all('Hit'):
+                hit_len_elem = hit.find('Hit_len')
+                hit_len_value = int(hit_len_elem.text) if hit_len_elem and hit_len_elem.text else 0
+                
                 hit_data = {
                     'id': hit.find('Hit_id').text if hit.find('Hit_id') else '',
                     'def': hit.find('Hit_def').text if hit.find('Hit_def') else '',
@@ -171,9 +167,16 @@ class NCBI_BLAST_Searcher:
                     'len': hit.find('Hit_len').text if hit.find('Hit_len') else '',
                     'hsps': []
                 }
-                
                 # Extract HSPs (High-scoring Segment Pairs)
                 for hsp in hit.find_all('Hsp'):
+                    identity_elem = hsp.find('Hsp_identity')
+                    identity_value = ''
+                    if identity_elem and identity_elem.text and hit_len_value > 0:
+                        try:
+                            identity_value = float(identity_elem.text) / hit_len_value * 100
+                        except (ValueError, ZeroDivisionError):
+                            identity_value = ''
+
                     hsp_data = {
                         'bit_score': hsp.find('Hsp_bit-score').text if hsp.find('Hsp_bit-score') else '',
                         'score': hsp.find('Hsp_score').text if hsp.find('Hsp_score') else '',
@@ -182,7 +185,7 @@ class NCBI_BLAST_Searcher:
                         'query_to': hsp.find('Hsp_query-to').text if hsp.find('Hsp_query-to') else '',
                         'hit_from': hsp.find('Hsp_hit-from').text if hsp.find('Hsp_hit-from') else '',
                         'hit_to': hsp.find('Hsp_hit-to').text if hsp.find('Hsp_hit-to') else '',
-                        'identity': hsp.find('Hsp_identity').text if hsp.find('Hsp_identity') else '',
+                        'identity': identity_value,
                         'positive': hsp.find('Hsp_positive').text if hsp.find('Hsp_positive') else '',
                         'gaps': hsp.find('Hsp_gaps').text if hsp.find('Hsp_gaps') else '',
                         'align_len': hsp.find('Hsp_align-len').text if hsp.find('Hsp_align-len') else '',
@@ -297,14 +300,6 @@ class NCBI_BLAST_Searcher:
             if status_result['status'] == 'READY':
                 results = self.get_results(rid)
                 if results['success']:
-                    # Generate phylogenetic tree
-                    tree_file = self.phylogenetic_analyzer.create_phylogenetic_tree(results['results'])
-                    if tree_file:
-                        # Read the tree file content
-                        with open(tree_file, 'r') as f:
-                            tree_content = f.read()
-                        results['results']['phylogenetic_tree'] = tree_content
-                    
                     # Normalize results using the schema normalizer
                     normalized_results = self.schema_normalizer.normalize_blast_results(results['results'], results['results'].get('query', ''))
                     
