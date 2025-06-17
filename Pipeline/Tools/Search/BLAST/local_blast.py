@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 import pandas as pd
 import logging
+import platform
 from typing import Dict, Any
 
 logging.basicConfig(level=logging.INFO)
@@ -11,6 +12,24 @@ logger = logging.getLogger(__name__)
 class LocalBlastSearcher:
     def __init__(self):
         pass
+
+    def _get_blastp_executable(self):
+        """
+        Get the appropriate blastp executable path based on the platform.
+        Returns:
+            str: Path to the blastp executable
+        """
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        if platform.system().lower() == 'windows':
+            blastp_path = os.path.join(current_dir, 'blastp', 'blastp.exe')
+        else:  # Linux/Unix
+            blastp_path = os.path.join(current_dir, 'blastp-linux', 'blastp')
+        
+        if not os.path.exists(blastp_path):
+            raise FileNotFoundError(f"BLAST executable not found at {blastp_path}")
+        
+        return blastp_path
 
     @staticmethod
     def _make_midline(qseq, sseq):
@@ -103,9 +122,12 @@ class LocalBlastSearcher:
                 query_file = temp_fasta.name
 
             try:
+                # Get the appropriate blastp executable
+                blastp_exec = self._get_blastp_executable()
+                
                 # Run BLAST search
                 blast_cmd = [
-                    'blastp',
+                    blastp_exec,
                     '-query', query_file,
                     '-db', db_path,
                     '-outfmt', '6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq',
