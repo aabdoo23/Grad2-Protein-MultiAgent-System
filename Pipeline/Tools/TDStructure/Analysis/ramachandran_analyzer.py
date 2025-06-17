@@ -1,25 +1,13 @@
-"""
-Ramachandran Plot Analyzer
-
-This module provides functionality to generate Ramachandran plots from protein structures.
-A Ramachandran plot is a way to visualize energetically allowed regions for backbone 
-dihedral angles ψ (psi) against φ (phi) of amino acid residues in protein structure.
-
-Author: System Assistant
-"""
-
 import os
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend to avoid Tkinter issues in Flask
 import matplotlib.pyplot as plt
-from Bio import PDB
 from Bio.PDB.PDBParser import PDBParser
 import json
 import base64
 from io import BytesIO
 from datetime import datetime
-import tempfile
 import shutil
 import ramplot
 

@@ -1,6 +1,7 @@
 import subprocess
 import os
 import csv
+import platform
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 import logging
@@ -21,8 +22,7 @@ class PrankTool:
         """
         # Default paths relative to the Tools/Docking/P2Rank directory
         if p2rank_path is None:
-            current_dir = Path(__file__).parent
-            self.p2rank_path = str(current_dir / 'p2rank_2.5' / 'prank.bat')
+            self.p2rank_path = self._get_p2rank_executable_path()
         else:
             self.p2rank_path = p2rank_path
             
@@ -33,6 +33,33 @@ class PrankTool:
             self.base_result_path = base_result_path
             
         self.logger = logging.getLogger(__name__)
+        
+        # Check P2Rank installation
+        if not self._check_p2rank_installation():
+            raise FileNotFoundError(f"P2Rank not found or not executable at {self.p2rank_path}")
+    
+    def _get_p2rank_executable_path(self) -> str:
+        """Get the correct P2Rank executable path based on the current OS."""
+        current_dir = Path(__file__).parent
+        if platform.system() == "Windows":
+            return str(current_dir / 'p2rank_2.5' / 'prank.bat')
+        else:
+            # Linux/Mac path
+            return str(current_dir / 'p2rank_2.5' / 'prank')
+    
+    def _check_p2rank_installation(self) -> bool:
+        """Check if P2Rank executable is available and executable."""
+        if not os.path.exists(self.p2rank_path):
+            self.logger.error(f"P2Rank executable not found at {self.p2rank_path}")
+            return False
+        
+        # Check if file is executable (important for Linux)
+        if not os.access(self.p2rank_path, os.X_OK):
+            self.logger.error(f"P2Rank is not executable at {self.p2rank_path}")
+            return False
+            
+        self.logger.info("P2Rank executable found and is executable.")
+        return True
     
     def predict_binding_sites(self, pdb_path: str, output_dir: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -46,6 +73,10 @@ class PrankTool:
             Dictionary containing prediction results and file paths
         """
         try:
+            # Check P2Rank installation first
+            if not self._check_p2rank_installation():
+                return {"success": False, "error": "P2Rank executable not found or not executable"}
+            
             # Extract the filename without extension
             pdb_filename = Path(pdb_path).stem
             
@@ -61,8 +92,8 @@ class PrankTool:
             p2rank_dir = Path(self.p2rank_path).parent
             prank_executable = Path(self.p2rank_path).name
             
-            # Define the command with absolute paths
-            command = f'{prank_executable} predict -f "{os.path.abspath(pdb_path)}" -o "{os.path.abspath(result_path)}"'
+            # Define the command with absolute paths and explicit relative path for executable
+            command = f'./{prank_executable} predict -f "{os.path.abspath(pdb_path)}" -o "{os.path.abspath(result_path)}"'
             
             self.logger.info(f"Running P2Rank command: {command}")
             self.logger.info(f"Working directory: {p2rank_dir}")

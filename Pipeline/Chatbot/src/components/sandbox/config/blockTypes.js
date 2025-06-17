@@ -145,7 +145,7 @@ export const blockTypes = [
     type: 'BLAST Search',
     description: 'Build a BLAST database from FASTA file or Pfam IDs',
     color: '#38726C',
-    inputs: ['sequences_list'],
+    inputs: [],
     outputs: ['database', 'fasta'],
     config: {
       fasta_file: "",

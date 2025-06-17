@@ -8,7 +8,9 @@ export JAVA_OPTS="$JAVA_OPTS -Xmx2048m"
 #
 # Set this to change the Java installation that will be used to run the program:
 #
-#JAVA_HOME="/opt/java8"
+# Use the bundled Linux JDK
+THIS_SCRIPT_DIR_REL_PATH=`dirname "${BASH_SOURCE[0]}"`
+JAVA_HOME="$THIS_SCRIPT_DIR_REL_PATH/jdk-17.0.12"
 
 
 export JAVA_OPTS="$JAVA_OPTS"
@@ -19,7 +21,6 @@ else
     PATH_SEPARATOR=':' # for unix
 fi
 
-THIS_SCRIPT_DIR_REL_PATH=`dirname "${BASH_SOURCE[0]}"`
 export INSTALL_DIR="$THIS_SCRIPT_DIR_REL_PATH"
 
 CLASSPATH="${INSTALL_DIR}/bin/p2rank.jar${PATH_SEPARATOR}${INSTALL_DIR}/bin/lib/*"

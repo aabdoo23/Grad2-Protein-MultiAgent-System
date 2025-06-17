@@ -2,17 +2,28 @@ import logging
 from typing import Dict, Any, List, Optional, Union
 import os
 import subprocess
-import tempfile
 import requests
 import time
+import platform
 from datetime import datetime
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-BLASTP_PATH = os.path.join("Tools", "Search", "BLAST", "blastp", "blastp.exe")
-MAKEBLASTDB_PATH = os.path.join("Tools", "Search", "BLAST", "blastp", "makeblastdb.exe")
+def get_blast_paths():
+    """Get the correct BLAST executable paths based on the current OS."""
+    if platform.system() == "Windows":
+        blastp_path = os.path.join("Tools", "Search", "BLAST", "blastp", "blastp.exe")
+        makeblastdb_path = os.path.join("Tools", "Search", "BLAST", "blastp", "makeblastdb.exe")
+    else:
+        # Linux/Mac paths
+        blastp_path = os.path.join("Tools", "Search", "BLAST", "blastp-linux", "blastp")
+        makeblastdb_path = os.path.join("Tools", "Search", "BLAST", "blastp-linux", "makeblastdb")
+    
+    return blastp_path, makeblastdb_path
+
+BLASTP_PATH, MAKEBLASTDB_PATH = get_blast_paths()
 BLAST_DBS_DIR = os.path.join("static", "blast_dbs")
 os.makedirs(BLAST_DBS_DIR, exist_ok=True)
 
@@ -24,12 +35,21 @@ class BlastDatabaseBuilder:
     def _check_blast_installation(self) -> bool:
         """Check if local BLAST executables are available."""
         if not os.path.exists(BLASTP_PATH):
-            logger.error(f"Error: blastp.exe not found at {BLASTP_PATH}")
+            logger.error(f"Error: blastp not found at {BLASTP_PATH}")
             return False
         if not os.path.exists(MAKEBLASTDB_PATH):
-            logger.error(f"Error: makeblastdb.exe not found at {MAKEBLASTDB_PATH}")
+            logger.error(f"Error: makeblastdb not found at {MAKEBLASTDB_PATH}")
             return False
-        logger.info("Local BLAST executables found.")
+        
+        # Check if files are executable (important for Linux)
+        if not os.access(BLASTP_PATH, os.X_OK):
+            logger.error(f"Error: blastp is not executable at {BLASTP_PATH}")
+            return False
+        if not os.access(MAKEBLASTDB_PATH, os.X_OK):
+            logger.error(f"Error: makeblastdb is not executable at {MAKEBLASTDB_PATH}")
+            return False
+            
+        logger.info("Local BLAST executables found and are executable.")
         return True
     
     def _get_count_of_sequences(self, pfam_ids: List[str]) -> Dict[str, Any]:

@@ -1,5 +1,6 @@
 import subprocess
 import os
+import platform
 from pathlib import Path
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -9,19 +10,35 @@ import re
 
 class DockingTool:
     def __init__(self):
-        # Linux paths
-        # prepare_receptor_script_path = "C:\Users\saleh\source\repos\Grad2-Protein-MultiAgent-System\Pipeline\Tools\Docking\Util\Linux\mgltools_x86_64Linux2_1.5.7\MGLToolsPckgs\MGLToolsPckgs\AutoDockTools\Utilities24\prepare_receptor4.py"
+        # Platform-specific paths
+        self._set_platform_paths()
+        
+        self.static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'static', 'docking_results')
+        os.makedirs(self.static_dir, exist_ok=True)
 
-        self.mgltools_python_path = os.path.join("Tools","Docking","Util","Linux","mgltools_x86_64Linux2_1.5.7","Python2.7_x86_64Linux2","bin","MGLpython2.7")
-        self.prepare_receptor_script_path = os.path.join("Tools","Docking","Util","Linux","mgltools_x86_64Linux2_1.5.7","MGLToolsPckgs","MGLToolsPckgs","AutoDockTools","Utilities24","prepare_receptor4.py")
-        self.vina_executable = os.path.join("Tools","Docking","Util","Linux","vina_1.2.7_linux_x86_64")
-        if os.name=='nt':
+    def _set_platform_paths(self):
+        """Set platform-specific paths for docking tools."""
+        if platform.system() == "Windows":
             self.mgltools_python_path = os.path.join("Tools","Docking","Util","MGLTools-1.5.7","python.exe")
             self.prepare_receptor_script_path = os.path.join("Tools","Docking","Util","MGLTools-1.5.7","Lib","site-packages","AutoDockTools","Utilities24","prepare_receptor4.py")
             self.vina_executable = os.path.join("Tools","Docking","Util","vina.exe")
+        else:
+            # Linux/Mac paths
+            self.mgltools_python_path = os.path.join("Tools","Docking","Util","Linux","mgltools_x86_64Linux2_1.5.7","Python2.7_x86_64Linux2","bin","MGLpython2.7")
+            self.prepare_receptor_script_path = os.path.join("Tools","Docking","Util","Linux","mgltools_x86_64Linux2_1.5.7","MGLToolsPckgs","MGLToolsPckgs","AutoDockTools","Utilities24","prepare_receptor4.py")
+            self.vina_executable = os.path.join("Tools","Docking","Util","Linux","vina_1.2.7_linux_x86_64")
 
-        self.static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'static', 'docking_results')
-        os.makedirs(self.static_dir, exist_ok=True)
+    def _check_executable_permissions(self, executable_path):
+        """Check if an executable exists and has proper permissions."""
+        path_obj = Path(executable_path)
+        
+        if not path_obj.exists():
+            return False, f"Executable not found at {executable_path}"
+        
+        if not os.access(str(path_obj), os.X_OK):
+            return False, f"Executable is not executable at {executable_path}. Run: chmod +x {executable_path}"
+        
+        return True, "Executable is ready"
 
     def prepare_protein_pdbqt(self, protein_pdb_file, output_pdbqt_file, extra_options=None):
         """Prepares a protein PDB file into PDBQT format using MGLTools' prepare_receptor4.py."""
@@ -30,39 +47,90 @@ class DockingTool:
         prepare_receptor_script_path_obj = Path(self.prepare_receptor_script_path)
         output_pdbqt_path = Path(output_pdbqt_file)
 
-        if not mgltools_python_path_obj.exists():
-            return {"success": False, "error": f"MGLTools Python interpreter not found at {mgltools_python_path_obj}"}
+        # Check executable permissions
+        executable_ok, executable_msg = self._check_executable_permissions(self.mgltools_python_path)
+        if not executable_ok:
+            return {"success": False, "error": executable_msg}
+
         if not prepare_receptor_script_path_obj.exists():
             return {"success": False, "error": f"prepare_receptor4.py script not found at {prepare_receptor_script_path_obj}"}
         if not protein_pdb_path.exists():
             return {"success": False, "error": f"Protein PDB file not found at {protein_pdb_path}"}
 
-        command = [
-            str(mgltools_python_path_obj),
-            str(prepare_receptor_script_path_obj),
-            "-r", str(protein_pdb_path),
-            "-o", str(output_pdbqt_path),
-            "-v"
-        ]
-
-        default_options = {'A': 'checkhydrogens', 'U': 'nphs_lps_waters_delete'}
-        current_options = default_options.copy()
-        if extra_options:
-            current_options.update(extra_options)
-
-        for opt, val in current_options.items():
-            if val is not None:
-                command.extend([f"-{opt}", str(val)])
-            else:
-                command.extend([f"-{opt}"])
+        # Create a cleaned version of the PDB file
+        cleaned_pdb_path = protein_pdb_path.with_suffix('.cleaned.pdb')
+        clean_success, clean_msg = self._clean_pdb_file(str(protein_pdb_path), str(cleaned_pdb_path))
+        if not clean_success:
+            return {"success": False, "error": f"Failed to clean PDB file: {clean_msg}"}
 
         try:
-            process = subprocess.run(command, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
-            return {"success": True, "message": "Protein PDBQT preparation successful"}
-        except subprocess.CalledProcessError as e:
-            return {"success": False, "error": f"Error during protein PDBQT preparation: {e.stderr}"}
-        except Exception as e:
-            return {"success": False, "error": f"An unexpected error occurred: {str(e)}"}
+            # Try multiple preparation strategies
+            strategies = [
+                # Strategy 1: Default with hydrogen checking
+                {'A': 'checkhydrogens', 'U': 'nphs_lps_waters_delete'},
+                # Strategy 2: Skip hydrogen addition, just delete waters
+                {'A': 'None', 'U': 'nphs_lps_waters_delete'},
+                # Strategy 3: Add polar hydrogens only
+                {'A': 'add_polarH', 'U': 'nphs_lps_waters_delete'},
+                # Strategy 4: Minimal processing
+                {'U': 'nphs_lps_waters_delete'}
+            ]
+            
+            # Override with user-provided options if specified
+            if extra_options:
+                strategies = [extra_options] + strategies
+            
+            last_error = None
+            
+            for i, strategy in enumerate(strategies):
+                try:
+                    command = [
+                        str(mgltools_python_path_obj),
+                        str(prepare_receptor_script_path_obj),
+                        "-r", str(cleaned_pdb_path),  # Use cleaned PDB file
+                        "-o", str(output_pdbqt_path),
+                        "-v"
+                    ]
+
+                    for opt, val in strategy.items():
+                        if val is not None and val != 'None':
+                            command.extend([f"-{opt}", str(val)])
+                        elif val != 'None':  # Only add option flag if value is not 'None'
+                            command.extend([f"-{opt}"])
+
+                    # Get proper environment with library paths
+                    env = self._get_mgltools_env()
+                    process = subprocess.run(command, check=True, capture_output=True, text=True, 
+                                           encoding='utf-8', errors='replace', env=env)
+                    
+                    # If we get here, the command succeeded
+                    strategy_name = f"Strategy {i+1}" if not extra_options or i > 0 else "User-specified"
+                    return {
+                        "success": True, 
+                        "message": f"Protein PDBQT preparation successful using {strategy_name}",
+                        "strategy_used": strategy
+                    }
+                    
+                except subprocess.CalledProcessError as e:
+                    last_error = f"Strategy {i+1} failed: {e.stderr}"
+                    continue
+                except Exception as e:
+                    last_error = f"Strategy {i+1} failed with unexpected error: {str(e)}"
+                    continue
+            
+            # If all strategies failed
+            return {
+                "success": False, 
+                "error": f"All preparation strategies failed. Last error: {last_error}"
+            }
+        
+        finally:
+            # Clean up the temporary cleaned PDB file
+            try:
+                if cleaned_pdb_path.exists():
+                    cleaned_pdb_path.unlink()
+            except:
+                pass  # Ignore cleanup errors
 
     def prepare_ligand_pdbqt_meeko(self, ligand_file, output_pdbqt_file, keep_source_hydrogens=False, add_hydrogens_ph=None):
         """Prepares a ligand (SDF or PDB) into PDBQT format using Meeko."""
@@ -157,20 +225,47 @@ class DockingTool:
         config_abs_path = Path(config_file).resolve()
         vina_executable_path = Path(self.vina_executable)
 
-        if not vina_executable_path.exists():
-            return {"success": False, "error": f"Vina executable not found at {vina_executable_path}"}
+        # Check executable permissions
+        executable_ok, executable_msg = self._check_executable_permissions(self.vina_executable)
+        if not executable_ok:
+            return {"success": False, "error": executable_msg}
+
+        if not config_abs_path.exists():
+            return {"success": False, "error": f"Config file not found at {config_abs_path}"}
 
         command = [
             str(vina_executable_path),
             "--config", str(config_abs_path),
-            "--out", str(output_pdbqt_abs_path),
-            "--log", str(output_log_abs_path)
+            "--out", str(output_pdbqt_abs_path)
         ]
 
         try:
-            process = subprocess.run(command, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            # Run Vina and capture output
+            process = subprocess.run(command, check=True, capture_output=True, text=True, 
+                                   encoding='utf-8', errors='replace')
+            
+            # Write the captured output to the log file
+            # Vina typically outputs results to stdout
+            with open(output_log_abs_path, 'w') as log_file:
+                log_file.write("=== AutoDock Vina Output ===\n")
+                log_file.write("STDOUT:\n")
+                log_file.write(process.stdout)
+                log_file.write("\nSTDERR:\n")
+                log_file.write(process.stderr)
+            
             return {"success": True, "message": "AutoDock Vina run successful"}
         except subprocess.CalledProcessError as e:
+            # Even if Vina fails, we want to capture the output for debugging
+            try:
+                with open(output_log_abs_path, 'w') as log_file:
+                    log_file.write("=== AutoDock Vina Error Output ===\n")
+                    log_file.write("STDOUT:\n")
+                    log_file.write(e.stdout if e.stdout else "No stdout")
+                    log_file.write("\nSTDERR:\n")
+                    log_file.write(e.stderr if e.stderr else "No stderr")
+            except:
+                pass  # Ignore log writing errors
+            
             return {"success": False, "error": f"Error running AutoDock Vina: {e.stderr}"}
         except Exception as e:
             return {"success": False, "error": f"An unexpected error occurred: {str(e)}"}
@@ -376,4 +471,88 @@ class DockingTool:
         except Exception as e:
             import traceback
             print(f"An unexpected error occurred during docking: {str(e)}\n{traceback.format_exc()}")
-            return {"success": False, "error": f"An unexpected error occurred during docking: {str(e)}"} 
+            return {"success": False, "error": f"An unexpected error occurred during docking: {str(e)}"}
+
+    def _get_mgltools_env(self):
+        """Get environment variables needed for MGLTools execution."""
+        env = os.environ.copy()
+        
+        if platform.system() != "Windows":
+            # Add MGLTools library paths to LD_LIBRARY_PATH
+            mgltools_base = os.path.join("Tools", "Docking", "Util", "Linux", "mgltools_x86_64Linux2_1.5.7")
+            lib_paths = [
+                os.path.join(mgltools_base, "Python2.7_x86_64Linux2", "lib"),
+                os.path.join(mgltools_base, "lib")
+            ]
+            
+            # Convert to absolute paths
+            abs_lib_paths = [os.path.abspath(path) for path in lib_paths]
+            
+            current_ld_path = env.get('LD_LIBRARY_PATH', '')
+            if current_ld_path:
+                new_ld_path = ':'.join(abs_lib_paths) + ':' + current_ld_path
+            else:
+                new_ld_path = ':'.join(abs_lib_paths)
+            
+            env['LD_LIBRARY_PATH'] = new_ld_path
+            
+            # Add MGLTools Python packages to PYTHONPATH
+            python_paths = [
+                os.path.abspath(os.path.join(mgltools_base, "MGLToolsPckgs", "MGLToolsPckgs")),
+                os.path.abspath(os.path.join(mgltools_base, "ThirdPartyPacks", "lib", "python2.7", "site-packages")),
+                os.path.abspath(os.path.join(mgltools_base, "Python2.7_x86_64Linux2", "lib", "python2.7")),
+                os.path.abspath(os.path.join(mgltools_base, "Python2.7_x86_64Linux2", "lib", "python2.7", "lib-dynload")),
+                os.path.abspath(os.path.join(mgltools_base, "Python2.7_x86_64Linux2", "lib", "python2.7", "site-packages"))
+            ]
+            
+            current_python_path = env.get('PYTHONPATH', '')
+            if current_python_path:
+                new_python_path = ':'.join(python_paths) + ':' + current_python_path
+            else:
+                new_python_path = ':'.join(python_paths)
+            
+            env['PYTHONPATH'] = new_python_path
+        
+        return env
+
+    def _clean_pdb_file(self, input_pdb_path, output_pdb_path):
+        """Clean PDB file to fix common formatting issues that cause MGLTools parsing errors."""
+        try:
+            with open(input_pdb_path, 'r') as infile:
+                lines = infile.readlines()
+            
+            cleaned_lines = []
+            model_count = 0
+            
+            for line in lines:
+                # Skip empty lines
+                if not line.strip():
+                    continue
+                
+                # Handle MODEL lines
+                if line.startswith('MODEL'):
+                    model_count += 1
+                    # Ensure proper MODEL line format
+                    cleaned_lines.append(f"MODEL     {model_count:<4s}\n")
+                    continue
+                
+                # Handle ATOM and HETATM lines
+                if line.startswith(('ATOM  ', 'HETATM')):
+                    # Ensure line is properly formatted and not truncated
+                    if len(line.rstrip()) >= 54:  # Minimum length for coordinate data
+                        cleaned_lines.append(line)
+                    continue
+                
+                # Keep other important lines
+                if line.startswith(('HEADER', 'TITLE', 'COMPND', 'SOURCE', 'REMARK', 
+                                   'SEQRES', 'HELIX', 'SHEET', 'CONECT', 'END')):
+                    cleaned_lines.append(line)
+            
+            # Write cleaned file
+            with open(output_pdb_path, 'w') as outfile:
+                outfile.writelines(cleaned_lines)
+            
+            return True, "PDB file cleaned successfully"
+            
+        except Exception as e:
+            return False, f"Error cleaning PDB file: {str(e)}"

@@ -2,8 +2,18 @@ from typing import Dict, Any
 import subprocess
 import os
 import re
+import platform
 
 class StructureEvaluator:
+    
+    def _get_usalign_path(self) -> str:
+        """Get the correct USalign executable path based on the current OS."""
+        base_dir = os.path.dirname(__file__)
+        if platform.system() == "Windows":
+            return os.path.join(base_dir, 'USalign.exe')
+        else:
+            # Linux/Mac path
+            return os.path.join(base_dir, 'USalign')
     
     def evaluate_with_usalign(self, pdb1_path: str, pdb2_path: str) -> Dict[str, Any]:
         """Evaluate structural similarity using USalign.
@@ -23,11 +33,16 @@ class StructureEvaluator:
         """
         try:
             # Get the absolute path to USalign executable
-            usalign_path = os.path.join(os.path.dirname(__file__), 'USalign.exe')
+            usalign_path = self._get_usalign_path()
             
             if not os.path.exists(usalign_path):
                 print(f"USalign executable not found at {usalign_path}")
                 return {"success": False, "error": "USalign executable not found"}
+            
+            # Check if the executable has proper permissions (important for Linux)
+            if not os.access(usalign_path, os.X_OK):
+                print(f"USalign is not executable at {usalign_path}")
+                return {"success": False, "error": "USalign is not executable"}
             
             # Run USalign
             result = subprocess.run(
