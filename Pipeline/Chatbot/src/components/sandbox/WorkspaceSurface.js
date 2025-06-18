@@ -58,7 +58,8 @@ const WorkspaceSurface = ({
   setLoopConfig,
   formatMetric,
   initViewer,
-  onClearBlockOutput
+  onClearBlockOutput,
+  isAutomate
 }) => {
   const {
     updateViewport,
@@ -79,7 +80,6 @@ const WorkspaceSurface = ({
       config: null,
     };
   };
-
   const createNodeFromBlock = (block) => {
     return {
       id: block.id,
@@ -97,7 +97,8 @@ const WorkspaceSurface = ({
         setLoopConfig,
         formatMetric,
         initViewer,
-        onClearOutput: () => onClearBlockOutput(block.id)
+        onClearOutput: () => onClearBlockOutput(block.id),
+        isAutomate
       },
     };
   };
@@ -163,7 +164,7 @@ const WorkspaceSurface = ({
       });
     });
     setEdges(newEdges);
-  }, [blocks, connections, blockOutputs, blockTypes, runBlock, updateBlockParameters, onDeleteBlock, loopConfig, setLoopConfig, setNodes, setEdges]);
+  }, [blocks, connections, blockOutputs, blockTypes, runBlock, updateBlockParameters, onDeleteBlock, loopConfig, setLoopConfig, isAutomate]);
 
   const onNodeDragStop = useCallback((event, node) => {
     updateBlock(node.id, { position: node.position });

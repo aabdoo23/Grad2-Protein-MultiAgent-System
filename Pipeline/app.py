@@ -224,16 +224,16 @@ def confirm_job():
     job = job_manager.get_job(job_id)
     
     # If job doesn't exist but we have job_data, create it
-    if not job and job_data:
-        # Map the specialized block types to their backend function names
+    if not job and job_data:        # Map the specialized block types to their backend function names
         function_mapping = {
+            'generate_protein': 'generate_protein',
             'openfold_predict': 'predict_structure',
             'alphafold2_predict': 'predict_structure',
             'esmfold_predict': 'predict_structure',
             'colabfold_search': 'search_similarity',
             'ncbi_blast_search': 'search_similarity',
             'local_blast_search': 'search_similarity',
-            'blast_db_builder': 'build_database'  # Add mapping for database builder
+            'blast_db_builder': 'build_database'# Add mapping for database builder
         }
         
         # Get the base function name from the mapping, or use the original if not found

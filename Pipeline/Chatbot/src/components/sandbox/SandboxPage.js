@@ -174,22 +174,19 @@ const SandboxPage = () => {
   const addBlock = (newBlockInstance) => {
     addBlockToStore(newBlockInstance);
   };
-
   // Update block parameters (can still be a local utility if it then calls store)
-  const updateBlockParameters = (blockId, parameters) => {
+  const updateBlockParameters = useCallback((blockId, parameters) => {
     const block = blocks.find(b => b.id === blockId);
     if (block) {
       updateBlockInStore(blockId, { parameters: { ...block.parameters, ...parameters } });
     }
-  };
-
+  }, [blocks, updateBlockInStore]);
   // Update block properties (this now calls the store action)
-  const updateBlock = (blockId, updates) => {
+  const updateBlock = useCallback((blockId, updates) => {
     updateBlockInStore(blockId, updates);
-  };
-
+  }, [updateBlockInStore]);
   // Delete a block and its connections (this now calls the store action)
-  const deleteBlock = (blockId) => {
+  const deleteBlock = useCallback((blockId) => {
     // Also dispose Mol* plugin if a block is deleted
     const viewerDomId = `viewer-${blockId}`;
     if (molstarPlugins.current[viewerDomId]) {
@@ -198,25 +195,35 @@ const SandboxPage = () => {
       delete molstarPlugins.current[viewerDomId];
     }
     deleteBlockInStore(blockId);
-  };
-
-  const clearBlockOutput = (blockId) => {
+  }, [deleteBlockInStore]);
+  const clearBlockOutput = useCallback((blockId) => {
     setBlockOutputs(prev => {
       const newOutputs = { ...prev };
       delete newOutputs[blockId];
       return newOutputs;
     });
-  };
-
+  }, []);
   // Add this function after the deleteBlock function
   const clearOutputs = () => {
-    // Reset all block statuses to 'idle'
-    blocks.forEach(block => updateBlockInStore(block.id, { status: 'idle' }));
+    // Reset block statuses to 'idle' only for blocks that don't have preserveOnReset
+    blocks.forEach(block => {
+      if (!block.preserveOnReset) {
+        updateBlockInStore(block.id, { status: 'idle' });
+      }
+    });
 
-    // Clear all block outputs
-    setBlockOutputs({});
+    // Clear block outputs only for blocks that don't have preserveOnReset
+    setBlockOutputs(prev => {
+      const newOutputs = { ...prev };
+      blocks.forEach(block => {
+        if (!block.preserveOnReset) {
+          delete newOutputs[block.id];
+        }
+      });
+      return newOutputs;
+    });
 
-    console.log('All block outputs cleared and statuses reset');
+    console.log('Block outputs cleared and statuses reset (respecting preserve settings)');
   };
 
   // Add loop control functions
@@ -266,14 +273,14 @@ const SandboxPage = () => {
     }
   };
 
-  // Add helper functions for resetting blocks and outputs
+  // Add helper functions for resetting blocks and outputs  
   const resetBlocksBetween = (startBlockId, endBlockId) => {
     const startIndex = blocks.findIndex(b => b.id === startBlockId);
     const endIndex = blocks.findIndex(b => b.id === endBlockId);
 
     if (startIndex !== -1 && endIndex !== -1) {
       for (let i = startIndex; i <= endIndex; i++) {
-        if (blocks[i]) {
+        if (blocks[i] && !blocks[i].preserveOnReset) {
           // Only update the status while preserving all other properties
           updateBlockInStore(blocks[i].id, {
             status: 'idle',
@@ -287,7 +294,6 @@ const SandboxPage = () => {
       }
     }
   };
-
   const resetOutputsBetween = (startBlockId, endBlockId) => {
     const startIndex = blocks.findIndex(b => b.id === startBlockId);
     const endIndex = blocks.findIndex(b => b.id === endBlockId);
@@ -296,7 +302,7 @@ const SandboxPage = () => {
       setBlockOutputs(prevOutputs => {
         const newBlockOutputs = { ...prevOutputs };
         for (let i = startIndex; i <= endIndex; i++) {
-          if (blocks[i] && blocks[i].id) {
+          if (blocks[i] && blocks[i].id && !blocks[i].preserveOnReset) {
             delete newBlockOutputs[blocks[i].id];
           }
         }
@@ -1137,10 +1143,9 @@ const SandboxPage = () => {
                     <button
                       onClick={stopLoop}
                       className="px-4 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200 flex items-center gap-2"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    >                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 15l4-4m0" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10h6v4H9z" />
                       </svg>
                       Stop Loop
                     </button>
@@ -1171,8 +1176,7 @@ const SandboxPage = () => {
             <BlockPalette blockTypes={blockTypes} />
           </div>
 
-          <div className="flex-1 relative overflow-auto">
-            <WorkspaceSurface
+          <div className="flex-1 relative overflow-auto">            <WorkspaceSurface
               blocks={blocks}
               blockTypes={blockTypes}
               connections={connections}
@@ -1189,6 +1193,7 @@ const SandboxPage = () => {
               formatMetric={formatMetric}
               initViewer={initViewer}
               onClearBlockOutput={clearBlockOutput}
+              isAutomate={isAutomate}
             />
           </div>
         </div>

@@ -7,6 +7,7 @@ import ResultsView from './JobBlockComponents/ResultsView';
 import BlockActions from './JobBlockComponents/BlockActions';
 import FileUploadBlock from './JobBlockComponents/FileUploadBlock';
 import BlastDatabaseBuilder from './JobBlockComponents/BlastDatabaseBuilder';
+import ProteinGenerationBlock from './JobBlockComponents/ProteinGenerationBlock';
 import ResizableBlock from './JobBlockComponents/ResizableBlock';
 import { uploadService } from '../../services/api';
 import { showErrorToast } from '../../services/notificationService';
@@ -69,15 +70,20 @@ const JobBlock = ({
     } else {
       console.warn('updateBlock function not available in JobBlock data prop for resize');
     }
-  };
-
-  // Handle reset block
+  };  // Handle reset block
   const handleResetBlock = () => {
     if (data.updateBlock) {
       data.updateBlock({ status: 'idle' });
     }
     if (data.onClearOutput) {
       data.onClearOutput(); 
+    }
+  };
+
+  // Handle preserve on reset toggle
+  const handlePreserveOnResetToggle = () => {
+    if (data.updateBlock) {
+      data.updateBlock({ preserveOnReset: !data.preserveOnReset });
     }
   };
 
@@ -162,7 +168,15 @@ const JobBlock = ({
               <div className="text-sm text-gray-300">
                 Loaded {data.parameters.loadedSequences.length} sequences
               </div>
-            )}
+            )}          </div>
+        );
+      case 'generate_protein':
+        return (
+          <div className="nodrag">
+            <ProteinGenerationBlock
+              onUpdateParameters={data.onUpdateParameters}
+              initialPrompt={data.parameters?.prompt || ''}
+            />
           </div>
         );
       default:
@@ -183,14 +197,28 @@ const JobBlock = ({
           backgroundColor: safeBlockType.color,
           border: '1px solid rgba(255, 255, 255, 0.1)',
         }}
-      >
-        <BlockHeader
+      >        <BlockHeader
           blockType={safeBlockType}
           blockInstanceId={id}
           status={data.status}
           onDeleteBlock={() => data.onDeleteBlock()}
           onResetBlock={handleResetBlock}
         />
+
+        {/* Preserve on Reset Checkbox - only visible when automation is enabled */}
+        {data.isAutomate && (
+          <div className="nodrag px-3 py-2 bg-black/30 border-b border-white/10">
+            <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={data.preserveOnReset || false}
+                onChange={handlePreserveOnResetToggle}
+                className="w-3 h-3 text-[#13a4ec] bg-gray-700 border-gray-600 rounded focus:ring-[#13a4ec] focus:ring-1"
+              />
+              <span>Preserve on reset</span>
+            </label>
+          </div>
+        )}
 
         {/* Container for ports and content area */}
         <div className="nodrag nowheel nopan flex flex-1 min-h-0 bg-black/20">
@@ -220,15 +248,14 @@ const JobBlock = ({
           <div 
             className="flex-1 p-3 mb-4 bg-black/20 overflow-auto custom-scrollbar rounded-b-lg"
           >
-            {renderBlockContent()}
-            <BlockActions
-              hasConfig={!!safeBlockType.config && safeBlockType.id !== 'file_upload'}
+            {renderBlockContent()}            <BlockActions
+              hasConfig={!!safeBlockType.config && safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'generate_protein'}
               isConfigOpen={isConfigOpen}
               onToggleConfig={() => setIsConfigOpen(!isConfigOpen)}
               onRunBlock={() => data.onRunBlock()}
               isRunning={data.status === 'running'}
             />
-            {safeBlockType.config && safeBlockType.id !== 'file_upload' && (
+            {safeBlockType.config && safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'generate_protein' && (
               <BlockConfig
                 blockType={safeBlockType}
                 isConfigOpen={isConfigOpen}
@@ -239,12 +266,17 @@ const JobBlock = ({
                 }}
                 initialParams={data.parameters || {}}
               />
-            )}
-            {/* Custom indicator for successful file upload */}
+            )}            {/* Custom indicator for successful file upload */}
             {safeBlockType.id === 'file_upload' && data.parameters?.filePath && (
               <div className="p-2 mt-2 text-sm text-green-400 bg-green-900/30 rounded">
                 File <span className="font-semibold">{data.parameters.filePath.split(/[\\\\/]/).pop()}</span> loaded.
                 Type: <span className="font-semibold">{data.parameters.outputType}</span>.
+              </div>
+            )}
+            {/* Custom indicator for protein generation prompt */}
+            {safeBlockType.id === 'generate_protein' && data.parameters?.prompt && (
+              <div className="p-2 mt-2 text-sm text-blue-400 bg-blue-900/30 rounded">
+                Prompt: <span className="font-semibold">"{data.parameters.prompt.length > 50 ? data.parameters.prompt.substring(0, 50) + '...' : data.parameters.prompt}"</span>
               </div>
             )}
             {/* ResultsView for other blocks when completed */}

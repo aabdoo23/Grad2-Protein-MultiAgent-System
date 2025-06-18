@@ -23,15 +23,17 @@ export const blockTypes = [
     color: '#522B29',
     inputs: ['input'],
     outputs: []
-  },
-  {
+  },  {
     id: 'generate_protein',
     name: 'Generate Protein',
     type: 'Generate Protein',
     description: 'Generate a protein sequence with specific properties',
     color: '#005f73',
     inputs: [],
-    outputs: ['sequence']
+    outputs: ['sequence'],
+    config: {
+      prompt: ""
+    }
   },
   {
     id: 'sequence_iterator',
@@ -203,9 +205,6 @@ export const blockTypes = [
     description: 'Generate Ramachandran plot analysis for protein backbone conformations',
     color: '#8B4513',
     inputs: ['structure'],
-    outputs: ['ramachandran_plot'],
-    config: {
-      output_dir: ""
-    }
+    outputs: ['ramachandran_plot']
   }
 ];

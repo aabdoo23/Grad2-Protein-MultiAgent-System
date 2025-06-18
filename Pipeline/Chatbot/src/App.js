@@ -5,6 +5,7 @@ import JobManager from './components/JobManager';
 import JobStatus from './components/JobStatus';
 import JobConfirmation from './components/JobConfirmation';
 import SandboxPage from './components/sandbox/SandboxPage';
+import DocumentationPage from './components/DocumentationPage';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { BASE_URL } from './config/config';
 
@@ -149,10 +150,10 @@ function App() {
     ));
   };
 
-  return (
-    <Router>
+  return (    <Router>
       <Routes>
         <Route path="/sandbox" element={<SandboxPage />} />
+        <Route path="/documentation" element={<DocumentationPage />} />
         <Route path="/" element={
           <div className="flex flex-col min-h-screen h-screen bg-[#111c22]" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
             {/* Header */}
@@ -167,10 +168,14 @@ function App() {
                   </svg>
                 </div>
                 <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Protein AI</h2>
+              </div>              <div className="flex gap-4">
+                <Link to="/sandbox" className="bg-[#13a4ec] hover:bg-[#0f8fd1] text-white px-4 py-2 rounded text-sm">
+                  Pipeline Sandbox
+                </Link>
+                <Link to="/documentation" className="bg-[#233c48] hover:bg-[#2a4653] text-white px-4 py-2 rounded text-sm">
+                  Documentation
+                </Link>
               </div>
-              <Link to="/sandbox" className="bg-[#13a4ec] hover:bg-[#0f8fd1] text-white px-4 py-2 rounded text-sm">
-                Open Pipeline Sandbox
-              </Link>
             </header>
 
             {/* Main content area */}
