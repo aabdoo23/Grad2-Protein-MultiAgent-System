@@ -167,8 +167,7 @@ class PipelineController:
                 fold_result = self.foldseek_searcher.submit_search(pdb_file)
                 if fold_result.get("success"):
                     search_results = self.foldseek_searcher.get_results(fold_result["ticket_id"])
-                    if search_results.get("success"):
-                        result = {
+                    if search_results.get("success"):                        result = {
                             "success": True,
                             "results": search_results["results"],
                             "pdb_file": pdb_file  # Include the original PDB file path
@@ -181,9 +180,59 @@ class PipelineController:
             pdb_file1 = params.get("pdb_file1", "")
             pdb_file2 = params.get("pdb_file2", "")
             if pdb_file1 and pdb_file2:
-                result = self.evaluator.evaluate_with_usalign(pdb_file1, pdb_file2)
+                usalign_result = self.evaluator.evaluate_with_usalign(pdb_file1, pdb_file2)
+                if usalign_result.get("success"):
+                    # Enhance the result with interpretation and formatting
+                    tm_score = usalign_result["tm_score"]
+                    rmsd = usalign_result["rmsd"]
+                    seq_id = usalign_result["seq_id"]
+                    aligned_length = usalign_result["aligned_length"]
+                    
+                    # Interpret TM-score (0.0-1.0, higher is more similar)
+                    tm_interpretation = "Identical structures" if tm_score >= 0.9 else \
+                                      "Very similar structures" if tm_score >= 0.7 else \
+                                      "Similar fold" if tm_score >= 0.5 else \
+                                      "Different folds" if tm_score >= 0.3 else \
+                                      "Completely different structures"
+                    
+                    # Interpret RMSD (lower is better, in Angstroms)
+                    rmsd_interpretation = "Excellent alignment" if rmsd <= 1.0 else \
+                                        "Very good alignment" if rmsd <= 2.0 else \
+                                        "Good alignment" if rmsd <= 3.0 else \
+                                        "Moderate alignment" if rmsd <= 5.0 else \
+                                        "Poor alignment"
+                    
+                    # Interpret sequence identity
+                    seq_interpretation = "Identical sequences" if seq_id >= 0.95 else \
+                                       "Highly similar sequences" if seq_id >= 0.7 else \
+                                       "Moderately similar sequences" if seq_id >= 0.3 else \
+                                       "Distantly related sequences" if seq_id >= 0.1 else \
+                                       "Very different sequences"
+                    
+                    result = {
+                        "success": True,
+                        "metrics": {
+                            "tm_score": round(tm_score, 4),
+                            "rmsd": round(rmsd, 3),
+                            "seq_id": round(seq_id, 4),
+                            "aligned_length": aligned_length
+                        },
+                        "interpretations": {
+                            "tm_score": tm_interpretation,
+                            "rmsd": rmsd_interpretation,
+                            "seq_id": seq_interpretation
+                        },
+                        "summary": f"Structural comparison complete: {tm_interpretation.lower()} with {rmsd_interpretation.lower()} ({rmsd:.2f}Å RMSD, {tm_score:.3f} TM-score)",
+                        "quality_assessment": {
+                            "structural_similarity": "High" if tm_score >= 0.7 else "Medium" if tm_score >= 0.5 else "Low",
+                            "geometric_accuracy": "High" if rmsd <= 2.0 else "Medium" if rmsd <= 5.0 else "Low",
+                            "sequence_conservation": "High" if seq_id >= 0.7 else "Medium" if seq_id >= 0.3 else "Low"
+                        }
+                    }
+                else:
+                    result = usalign_result
             else:
-                result = {"success": False, "error": "No PDB file provided"}
+                result = {"success": False, "error": "Two PDB files are required for structure comparison"}
         elif name == PipelineFunction.SEARCH_SIMILARITY.value:
             sequence = params.get("sequence", "")
             search_type = params.get("model_type", "ncbi")  # Default to NCBI BLAST
@@ -396,6 +445,12 @@ class PipelineController:
                 "pdb_file": "pdb_file",
                 "sequence": "sequence"
             },
+            PipelineFunction.EVALUATE_STRUCTURE.value: {
+                "metrics": "comparison_metrics",
+                "interpretations": "comparison_interpretations",
+                "summary": "comparison_summary",
+                "quality_assessment": "quality_assessment"
+            },
             PipelineFunction.PREDICT_BINDING_SITES.value: {
                 "binding_sites": "binding_sites",
                 "top_site": "top_site",
@@ -441,7 +496,9 @@ class PipelineController:
         elif func["name"] == PipelineFunction.SEARCH_STRUCTURE.value:
             return f"Search for similar structures in the database"
         elif func["name"] == PipelineFunction.EVALUATE_STRUCTURE.value:
-            return f"Evaluate the 3D structure quality and properties"
+            pdb_file1 = params.get("pdb_file1", "Structure 1")
+            pdb_file2 = params.get("pdb_file2", "Structure 2")
+            return f"Compare two protein structures using USAlign\nStructure 1: {pdb_file1}\nStructure 2: {pdb_file2}\nOutput: TM-score, RMSD, sequence identity, and structural similarity analysis"
         elif func["name"] == PipelineFunction.SEARCH_SIMILARITY.value:
             search_type = params.get("search_type", "colabfold")
             if search_type == "colabfold":
@@ -451,19 +508,44 @@ class PipelineController:
         return "Execute the requested operation"
 
     def build_database(self, parameters):
-        """Build a BLAST database from FASTA file or Pfam IDs."""
+        """Build a BLAST database from FASTA file, Pfam IDs, or connected sequences."""
         try:
+            input_method = parameters.get('input_method', 'pfam')
             fasta_file = parameters.get('fasta_file')
             pfam_ids = parameters.get('pfam_ids', [])
             db_name = parameters.get('db_name')
             sequence_types = parameters.get('sequence_types')
+            sequences_data = parameters.get('sequences_data')
 
-            result = self.db_builder.build_database(
-                fasta_file=fasta_file,
-                pfam_ids=pfam_ids,
-                db_name=db_name,
-                sequence_types=sequence_types
-            )
+            # Handle connected sequences case
+            if input_method == 'connected' and sequences_data:
+                # Extract sequences from the connected data
+                if isinstance(sequences_data, dict):
+                    sequences_list = sequences_data.get('sequences_list', [])
+                    if sequences_list:
+                        # Pass the sequences directly to the database builder
+                        result = self.db_builder.build_database(
+                            sequences_list=sequences_list,
+                            db_name=db_name
+                        )
+                    else:
+                        return {
+                            'success': False,
+                            'error': 'No sequences found in connected data'
+                        }
+                else:
+                    return {
+                        'success': False,
+                        'error': 'Invalid connected sequences data format'
+                    }
+            else:
+                # Handle file or pfam_ids cases
+                result = self.db_builder.build_database(
+                    fasta_file=fasta_file,
+                    pfam_ids=pfam_ids,
+                    db_name=db_name,
+                    sequence_types=sequence_types
+                )
 
             if result['success']:
                 return {
@@ -472,7 +554,7 @@ class PipelineController:
                         'path': result['db_path'],
                         'name': result['db_name']
                     },
-                    'fasta_file': result['fasta_path']
+                    'fasta_file': result.get('fasta_path')
                 }
             else:
                 return {

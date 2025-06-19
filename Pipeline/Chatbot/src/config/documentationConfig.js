@@ -850,23 +850,47 @@ const documentation = [
                 '**structure1**: string - Path to first PDB file (reference structure)',
                 '**structure2**: string - Path to second PDB file (query structure)'
             ]
-        },
-        outputFormat: {
-            description: 'Structural similarity metrics and alignment details',
+        },        outputFormat: {
+            description: 'Comprehensive structural similarity analysis with metrics, interpretations, and quality assessment',
             structure: {
                 success: 'boolean',
-                tm_score: 'float (TM-score: 0-1, >0.5 indicates similar fold)',
-                rmsd: 'float (Root Mean Square Deviation in Angstroms)',
-                aligned_length: 'int (number of aligned residues)',
-                seq_id: 'float (sequence identity of aligned regions)',
-                alignment_file: 'string (path to structural alignment file)'
+                metrics: {
+                    tm_score: 'float (TM-score: 0-1, >0.5 indicates similar fold)',
+                    rmsd: 'float (Root Mean Square Deviation in Angstroms)',
+                    aligned_length: 'int (number of aligned residues)',
+                    seq_id: 'float (sequence identity of aligned regions)'
+                },
+                interpretations: {
+                    tm_score: 'string (human-readable TM-score interpretation)',
+                    rmsd: 'string (human-readable RMSD interpretation)', 
+                    seq_id: 'string (human-readable sequence identity interpretation)'
+                },
+                summary: 'string (overall comparison summary)',
+                quality_assessment: {
+                    structural_similarity: 'string (High/Medium/Low)',
+                    geometric_accuracy: 'string (High/Medium/Low)',
+                    sequence_conservation: 'string (High/Medium/Low)'
+                }
             },
             example: {
                 success: true,
-                tm_score: 0.87,
-                rmsd: 1.23,
-                aligned_length: 142,
-                seq_id: 0.34
+                metrics: {
+                    tm_score: 0.87,
+                    rmsd: 1.23,
+                    aligned_length: 142,
+                    seq_id: 0.34
+                },
+                interpretations: {
+                    tm_score: "Very similar structures",
+                    rmsd: "Very good alignment",
+                    seq_id: "Moderately similar sequences"
+                },
+                summary: "Structural comparison complete: very similar structures with very good alignment (1.23Å RMSD, 0.870 TM-score)",
+                quality_assessment: {
+                    structural_similarity: "High",
+                    geometric_accuracy: "High", 
+                    sequence_conservation: "Medium"
+                }
             }
         },
         exampleUsage: 'Compare a predicted protein structure with an experimental structure to assess prediction quality, or compare different conformations of the same protein',

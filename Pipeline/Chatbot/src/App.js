@@ -92,7 +92,7 @@ function App() {
       'evaluate_sequence': 'Evaluate properties of a protein sequence',
       'search_similarity': 'Search for similar protein sequences',
       'search_structure': 'Search for similar protein structures using FoldSeek',
-      'evaluate_structure': 'Evaluate the quality and properties of a predicted 3D structure'
+      'evaluate_structure': 'Compare two protein structures using USAlign to calculate TM-score, RMSD, and sequence identity'
     };
     return descriptions[functionName] || 'Execute protein pipeline function';
   };

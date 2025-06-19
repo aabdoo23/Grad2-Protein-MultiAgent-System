@@ -5,12 +5,6 @@ export const blockConfigSchema = {
       label: 'Enter sequences (one per line)',
       placeholder: 'Enter sequences here, one per line...',
       rows: 8
-    },
-    fasta_file: {
-      type: 'file',
-      label: 'Upload FASTA file',
-      accept: '.fasta,.fa,.fna',
-      description: 'Upload a FASTA file containing sequences to iterate through'
     }
   },
   openfold_predict: {

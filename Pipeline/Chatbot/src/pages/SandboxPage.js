@@ -1173,17 +1173,19 @@ const SandboxPage = () => {
       )}
     </header>
   );
-
   return (
-    <div className="flex flex-col h-screen bg-[#111c22]">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-[#0f1419] via-[#111c22] to-[#0d1117]">
       <TopBar />
       <DndProvider backend={HTML5Backend}>
         <div className="flex flex-1 overflow-hidden">
-          <div className="bg-[#1a2b34] border-r border-[#233c48] overflow-y-auto p-4 transition-all duration-100 ease-in-out">
+          {/* Dynamic Sidebar Container */}
+          <div className="flex-shrink-0 bg-gradient-to-b from-[#1a2b34] to-[#152028] border-r border-[#233c48]/50 shadow-2xl backdrop-blur-sm">
             <BlockPalette blockTypes={blockTypes} />
           </div>
 
-          <div className="flex-1 relative overflow-auto">            <WorkspaceSurface
+          {/* Main Workspace */}
+          <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-[#111c22] to-[#0d1520]">
+            <WorkspaceSurface
               blocks={blocks}
               blockTypes={blockTypes}
               connections={connections}

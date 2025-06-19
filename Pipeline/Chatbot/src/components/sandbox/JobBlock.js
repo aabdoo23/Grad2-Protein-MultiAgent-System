@@ -12,6 +12,7 @@ import BlastAnalysisBlock from '../sandbox/CustomBlocks/BlastAnalysisBlock';
 import FoldseekAnalysisBlock from '../sandbox/CustomBlocks/FoldseekAnalysisBlock';
 import MsaAnalysisBlock from '../sandbox/CustomBlocks/MsaAnalysisBlock';
 import TaxonomyAnalysisBlock from '../sandbox/CustomBlocks/TaxonomyAnalysisBlock';
+import StructureEvaluationBlock from '../sandbox/CustomBlocks/StructureEvaluationBlock';
 import ResizableBlock from '../sandbox/ResizableBlock';
 import { uploadService } from '../../services/api';
 import { showErrorToast } from '../../services/notificationService';
@@ -48,9 +49,9 @@ const JobBlock = ({
     if (jobResultOutputType) {
       if (jobResultOutputType === 'structure') return ['structure'];
       if (jobResultOutputType === 'molecule') return ['molecule'];
-      if (jobResultOutputType === 'sequence') return ['sequence']; 
+      if (jobResultOutputType === 'sequence') return ['sequence'];
       if (jobResultOutputType === 'sequences_list') return ['sequences_list'];
-      return []; 
+      return [];
     }
 
     if (initialUploadType) {
@@ -80,7 +81,7 @@ const JobBlock = ({
       data.updateBlock({ status: 'idle' });
     }
     if (data.onClearOutput) {
-      data.onClearOutput(); 
+      data.onClearOutput();
     }
   };
 
@@ -134,12 +135,13 @@ const JobBlock = ({
               blockType={safeBlockType}
             />
           </div>
-        );
-      case 'blast_db_builder':
+        ); case 'blast_db_builder':
         return (
           <div className="nodrag">
             <BlastDatabaseBuilder
               onUpdateParameters={handleBlastDbParametersUpdate}
+              inputData={data.inputData}
+              connections={data.connections}
             />
           </div>
         );
@@ -173,7 +175,7 @@ const JobBlock = ({
                 Loaded {data.parameters.loadedSequences.length} sequences
               </div>
             )}          </div>
-        );      case 'generate_protein':
+        ); case 'generate_protein':
         return (
           <div className="nodrag">
             <ProteinGenerationBlock
@@ -181,7 +183,7 @@ const JobBlock = ({
               initialPrompt={data.parameters?.prompt || ''}
             />
           </div>
-        );      case 'blast_analysis':
+        ); case 'blast_analysis':
         return (
           <div className="nodrag">
             <BlastAnalysisBlock
@@ -200,7 +202,7 @@ const JobBlock = ({
               inputData={data.inputData}
             />
           </div>
-        );      case 'msa_analysis':
+        ); case 'msa_analysis':
         return (
           <div className="nodrag">
             <MsaAnalysisBlock
@@ -209,14 +211,25 @@ const JobBlock = ({
               inputData={data.inputData}
             />
           </div>
-        );
-      case 'taxonomy_analysis':
+        ); case 'taxonomy_analysis':
         return (
           <div className="nodrag">
             <TaxonomyAnalysisBlock
               blockOutput={data.blockOutput}
               connections={data.connections}
               inputData={data.inputData}
+            />
+          </div>
+        ); case 'evaluate_structure':
+        return (
+          <div className="nodrag">
+            <StructureEvaluationBlock
+              onUpdateParameters={data.onUpdateParameters}
+              connections={data.connections}
+              inputData={data.inputData}
+              initialParams={data.parameters || {}}
+              blockOutput={data.blockOutput}
+              status={data.status}
             />
           </div>
         );
@@ -262,43 +275,51 @@ const JobBlock = ({
         )}
 
         {/* Container for ports and content area */}
-        <div className="nodrag nowheel nopan flex flex-1 min-h-0 bg-black/20">
-          {/* Input Ports Section */}
+        <div className="nodrag nowheel nopan flex flex-1 min-h-0 bg-black/20">          {/* Input Ports Section */}
           <div className="flex flex-col justify-center items-start p-2 space-y-2">
-            {safeBlockType.inputs.map((input) => (
-              <div key={`input-${input}`} className="relative flex items-center">
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id={input}
-                  style={{ background: '#fff', width: 10, height: 10, border: '2px solid #666', zIndex: 11 }}
-                />
-                <BlockPort
-                  type={input}
-                  isInput={true}
-                  isMultiDownload={safeBlockType.id === 'multi_download'}
-                  connectionCount={Array.isArray(data.connections?.[input])
-                    ? data.connections[input].length
-                    : (data.connections?.[input] ? 1 : 0)}
-                />
-              </div>
-            ))}
+            {safeBlockType.inputs.map((input, index) => {
+              // Create unique IDs for multiple inputs of the same type
+              const inputId = safeBlockType.inputs.filter((inp, idx) => idx <= index && inp === input).length > 1
+                ? `${input}_${safeBlockType.inputs.slice(0, index + 1).filter(inp => inp === input).length}`
+                : input;
+
+              return (
+                <div key={`input-${input}-${index}`} className="relative flex items-center">
+                  <Handle
+                    type="target"
+                    position={Position.Left}
+                    id={inputId}
+                    style={{ background: '#fff', width: 10, height: 10, border: '2px solid #666', zIndex: 11 }}
+                  />
+                  <BlockPort
+                    type={input}
+                    isInput={true}
+                    isMultiDownload={safeBlockType.id === 'multi_download'}
+                    connectionCount={Array.isArray(data.connections?.[inputId])
+                      ? data.connections[inputId].length
+                      : (data.connections?.[inputId] ? 1 : 0)}
+                    portIndex={safeBlockType.inputs.slice(0, index + 1).filter(inp => inp === input).length}
+                  />
+                </div>
+              );
+            })}
           </div>
 
-          {/* Scrollable Content Area */}          <div 
+          {/* Scrollable Content Area */}          
+          <div
             className="flex-1 p-3 mb-4 bg-black/20 overflow-auto custom-scrollbar rounded-b-lg"
           >
             {renderBlockContent()}            {/* Only show BlockActions for blocks that aren't display-only */}
             {safeBlockType.id !== 'blast_analysis' && safeBlockType.id !== 'foldseek_analysis' && safeBlockType.id !== 'msa_analysis' && safeBlockType.id !== 'taxonomy_analysis' && (
               <BlockActions
-                hasConfig={!!safeBlockType.config && safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'generate_protein'}
+                hasConfig={!!safeBlockType.config && safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'generate_protein' && safeBlockType.id !== 'evaluate_structure'}
                 isConfigOpen={isConfigOpen}
                 onToggleConfig={() => setIsConfigOpen(!isConfigOpen)}
                 onRunBlock={() => data.onRunBlock()}
                 isRunning={data.status === 'running'}
               />
             )}
-            {safeBlockType.config && safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'generate_protein' && safeBlockType.id !== 'blast_analysis' && safeBlockType.id !== 'foldseek_analysis' && safeBlockType.id !== 'msa_analysis' && safeBlockType.id !== 'taxonomy_analysis' && (
+            {safeBlockType.config && safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'generate_protein' && safeBlockType.id !== 'blast_analysis' && safeBlockType.id !== 'foldseek_analysis' && safeBlockType.id !== 'msa_analysis' && safeBlockType.id !== 'taxonomy_analysis' && safeBlockType.id !== 'evaluate_structure' && (
               <BlockConfig
                 blockType={safeBlockType}
                 isConfigOpen={isConfigOpen}
@@ -315,14 +336,15 @@ const JobBlock = ({
                 File <span className="font-semibold">{data.parameters.filePath.split(/[\\\\/]/).pop()}</span> loaded.
                 Type: <span className="font-semibold">{data.parameters.outputType}</span>.
               </div>
-            )}
-            {/* Custom indicator for protein generation prompt */}
+            )}            {/* Custom indicator for protein generation prompt */}
             {safeBlockType.id === 'generate_protein' && data.parameters?.prompt && (
               <div className="p-2 mt-2 text-sm text-blue-400 bg-blue-900/30 rounded">
                 Prompt: <span className="font-semibold">"{data.parameters.prompt.length > 50 ? data.parameters.prompt.substring(0, 50) + '...' : data.parameters.prompt}"</span>
               </div>
-            )}            {/* ResultsView for other blocks when completed */}
-            {safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'blast_analysis' && safeBlockType.id !== 'foldseek_analysis' && safeBlockType.id !== 'msa_analysis' && safeBlockType.id !== 'taxonomy_analysis' && data.status === 'completed' && (
+            )}
+
+            {/* ResultsView for other blocks when completed */}
+            {safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'blast_analysis' && safeBlockType.id !== 'foldseek_analysis' && safeBlockType.id !== 'msa_analysis' && safeBlockType.id !== 'taxonomy_analysis' && safeBlockType.id !== 'evaluate_structure' && data.status === 'completed' && (
               <ResultsView
                 blockType={safeBlockType}
                 blockOutput={data.blockOutput}
@@ -333,21 +355,30 @@ const JobBlock = ({
                 formatMetric={data.formatMetric}
               />
             )}
-          </div>
-
-          {/* Output Ports Section */}
+          </div>          {/* Output Ports Section */}
           <div className="flex flex-col justify-center items-end p-2 space-y-2">
-            {getDisplayedOutputPorts().map((output) => (
-              <div key={`output-${output}`} className="relative flex items-center">
-                <BlockPort type={output} isInput={false} />
-                <Handle
-                  type="source"
-                  position={Position.Right}
-                  id={output}
-                  style={{ background: '#fff', width: 10, height: 10, border: '2px solid #666', zIndex: 11 }}
-                />
-              </div>
-            ))}
+            {getDisplayedOutputPorts().map((output, index) => {
+              // Create unique IDs for multiple outputs of the same type
+              const outputId = getDisplayedOutputPorts().filter((out, idx) => idx <= index && out === output).length > 1
+                ? `${output}_${getDisplayedOutputPorts().slice(0, index + 1).filter(out => out === output).length}`
+                : output;
+
+              return (
+                <div key={`output-${output}-${index}`} className="relative flex items-center">
+                  <BlockPort
+                    type={output}
+                    isInput={false}
+                    portIndex={getDisplayedOutputPorts().slice(0, index + 1).filter(out => out === output).length}
+                  />
+                  <Handle
+                    type="source"
+                    position={Position.Right}
+                    id={outputId}
+                    style={{ background: '#fff', width: 10, height: 10, border: '2px solid #666', zIndex: 11 }}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -251,7 +251,12 @@ const JobStatus = forwardRef((props, ref) => {
       case 'generate_protein':
         return <SequenceGenerationResults sequence={job.result.sequence} info={job.result.info} />;
       case 'evaluate_structure':
-        return <EvaluationResults metrics={job.result.metrics} />;      case 'search_similarity':
+        return <EvaluationResults 
+          metrics={job.result.metrics} 
+          interpretations={job.result.interpretations}
+          summary={job.result.summary}
+          quality_assessment={job.result.quality_assessment}
+        />;      case 'search_similarity':
         return <BlastResults results={job.result.results} />;
       case 'search_structure':
         return <FoldSeekResults results={job.result.results} originalPdbPath={job.result.pdb_file} />;
