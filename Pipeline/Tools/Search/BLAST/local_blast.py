@@ -29,13 +29,13 @@ class LocalBlastSearcher:
         if not os.path.exists(blastp_path):
             raise FileNotFoundError(f"BLAST executable not found at {blastp_path}")
         
-        return blastp_path
-
+        return blastp_path    
+    
     @staticmethod
     def _make_midline(qseq, sseq):
         return ''.join('|' if a == b else ' ' for a, b in zip(qseq, sseq))
 
-    def _format_blast_results(self, hits, query, db_name):
+    def _format_blast_results(self, hits, query, db_name, e_value=None):
         # Prepare alignments for the frontend
         alignments = {
             "databases": {
@@ -44,6 +44,7 @@ class LocalBlastSearcher:
                 }
             }
         }
+        
         msa_sequences = [{
             "id": "Query",
             "name": "Query",
@@ -57,8 +58,15 @@ class LocalBlastSearcher:
             subject_id = hit.get("subject_id", "")
             if "|" in subject_id:
                 parts = subject_id.split("|")
-                accession = parts[0]
-                description = "|".join(parts[1:])
+                # Handle common database formats like "tr|A0A123|description" or "sp|P12345|description"
+                if len(parts) >= 2 and parts[0] in ['tr', 'sp', 'gb', 'ref', 'pdb']:
+                    # Use the actual accession (second part) and skip the database prefix
+                    accession = parts[1]
+                    description = "|".join(parts[2:]) if len(parts) > 2 else ""
+                else:
+                    # Fallback to original parsing
+                    accession = parts[0]
+                    description = "|".join(parts[1:])
             else:
                 accession = subject_id
                 description = ""
@@ -88,12 +96,22 @@ class LocalBlastSearcher:
                 ]
             })
 
-        return {
+        result = {
             "alignments": alignments,
             "msa": {
                 "sequences": msa_sequences
             }
         }
+        
+        # Add e_value to metadata if provided
+        if e_value is not None:
+            result["metadata"] = {
+                "search_parameters": {
+                    "e_value": e_value
+                }
+            }
+        
+        return result
 
     def search(self, sequence, db_path, e_value=0.0001, interpro_ids=None):
         """
@@ -169,7 +187,7 @@ class LocalBlastSearcher:
                         # This would require additional database queries or metadata
                         pass
                     hits = filtered_hits
-                formatted_results = self._format_blast_results(hits, sequence, os.path.basename(db_path))
+                formatted_results = self._format_blast_results(hits, sequence, os.path.basename(db_path), e_value)
                 return {
                     "success": True,
                     "results": formatted_results

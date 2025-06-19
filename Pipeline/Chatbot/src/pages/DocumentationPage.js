@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { documentation, categories } from '../config/documentation.js';
+import { documentation, categories } from '../config/documentationConfig.js';
 
 const DocumentationPage = () => {
     const [searchTerm, setSearchTerm] = useState('');

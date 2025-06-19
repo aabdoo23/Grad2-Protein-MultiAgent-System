@@ -2,8 +2,8 @@ import FoldSeekResults from '../../result-viewers/FoldSeekResults';
 import SequenceGenerationResults from '../../result-viewers/SequenceGenerationResults';
 import PhylogeneticTreeResults from '../../result-viewers/PhylogeneticTreeResults';
 import { downloadService } from '../../../services/api';
-import BlastResults from '../../BlastResults';
-import { BASE_URL } from '../../../config/config';
+import BlastResults from '../../result-viewers/BlastResults';
+import { BASE_URL } from '../../../config/appConfig';
 import { useEffect, useState } from 'react';
 
 const ResultsView = ({ blockType, blockOutput, blockInstanceId, isResultsOpen, onToggleResults, initViewer, formatMetric }) => {

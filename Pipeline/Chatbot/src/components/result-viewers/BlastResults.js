@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import MSAViewer from './MSAViewer';
+import MSAViewer from '../MSAViewer';
 
 // Constants
 const DEFAULT_MAX_SEQUENCES = 40;

@@ -89,7 +89,7 @@ class ColabFold_MSA_Searcher:
                 "sequence": sequence,
                 "e_value": e_value,
                 "iterations": iterations,
-                "databases": databases,
+                "databases": databases,               
                 "output_alignment_formats": output_alignment_formats
             }
             code, response = asyncio.run(self._make_nvcf_call(data=msa_params))
@@ -97,7 +97,7 @@ class ColabFold_MSA_Searcher:
                 try:
                     results = response.json()
                     # Normalize results using the schema normalizer
-                    normalized_results = self.schema_normalizer.normalize_colabfold_results(results, sequence)
+                    normalized_results = self.schema_normalizer.normalize_colabfold_results(results, sequence, e_value)
                     return {"success": True, "results": normalized_results}
                 except json.JSONDecodeError:
                     return {"success": False, "error": "Failed to parse MSA results"}

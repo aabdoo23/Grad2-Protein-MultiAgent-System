@@ -5,10 +5,14 @@ import BlockPort from './JobBlockComponents/BlockPort';
 import BlockConfig from './JobBlockComponents/BlockConfig';
 import ResultsView from './JobBlockComponents/ResultsView';
 import BlockActions from './JobBlockComponents/BlockActions';
-import FileUploadBlock from './JobBlockComponents/FileUploadBlock';
-import BlastDatabaseBuilder from './JobBlockComponents/BlastDatabaseBuilder';
-import ProteinGenerationBlock from './JobBlockComponents/ProteinGenerationBlock';
-import ResizableBlock from './JobBlockComponents/ResizableBlock';
+import FileUploadBlock from '../sandbox/CustomBlocks/FileUploadBlock';
+import BlastDatabaseBuilder from '../sandbox/CustomBlocks/BlastDatabaseBuilder';
+import ProteinGenerationBlock from '../sandbox/CustomBlocks/ProteinGenerationBlock';
+import BlastAnalysisBlock from '../sandbox/CustomBlocks/BlastAnalysisBlock';
+import FoldseekAnalysisBlock from '../sandbox/CustomBlocks/FoldseekAnalysisBlock';
+import MsaAnalysisBlock from '../sandbox/CustomBlocks/MsaAnalysisBlock';
+import TaxonomyAnalysisBlock from '../sandbox/CustomBlocks/TaxonomyAnalysisBlock';
+import ResizableBlock from '../sandbox/ResizableBlock';
 import { uploadService } from '../../services/api';
 import { showErrorToast } from '../../services/notificationService';
 
@@ -169,13 +173,50 @@ const JobBlock = ({
                 Loaded {data.parameters.loadedSequences.length} sequences
               </div>
             )}          </div>
-        );
-      case 'generate_protein':
+        );      case 'generate_protein':
         return (
           <div className="nodrag">
             <ProteinGenerationBlock
               onUpdateParameters={data.onUpdateParameters}
               initialPrompt={data.parameters?.prompt || ''}
+            />
+          </div>
+        );      case 'blast_analysis':
+        return (
+          <div className="nodrag">
+            <BlastAnalysisBlock
+              blockOutput={data.blockOutput}
+              connections={data.connections}
+              inputData={data.inputData}
+            />
+          </div>
+        );
+      case 'foldseek_analysis':
+        return (
+          <div className="nodrag">
+            <FoldseekAnalysisBlock
+              blockOutput={data.blockOutput}
+              connections={data.connections}
+              inputData={data.inputData}
+            />
+          </div>
+        );      case 'msa_analysis':
+        return (
+          <div className="nodrag">
+            <MsaAnalysisBlock
+              blockOutput={data.blockOutput}
+              connections={data.connections}
+              inputData={data.inputData}
+            />
+          </div>
+        );
+      case 'taxonomy_analysis':
+        return (
+          <div className="nodrag">
+            <TaxonomyAnalysisBlock
+              blockOutput={data.blockOutput}
+              connections={data.connections}
+              inputData={data.inputData}
             />
           </div>
         );
@@ -244,18 +285,20 @@ const JobBlock = ({
             ))}
           </div>
 
-          {/* Scrollable Content Area */}
-          <div 
+          {/* Scrollable Content Area */}          <div 
             className="flex-1 p-3 mb-4 bg-black/20 overflow-auto custom-scrollbar rounded-b-lg"
           >
-            {renderBlockContent()}            <BlockActions
-              hasConfig={!!safeBlockType.config && safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'generate_protein'}
-              isConfigOpen={isConfigOpen}
-              onToggleConfig={() => setIsConfigOpen(!isConfigOpen)}
-              onRunBlock={() => data.onRunBlock()}
-              isRunning={data.status === 'running'}
-            />
-            {safeBlockType.config && safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'generate_protein' && (
+            {renderBlockContent()}            {/* Only show BlockActions for blocks that aren't display-only */}
+            {safeBlockType.id !== 'blast_analysis' && safeBlockType.id !== 'foldseek_analysis' && safeBlockType.id !== 'msa_analysis' && safeBlockType.id !== 'taxonomy_analysis' && (
+              <BlockActions
+                hasConfig={!!safeBlockType.config && safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'generate_protein'}
+                isConfigOpen={isConfigOpen}
+                onToggleConfig={() => setIsConfigOpen(!isConfigOpen)}
+                onRunBlock={() => data.onRunBlock()}
+                isRunning={data.status === 'running'}
+              />
+            )}
+            {safeBlockType.config && safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'generate_protein' && safeBlockType.id !== 'blast_analysis' && safeBlockType.id !== 'foldseek_analysis' && safeBlockType.id !== 'msa_analysis' && safeBlockType.id !== 'taxonomy_analysis' && (
               <BlockConfig
                 blockType={safeBlockType}
                 isConfigOpen={isConfigOpen}
@@ -266,7 +309,7 @@ const JobBlock = ({
                 }}
                 initialParams={data.parameters || {}}
               />
-            )}            {/* Custom indicator for successful file upload */}
+            )}{/* Custom indicator for successful file upload */}
             {safeBlockType.id === 'file_upload' && data.parameters?.filePath && (
               <div className="p-2 mt-2 text-sm text-green-400 bg-green-900/30 rounded">
                 File <span className="font-semibold">{data.parameters.filePath.split(/[\\\\/]/).pop()}</span> loaded.
@@ -278,9 +321,8 @@ const JobBlock = ({
               <div className="p-2 mt-2 text-sm text-blue-400 bg-blue-900/30 rounded">
                 Prompt: <span className="font-semibold">"{data.parameters.prompt.length > 50 ? data.parameters.prompt.substring(0, 50) + '...' : data.parameters.prompt}"</span>
               </div>
-            )}
-            {/* ResultsView for other blocks when completed */}
-            {safeBlockType.id !== 'file_upload' && data.status === 'completed' && (
+            )}            {/* ResultsView for other blocks when completed */}
+            {safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'blast_analysis' && safeBlockType.id !== 'foldseek_analysis' && safeBlockType.id !== 'msa_analysis' && safeBlockType.id !== 'taxonomy_analysis' && data.status === 'completed' && (
               <ResultsView
                 blockType={safeBlockType}
                 blockOutput={data.blockOutput}

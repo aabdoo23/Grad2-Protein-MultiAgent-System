@@ -98,7 +98,7 @@ export const blockTypes = [
     description: 'Search using ColabFold MSA (Fast, modern, ~20 sec)',
     color: '#264653',
     inputs: ['sequence'],
-    outputs: ['results'],
+    outputs: ['msa_results'],
     config: {
       e_value: 0.0001,
       iterations: 1,
@@ -113,7 +113,7 @@ export const blockTypes = [
     description: 'Search using NCBI BLAST (Standard, ~6 min)',
     color: '#0E3938',
     inputs: ['sequence'],
-    outputs: ['results'],
+    outputs: ['blast_results'],
     config: {
       e_value: 0.0001,
       database: "nr"
@@ -126,7 +126,7 @@ export const blockTypes = [
     description: 'Search using Local BLAST (Custom database, ~1 min)',
     color: '#1C4C49',
     inputs: ['sequence', 'database'],
-    outputs: ['results'],
+    outputs: ['blast_results'],
     config: {
       e_value: 0.0001,
       interpro_ids: []
@@ -139,7 +139,7 @@ export const blockTypes = [
     description: 'Search for similar protein structures using FoldSeek',
     color: '#28666E',
     inputs: ['structure'],
-    outputs: ['results']
+    outputs: ['foldseek_results']
   },
   {
     id: 'blast_db_builder',
@@ -161,7 +161,7 @@ export const blockTypes = [
     description: 'Perform molecular docking between a protein and ligand using AutoDock Vina',
     color: '#033F63',
     inputs: ['structure', 'molecule', 'binding_sites'],
-    outputs: ['results'], 
+    outputs: ['docking_results'], 
     config: {
       center_x: 0,
       center_y: 0,
@@ -197,6 +197,46 @@ export const blockTypes = [
       min_sequence_length: 50,
       remove_gaps: true
     }
+  },
+  {
+    id: 'blast_analysis',
+    name: 'BLAST Analysis',
+    type: 'Analysis',
+    description: 'Interactive analysis of sequence search results with scatter plots and hit tables',
+    color: '#5D4A23',
+    inputs: ['blast_results'],
+    outputs: [],
+    config: {}
+  },
+  {
+    id: 'foldseek_analysis',
+    name: 'FoldSeek Analysis',
+    type: 'Analysis',
+    description: 'Interactive analysis of structural search results with scatter plots and hit tables',
+    color: '#4A5D23',
+    inputs: ['foldseek_results'],
+    outputs: [],
+    config: {}
+  },
+  {
+    id: 'msa_analysis',
+    name: 'MSA Analysis',
+    type: 'Analysis',
+    description: 'Interactive analysis of Multiple Sequence Alignment results',
+    color: '#235D4A',
+    inputs: ['msa_results'],
+    outputs: [],
+    config: {}
+  },
+  {
+    id: 'taxonomy_analysis',
+    name: 'Taxonomy Analysis',
+    type: 'Analysis',
+    description: 'Interactive analysis of taxonomic distribution from BLAST results with bar charts and organism tables',
+    color: '#4A2D5D',
+    inputs: ['blast_results'],
+    outputs: [],
+    config: {}
   },
   {
     id: 'analyze_ramachandran',

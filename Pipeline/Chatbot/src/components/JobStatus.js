@@ -1,12 +1,12 @@
 import React, { forwardRef, useImperativeHandle, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import * as NGL from 'ngl';
-import BlastResults from './BlastResults';
+import BlastResults from './result-viewers/BlastResults';
 import FoldSeekResults from './result-viewers/FoldSeekResults';
 import SequenceGenerationResults from './result-viewers/SequenceGenerationResults';
 import EvaluationResults from './result-viewers/EvaluationResults';
 import PhylogeneticTreeResults from './result-viewers/PhylogeneticTreeResults';
-import { AWAIT_TIME, BASE_URL } from '../config/config';
+import { AWAIT_TIME, BASE_URL } from '../config/appConfig';
 
 const JobStatus = forwardRef((props, ref) => {
   const [jobs, setJobs] = useState([]);

@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import BlockPalette from './BlockPalette';
-import WorkspaceSurface from './WorkspaceSurface';
-import JobManager from '../JobManager';
-import { downloadService, jobService } from '../../services/api';
-import { blockTypes } from './config/blockTypes';
-import useWorkspaceStore from '../../store/workspaceStore';
-import { AWAIT_TIME } from '../../config/config';
+import BlockPalette from '../components/sandbox/BlockPalette';
+import WorkspaceSurface from '../components/sandbox/WorkspaceSurface';
+import JobManager from '../components/JobManager';
+import { downloadService, jobService } from '../services/api';
+import { blockTypes } from '../config/sandbox/blockTypes';
+import useWorkspaceStore from '../store/workspaceStore';
+import { AWAIT_TIME } from '../config/appConfig';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { showErrorToast } from '../../services/notificationService';
+import { showErrorToast } from '../services/notificationService';
 
 // Mol* imports
 import { createPluginUI } from 'molstar/lib/mol-plugin-ui';
@@ -355,8 +355,7 @@ const SandboxPage = () => {
           connectionArray.forEach(conn => {
             if (conn && blockOutputs[conn.source]) {
               const sourceOutput = blockOutputs[conn.source];
-              console.log(`Getting ${conn.sourceHandle} from block ${conn.source}:`, sourceOutput);
-              switch (conn.sourceHandle) {
+              console.log(`Getting ${conn.sourceHandle} from block ${conn.source}:`, sourceOutput);              switch (conn.sourceHandle) {
                 case 'sequence':
                   if (sourceOutput.sequence !== undefined) { // If source explicitly provides a single sequence
                     blockInputs.sequence = sourceOutput.sequence;
@@ -381,6 +380,10 @@ const SandboxPage = () => {
                   break;
                 case 'metrics': blockInputs.metrics = sourceOutput.metrics; break;
                 case 'results': blockInputs.results = sourceOutput.results; break;
+                case 'blast_results': blockInputs.blast_results = sourceOutput.results; break;
+                case 'foldseek_results': blockInputs.foldseek_results = sourceOutput.results; break;
+                case 'msa_results': blockInputs.msa_results = sourceOutput.results; break;
+                case 'docking_results': blockInputs.docking_results = sourceOutput.results; break;
                 case 'binding_sites':
                   // Handle binding sites output - pass through the data for downstream processing
                   blockInputs.binding_sites = sourceOutput.binding_sites;
@@ -753,6 +756,10 @@ const SandboxPage = () => {
             case 'molecule': return 'molecule_file';
             case 'metrics': return 'metrics';
             case 'results': return 'results';
+            case 'blast_results': return 'blast_results';
+            case 'foldseek_results': return 'foldseek_results';
+            case 'msa_results': return 'msa_results';
+            case 'docking_results': return 'docking_results';
             case 'binding_sites': return 'binding_sites';
             case 'fasta': return 'fasta_file'; // Used by sequence_iterator if input is a file
             default: return handleName; // Assumes the data is directly under the handle name in blockInputs
