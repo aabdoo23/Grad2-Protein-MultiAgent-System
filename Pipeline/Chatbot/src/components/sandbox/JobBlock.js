@@ -251,7 +251,9 @@ const JobBlock = ({
           backgroundColor: safeBlockType.color,
           border: '1px solid rgba(255, 255, 255, 0.1)',
         }}
-      >        <BlockHeader
+      >        
+      
+      <BlockHeader
           blockType={safeBlockType}
           blockInstanceId={id}
           status={data.status}
@@ -275,7 +277,8 @@ const JobBlock = ({
         )}
 
         {/* Container for ports and content area */}
-        <div className="nodrag nowheel nopan flex flex-1 min-h-0 bg-black/20">          {/* Input Ports Section */}
+        <div className="nodrag nowheel nopan flex flex-1 min-h-0 bg-black/20">
+          {/* Input Ports Section */}
           <div className="flex flex-col justify-center items-start p-2 space-y-2">
             {safeBlockType.inputs.map((input, index) => {
               // Create unique IDs for multiple inputs of the same type
@@ -305,11 +308,13 @@ const JobBlock = ({
             })}
           </div>
 
-          {/* Scrollable Content Area */}          
+          {/* Scrollable Content Area */}
           <div
             className="flex-1 p-3 mb-4 bg-black/20 overflow-auto custom-scrollbar rounded-b-lg"
           >
-            {renderBlockContent()}            {/* Only show BlockActions for blocks that aren't display-only */}
+            {renderBlockContent()}            
+            
+            {/* Only show BlockActions for blocks that aren't display-only */}
             {safeBlockType.id !== 'blast_analysis' && safeBlockType.id !== 'foldseek_analysis' && safeBlockType.id !== 'msa_analysis' && safeBlockType.id !== 'taxonomy_analysis' && (
               <BlockActions
                 hasConfig={!!safeBlockType.config && safeBlockType.id !== 'file_upload' && safeBlockType.id !== 'generate_protein' && safeBlockType.id !== 'evaluate_structure'}
@@ -330,13 +335,17 @@ const JobBlock = ({
                 }}
                 initialParams={data.parameters || {}}
               />
-            )}{/* Custom indicator for successful file upload */}
+            )}
+            
+            {/* Custom indicator for successful file upload */}
             {safeBlockType.id === 'file_upload' && data.parameters?.filePath && (
               <div className="p-2 mt-2 text-sm text-green-400 bg-green-900/30 rounded">
                 File <span className="font-semibold">{data.parameters.filePath.split(/[\\\\/]/).pop()}</span> loaded.
                 Type: <span className="font-semibold">{data.parameters.outputType}</span>.
               </div>
-            )}            {/* Custom indicator for protein generation prompt */}
+            )}            
+            
+            {/* Custom indicator for protein generation prompt */}
             {safeBlockType.id === 'generate_protein' && data.parameters?.prompt && (
               <div className="p-2 mt-2 text-sm text-blue-400 bg-blue-900/30 rounded">
                 Prompt: <span className="font-semibold">"{data.parameters.prompt.length > 50 ? data.parameters.prompt.substring(0, 50) + '...' : data.parameters.prompt}"</span>
@@ -355,7 +364,9 @@ const JobBlock = ({
                 formatMetric={data.formatMetric}
               />
             )}
-          </div>          {/* Output Ports Section */}
+          </div>          
+          
+          {/* Output Ports Section */}
           <div className="flex flex-col justify-center items-end p-2 space-y-2">
             {getDisplayedOutputPorts().map((output, index) => {
               // Create unique IDs for multiple outputs of the same type

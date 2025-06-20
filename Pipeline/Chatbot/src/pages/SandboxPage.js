@@ -558,22 +558,11 @@ const SandboxPage = () => {
                 }, 100); // Reduced delay
               }
               return { ...prev, currentIteration: nextIteration }; // Update to the actual next iteration
-            });
-          } else if (isAutomate && blockId !== loopConfig.endBlockId) { // Only chain if not the end of an active loop
+            });          } else if (isAutomate && blockId !== loopConfig.endBlockId) { 
             // Standard automation chain if not the end of an active loop iteration
-            console.log('Standard automation: Running next blocks in chain from multi_download');
-            const nextBlocks = getNextBlocksInChain(blockId);
-            if (nextBlocks.length > 0) {
-              setTimeout(() => {
-                nextBlocks.forEach(nextBlock => {
-                  if (nextBlock && nextBlock.id) {
-                    runBlock(nextBlock.id, { ...blockOutputsRef.current[blockId] });
-                  }
-                });
-              }, AWAIT_TIME);
-            } else {
-              console.log('Pipeline sequence completed after multi_download.');
-            }
+            // Automation is now handled by the centralized useEffect automation logic
+            // Set lastCompletedBlockId to trigger automation chain
+            setLastCompletedBlockId(blockId);
           }
         } else {
           updateBlockInStore(blockId, { status: 'failed' });
@@ -684,8 +673,7 @@ const SandboxPage = () => {
         updateBlockInStore(blockId, { 
           status: 'completed', 
           parameters: { ...currentRunParams } // Persist the final state of currentRunParams
-        });
-        if (loopConfig.isEnabled && loopConfig.iterationType === 'sequence' && loopConfig.sequenceBlockId === blockId) {
+        });        if (loopConfig.isEnabled && loopConfig.iterationType === 'sequence' && loopConfig.sequenceBlockId === blockId) {
             console.log("Sequence iterator is the loop's sequence provider and has finished. Stopping loop.");
             stopLoop(); 
         }
@@ -724,27 +712,11 @@ const SandboxPage = () => {
       }));
 
       console.log('Sequence iterator output:', output);
-      console.log('isAutomate:', isAutomate);
-
+      console.log('isAutomate:', isAutomate);      // Automation is now handled by the centralized useEffect automation logic
+      // Set lastCompletedBlockId to trigger automation chain
       if (isAutomate) {
-        console.log('Automation enabled, running next blocks in sequence iterator chain');
-        const nextBlocks = getNextBlocksInChain(blockId);
-        if (nextBlocks.length > 0) {
-          setTimeout(() => {
-            nextBlocks.forEach(nextBlock => {
-              if (nextBlock && nextBlock.id) {
-                console.log(`Triggering next block ${nextBlock.id} with sequence data`);
-                runBlock(nextBlock.id, {
-                  sequence: currentSequence,
-                  sequence_name: `sequence_${currentIndex + 1}`
-                });
-              }
-            });
-          }, 1000);
-        } else {
-          console.log('No connected blocks found for sequence iterator');
-        }
-      }      return;
+        setLastCompletedBlockId(blockId);
+      }return;
     }
 
     // Input Data Check (for standard blocks, after blockInputs is populated)
@@ -946,17 +918,40 @@ const SandboxPage = () => {
 
     pollingInterval = setInterval(checkStatus, AWAIT_TIME);
     checkStatus();
-  };
-
-  // --- NEW: useEffect to trigger automation chain only after status is updated ---
+  };  // --- NEW: useEffect to trigger automation chain only after status is updated ---
   useEffect(() => {
+    console.log('Automation useEffect triggered:', { isAutomate, lastCompletedBlockId });
+    
     if (!isAutomate || !lastCompletedBlockId) return;
+    
+    // Use the blocks from the store directly to avoid dependency issues
+    const currentBlocks = useWorkspaceStore.getState().blocks;
+    const currentConnections = useWorkspaceStore.getState().connections;
+    
+    console.log('Current blocks in automation:', currentBlocks.length);
+    
     // Find the block in the latest Zustand state
-    const completedBlock = blocks.find(b => b.id === lastCompletedBlockId && b.status === 'completed');
-    if (!completedBlock) return;
-    // Get next blocks in chain
-    const nextBlocks = getNextBlocksInChain(lastCompletedBlockId);
+    const completedBlock = currentBlocks.find(b => b.id === lastCompletedBlockId && b.status === 'completed');
+    if (!completedBlock) {
+      console.log('Completed block not found or not completed:', lastCompletedBlockId);
+      return;
+    }
+    
+    // Get next blocks in chain using current state
+    const nextBlocks = currentBlocks.filter(block => {
+      const blockConnection = currentConnections[block.id];
+      if (!blockConnection) return false;
+      
+      // Check if any input handle has a connection from the current block
+      return Object.entries(blockConnection).some(([handle, connections]) => {
+        // Handle both array and single connection for backward compatibility
+        const connectionArray = Array.isArray(connections) ? connections : [connections];
+        return connectionArray.some(conn => conn && conn.source === lastCompletedBlockId);
+      });
+    });
+    
     if (nextBlocks.length > 0) {
+      console.log('Next blocks:', nextBlocks.map(b => b.id).join(', '));
       setTimeout(() => {
         nextBlocks.forEach(nextBlock => {
           if (nextBlock && nextBlock.id) {
@@ -969,10 +964,14 @@ const SandboxPage = () => {
           }
         });
       }, AWAIT_TIME);
+    } else {
+      console.log('No next blocks found - automation chain completed');
     }
-    // Reset lastCompletedBlockId so it doesn't retrigger
-    setLastCompletedBlockId(null);
-  }, [lastCompletedBlockId, isAutomate, blocks, loopConfig.sequenceBlockId]);
+      // Reset lastCompletedBlockId so it doesn't retrigger (delayed to prevent race conditions)
+    setTimeout(() => {
+      setLastCompletedBlockId(null);
+    }, 100);
+  }, [lastCompletedBlockId, isAutomate, loopConfig.sequenceBlockId]);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 

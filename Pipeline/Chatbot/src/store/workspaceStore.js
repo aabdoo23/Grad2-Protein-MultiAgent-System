@@ -165,9 +165,8 @@ const useWorkspaceStore = create(
           }
         });
       });
-    },
-
-    clearWorkspace: () => set((state) => {
+    },    clearWorkspace: () => set((state) => {
+      console.warn('🚨 clearWorkspace called! Clearing all blocks and connections.');
       state.blocks = [];
       state.connections = {};
       state.selectedNodes = [];
