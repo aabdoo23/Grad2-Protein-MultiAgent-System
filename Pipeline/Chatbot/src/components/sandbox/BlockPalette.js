@@ -288,6 +288,7 @@ const BlockPalette = ({ blockTypes }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showRecommended, setShowRecommended] = useState(false);
   const [sortBy, setSortBy] = useState('type'); // 'type', 'name', 'popularity'
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   // Get current workspace state
   const blocks = useWorkspaceStore(state => state.blocks);
@@ -368,6 +369,7 @@ const BlockPalette = ({ blockTypes }) => {
     setSearchQuery('');
     setSelectedCategory('all');
     setShowRecommended(false);
+    setFiltersExpanded(false);
   };
 
   // Track block usage
@@ -467,48 +469,90 @@ const BlockPalette = ({ blockTypes }) => {
               )}
             </div>
 
-            {/* Controls Row */}
-            <div className="flex items-center gap-2 mb-3">
-              {/* Sort Dropdown */}
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="flex-1 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-xs
-                         focus:outline-none focus:border-blue-400/50 transition-all"
-              >
-                <option value="type">Sort by Type</option>
-                <option value="name">Sort by Name</option>
-                <option value="popularity">Sort by Usage</option>
-              </select>
-
+            {/* Collapsible Filters Section */}
+            <div className="mb-3">
+              {/* Filter Toggle Button */}
               <button
-                onClick={clearSearch}
-                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-                title="Clear all filters"
+                onClick={() => setFiltersExpanded(!filtersExpanded)}
+                className="w-full flex items-center justify-between p-2.5 bg-gradient-to-r from-white/5 to-white/10 
+                         border border-white/10 rounded-lg hover:border-white/20 transition-all duration-200 
+                         hover:shadow-lg hover:shadow-white/5 group"
               >
-                <FontAwesomeIcon icon={faFilter} className="w-3 h-3" />
-              </button>
-            </div>
-
-            {/* Category Filter */}
-            <div className="flex flex-wrap gap-1 mb-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize ${selectedCategory === category
-                    ? 'bg-blue-500 text-white shadow-lg'
-                    : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-                    }`}
-                >
-                  {category === 'all' ? 'All' : category}
-                  {category !== 'all' && groupedBlocks[category] && (
-                    <span className="ml-1 text-xs opacity-60">
-                      ({groupedBlocks[category].length})
-                    </span>
+                <div className="flex items-center gap-2">
+                  <FontAwesomeIcon 
+                    icon={faFilter} 
+                    className={`w-3 h-3 transition-all duration-200 ${filtersExpanded ? 'text-blue-400' : 'text-white/60'}`} 
+                  />
+                  <span className="text-white/80 text-sm font-medium">
+                    Filters & Sort
+                  </span>
+                  {(selectedCategory !== 'all' || sortBy !== 'type' || showRecommended) && (
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
                   )}
-                </button>
-              ))}
+                </div>
+                <FontAwesomeIcon
+                  icon={filtersExpanded ? faChevronDown : faChevronRight}
+                  className={`w-3 h-3 text-white/40 transition-all duration-200 group-hover:text-white/60 
+                           ${filtersExpanded ? 'rotate-0' : 'rotate-0'}`}
+                />
+              </button>
+
+              {/* Expandable Filters Content */}
+              <div
+                className={`transition-all duration-300 ease-out overflow-hidden ${
+                  filtersExpanded 
+                    ? 'max-h-96 opacity-100 mt-3' 
+                    : 'max-h-0 opacity-0 mt-0'
+                }`}
+              >
+                <div className="space-y-3 p-3 bg-gradient-to-br from-white/5 to-white/10 rounded-lg border border-white/10 backdrop-blur-sm">
+                  {/* Sort Controls */}
+                  <div className="space-y-2">
+                    <label className="text-white/60 text-xs font-medium tracking-wide uppercase">
+                      Sort By
+                    </label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded-lg text-white text-sm
+                               focus:outline-none focus:border-blue-400/50 focus:bg-black/30 transition-all
+                               backdrop-blur-sm"
+                    >
+                      <option value="type">By Type</option>
+                      <option value="name">By Name</option>
+                      <option value="popularity">By Usage</option>
+                    </select>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div className="space-y-2">
+                    <label className="text-white/60 text-xs font-medium tracking-wide uppercase">
+                      Categories
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {categories.map((category) => (
+                        <button
+                          key={category}
+                          onClick={() => setSelectedCategory(category)}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 capitalize
+                                   hover:scale-105 active:scale-95 ${
+                            selectedCategory === category
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25 border border-blue-400/30'
+                              : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white border border-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          {category === 'all' ? 'All' : category}
+                          {category !== 'all' && groupedBlocks[category] && (
+                            <span className="ml-1 text-xs opacity-60">
+                              ({groupedBlocks[category].length})
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </>
         )}

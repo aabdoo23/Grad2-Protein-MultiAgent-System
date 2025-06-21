@@ -129,8 +129,7 @@ export const blockTypes = [
     inputs: ['sequence', 'database'],
     outputs: ['blast_results'],
     config: {
-      e_value: 0.0001,
-      interpro_ids: []
+      e_value: 0.0001
     }
   },
   {
@@ -252,7 +251,7 @@ export const blockTypes = [
     name: 'Structure Comparison',
     type: 'Analysis',
     description: 'Compare two protein structures using USAlign to calculate TM-score, RMSD, and sequence identity',
-    color: '#2F5F5F',
+    color: '#325939',
     inputs: ['structure', 'structure'],
     outputs: ['structure_comparison']
   },

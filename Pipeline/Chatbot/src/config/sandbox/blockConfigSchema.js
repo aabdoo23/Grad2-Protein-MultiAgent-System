@@ -105,12 +105,6 @@ export const blockConfigSchema = {
       max: 1,
       step: 0.0001,
       defaultValue: 0.0001
-    },
-    interpro_ids: {
-      type: 'tagInput',
-      label: 'InterPro IDs',
-      placeholder: 'Enter InterPro IDs and press Enter',
-      defaultValue: []
     }
   },  blast_db_builder: {
     db_name: {

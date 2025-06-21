@@ -955,12 +955,9 @@ const SandboxPage = () => {
       setTimeout(() => {
         nextBlocks.forEach(nextBlock => {
           if (nextBlock && nextBlock.id) {
-            // Pass the current block's output to the next block in the chain
-            const inputForNextBlock = lastCompletedBlockId === loopConfig.sequenceBlockId
-              ? blockOutputsRef.current[lastCompletedBlockId]
-              : blockOutputsRef.current[lastCompletedBlockId];
             console.log(`Automated chain (useEffect): Triggering ${nextBlock.id} from ${lastCompletedBlockId}`);
-            runBlock(nextBlock.id, inputForNextBlock);
+            // Don't pass params - let the normal connection-based input processing handle the data mapping
+            runBlock(nextBlock.id);
           }
         });
       }, AWAIT_TIME);
