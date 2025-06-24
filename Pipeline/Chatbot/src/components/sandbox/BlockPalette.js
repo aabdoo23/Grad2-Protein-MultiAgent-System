@@ -17,10 +17,8 @@ import {
   faUpload,
   faDna,
   faSync,
-  faStar,
   faLightbulb,
   faFilter,
-  faFile
 } from '@fortawesome/free-solid-svg-icons';
 import useWorkspaceStore from '../../store/workspaceStore';
 import { getBlockStats, getRecommendedBlocks, sortBlocksByPopularity } from '../../utils/blockPaletteUtils';
@@ -390,6 +388,16 @@ const BlockPalette = ({ blockTypes }) => {
                 Block Library
               </h2>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowRecommended(!showRecommended)}
+                  className={`p-2 rounded-lg transition-colors ${showRecommended
+                    ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                    : 'hover:bg-white/10 text-white/60 hover:text-white'
+                    }`}
+                  title="Show recommended blocks"
+                >
+                  <FontAwesomeIcon icon={faLightbulb} className="w-3 h-3" />
+                </button>
                 {/* Compact View Toggle */}
                 <button
                   onClick={() => setIsCompact(!isCompact)}

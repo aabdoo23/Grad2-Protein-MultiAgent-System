@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { documentation, categories } from '../config/documentationConfig.js';
 
 const DocumentationPage = () => {
@@ -20,7 +19,8 @@ const DocumentationPage = () => {
             doc.toolsUsed.some(tool => tool.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesCategory = selectedCategory === 'All' || doc.category === selectedCategory;
         return matchesSearch && matchesCategory;
-    });    return (
+    });    
+    return (
         <div className="h-full bg-[#111c22] overflow-y-auto" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
             <div className="container mx-auto px-6 py-8">
                 {/* Introduction Section */}
