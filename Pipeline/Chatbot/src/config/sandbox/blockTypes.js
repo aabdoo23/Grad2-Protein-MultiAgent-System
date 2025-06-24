@@ -228,7 +228,7 @@ export const blockTypes = [
     type: 'Analysis',
     description: 'Build phylogenetic tree from BLAST/MSA results',
     color: '#376946',
-    inputs: ['results'],
+    inputs: ['blast_results'],
     outputs: ['tree'],
     config: {
       tree_method: 'neighbor_joining',

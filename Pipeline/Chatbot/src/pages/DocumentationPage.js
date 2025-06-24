@@ -20,33 +20,8 @@ const DocumentationPage = () => {
             doc.toolsUsed.some(tool => tool.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesCategory = selectedCategory === 'All' || doc.category === selectedCategory;
         return matchesSearch && matchesCategory;
-    });
-
-    return (
-        <div className="min-h-screen bg-[#111c22]" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
-            {/* Header */}
-            <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#233c48] px-10 py-3">
-                <div className="flex items-center gap-4 text-white">
-                    <div className="size-4">
-                        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path
-                                d="M42.4379 44C42.4379 44 36.0744 33.9038 41.1692 24C46.8624 12.9336 42.2078 4 42.2078 4L7.01134 4C7.01134 4 11.6577 12.932 5.96912 23.9969C0.876273 33.9029 7.27094 44 7.27094 44L42.4379 44Z"
-                                fill="currentColor"
-                            />
-                        </svg>
-                    </div>
-                    <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Protein Pipeline Documentation</h2>
-                </div>
-                <div className="flex gap-4">
-                    <Link to="/sandbox" className="bg-[#13a4ec] hover:bg-[#0f8fd1] text-white px-4 py-2 rounded text-sm">
-                        Pipeline Sandbox
-                    </Link>
-                    <Link to="/" className="bg-[#233c48] hover:bg-[#2a4653] text-white px-4 py-2 rounded text-sm">
-                        Back to Chat
-                    </Link>
-                </div>
-            </header>
-
+    });    return (
+        <div className="h-full bg-[#111c22] overflow-y-auto" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
             <div className="container mx-auto px-6 py-8">
                 {/* Introduction Section */}
                 <div className="mb-12 bg-gradient-to-r from-[#1a2932] to-[#233c48] rounded-lg p-8 border border-[#3a5663]">

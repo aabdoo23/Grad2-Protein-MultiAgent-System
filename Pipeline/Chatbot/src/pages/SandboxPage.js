@@ -313,27 +313,6 @@ const SandboxPage = () => {
     }
   };
 
-  const getNextBlocksInChain = (currentBlockId) => {
-    const nextBlocks = blocks.filter(block => {
-      const blockConnection = connections[block.id];
-      if (!blockConnection) return false;
-      
-      // Check if any input handle has a connection from the current block
-      return Object.entries(blockConnection).some(([handle, connections]) => {
-        // Handle both array and single connection for backward compatibility
-        const connectionArray = Array.isArray(connections) ? connections : [connections];
-        return connectionArray.some(conn => conn && conn.source === currentBlockId);
-      });
-    });
-
-    if (nextBlocks.length > 0) {
-      console.log('Next blocks:', nextBlocks.map(b => b.id).join(', '));
-      return nextBlocks;
-    }
-    console.log('No next blocks found - end of sequence');
-    return [];
-  };
-
   const runBlock = async (blockId, params = null) => {
     const block = blocks.find(b => b.id === blockId);
     if (!block) return;    const currentBlockType = blockTypes.find(bt => bt.id === block.type);
@@ -1168,10 +1147,8 @@ const SandboxPage = () => {
         </div>
       )}
     </header>
-  );
-  return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-[#0f1419] via-[#111c22] to-[#0d1117]">
-      <TopBar />
+  );  return (
+    <div className="flex flex-col h-full bg-gradient-to-br from-[#0f1419] via-[#111c22] to-[#0d1117]">
       <DndProvider backend={HTML5Backend}>
         <div className="flex flex-1 overflow-hidden">
           {/* Dynamic Sidebar Container */}
@@ -1181,6 +1158,159 @@ const SandboxPage = () => {
 
           {/* Main Workspace */}
           <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-[#111c22] to-[#0d1520]">
+            {/* Floating Action Buttons */}
+            <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
+              {/* Settings Toggle */}
+              <button
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                className="w-12 h-12 bg-[#233c48] hover:bg-[#2a4a5a] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                title="Settings"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+
+              {/* Clear Outputs */}
+              <button
+                onClick={clearOutputs}
+                className="w-12 h-12 bg-[#233c48] hover:bg-[#2a4a5a] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                title="Clear all outputs"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 group-hover:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+
+              {/* Clear All Blocks */}
+              <button
+                onClick={handleClearAllBlocks}
+                className="w-12 h-12 bg-[#c82333] hover:bg-[#dc3545] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                title="Clear all blocks"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 group-hover:rotate-12 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+
+              {/* Automation Toggle */}
+              <button
+                onClick={() => setIsAutomate(!isAutomate)}
+                className={`w-12 h-12 ${isAutomate ? 'bg-[#13a4ec]' : 'bg-[#233c48]'} hover:bg-[#2a4a5a] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center`}
+                title={`Automation: ${isAutomate ? 'ON' : 'OFF'}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Settings Panel */}
+            {isSettingsOpen && (
+              <div className="absolute top-4 left-4 right-20 z-40 bg-[#1a2c35] border border-[#233c48] rounded-lg p-4 shadow-xl backdrop-blur-sm">
+                <div className="flex flex-wrap gap-4">
+                  {/* Loop Controls */}
+                  <div className="flex-1 min-w-[300px]">
+                    <div className="flex items-center gap-4 bg-[#233c48] px-4 py-3 rounded-lg border border-[#344854]">
+                      <div className="flex items-center gap-3">
+                        <span className="text-white text-sm font-medium">Loop</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={loopConfig.isEnabled}
+                            onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))}
+                          />
+                          <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
+                        </label>
+                      </div>
+                      {loopConfig.isEnabled && (
+                        <div className="flex flex-wrap gap-3">
+                          <select
+                            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                            value={loopConfig.startBlockId || ''}
+                            onChange={(e) => setLoopConfig(prev => ({ ...prev, startBlockId: e.target.value }))}
+                          >
+                            <option value="">Select Start Block</option>
+                            {blocks.map(b => (
+                              <option key={`start-${b.id}`} value={b.id}>
+                                {b.type} - ({b.id})
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                            value={loopConfig.endBlockId || ''}
+                            onChange={(e) => setLoopConfig(prev => ({ ...prev, endBlockId: e.target.value }))}
+                          >
+                            <option value="">Select End Block</option>
+                            {blocks.map(b => (
+                              <option key={`end-${b.id}`} value={b.id}>
+                                {b.type} - ({b.id})
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                            value={loopConfig.iterationType}
+                            onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationType: e.target.value }))}
+                          >
+                            <option value="count">Count</option>
+                            <option value="sequence">Sequence</option>
+                          </select>
+                          {loopConfig.iterationType === 'count' ? (
+                            <input
+                              type="number"
+                              min="1"
+                              value={loopConfig.iterationCount}
+                              onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationCount: parseInt(e.target.value) }))}
+                              className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-20"
+                            />
+                          ) : (
+                            <select
+                              className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                              value={loopConfig.sequenceBlockId || ''}
+                              onChange={(e) => setLoopConfig(prev => ({ ...prev, sequenceBlockId: e.target.value }))}
+                            >
+                              <option value="">Select Sequence Block</option>
+                              {blocks
+                                .filter(b => b.type === 'sequence_iterator')
+                                .map(b => (
+                                  <option key={b.id} value={b.id}>
+                                    {b.id}
+                                  </option>
+                                ))}
+                            </select>
+                          )}
+                          <button
+                            onClick={startLoop}
+                            className="px-4 py-1.5 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1] transition-colors duration-200 flex items-center gap-2"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Start Loop
+                          </button>
+                          <button
+                            onClick={stopLoop}
+                            className="px-4 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200 flex items-center gap-2"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10h6v4H9z" />
+                            </svg>
+                            Stop Loop
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <WorkspaceSurface
               blocks={blocks}
               blockTypes={blockTypes}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChevronDown,
@@ -15,7 +15,6 @@ import {
   faAtom,
   faChartLine,
   faUpload,
-  faDownload,
   faDna,
   faSync,
   faStar,
@@ -292,7 +291,6 @@ const BlockPalette = ({ blockTypes }) => {
 
   // Get current workspace state
   const blocks = useWorkspaceStore(state => state.blocks);
-  const addBlock = useWorkspaceStore(state => state.addBlock);
 
   // Block usage statistics (could be persisted)
   const [usageStats, setUsageStats] = useState({});
@@ -386,43 +384,44 @@ const BlockPalette = ({ blockTypes }) => {
 
       <div className="flex-shrink-0 p-4 border-b border-white/10">
         {!isCollapsed && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mb-4">            <div className="flex items-center justify-between mb-2">
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
                 <FontAwesomeIcon icon={faLayerGroup} className="text-blue-400" />
                 Block Library
               </h2>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => window.open('/documentation', '_blank')}
-                  className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-                  title="Open Documentation"
-                >
-                  <FontAwesomeIcon icon={faFile} className="w-3 h-3" />
-                </button>
-                <button
-                  onClick={() => setShowRecommended(!showRecommended)}
-                  className={`p-2 rounded-lg transition-colors ${showRecommended
-                    ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
-                    : 'hover:bg-white/10 text-white/60 hover:text-white'
-                    }`}
-                  title="Show recommended blocks"
-                >
-                  <FontAwesomeIcon icon={faLightbulb} className="w-3 h-3" />
-                </button>
+              <div className="flex items-center gap-2">
+                {/* Compact View Toggle */}
                 <button
                   onClick={() => setIsCompact(!isCompact)}
-                  className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                  className={`p-2 rounded-lg transition-all duration-200 border hover:shadow-lg ${isCompact
+                    ? 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border-blue-500/40 hover:border-blue-400/60 shadow-blue-500/20'
+                    : 'bg-slate-700/50 hover:bg-slate-600/60 text-slate-300 hover:text-white border-slate-600/30 hover:border-slate-500/50 hover:shadow-slate-500/10'
+                    }`}
                   title={isCompact ? "Detailed view" : "Compact view"}
                 >
                   <FontAwesomeIcon icon={isCompact ? faStop : faLayerGroup} className="w-3 h-3" />
                 </button>
+
+                {/* Separator */}
+                <div className="w-px h-6 bg-white/20 mx-1"></div>
+
+                {/* Collapse Button - Made more prominent */}
                 <button
                   onClick={() => setIsCollapsed(true)}
-                  className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                  className="p-2.5 rounded-lg bg-gradient-to-r from-red-500/20 to-red-600/20 
+                           hover:from-red-500/30 hover:to-red-600/30 text-red-300 hover:text-red-200 
+                           transition-all duration-200 border border-red-500/30 hover:border-red-400/50
+                           hover:shadow-lg hover:shadow-red-500/20 hover:scale-105 active:scale-95
+                           group relative"
                   title="Collapse sidebar"
                 >
-                  <FontAwesomeIcon icon={faChevronLeft} className="w-3 h-3" />
+                  <FontAwesomeIcon 
+                    icon={faChevronLeft} 
+                    className="w-3.5 h-3.5 group-hover:animate-pulse" 
+                  />
+                  {/* Subtle glow effect */}
+                  <div className="absolute inset-0 rounded-lg bg-red-500/10 opacity-0 group-hover:opacity-100 
+                                transition-opacity duration-200 -z-10 blur-sm"></div>
                 </button>
               </div>
             </div>
@@ -435,7 +434,7 @@ const BlockPalette = ({ blockTypes }) => {
                   onClick={() => setShowRecommended(true)}
                   className="text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1"
                 >
-                  <FontAwesomeIcon icon={faStar} className="w-3 h-3" />
+                  <FontAwesomeIcon icon={faLightbulb} className="w-3 h-3" />
                   <span className="text-xs">{recommendedBlocks.length} suggested</span>
                 </button>
               )}
@@ -556,39 +555,60 @@ const BlockPalette = ({ blockTypes }) => {
             </div>
           </>
         )}
-      </div>
-
+      </div>      
       {/* Collapsed State */}
       {isCollapsed && (
         <div className="flex-1 flex flex-col items-center py-4 space-y-4">
+          {/* Expand Button - Made more prominent */}
           <button
             onClick={() => setIsCollapsed(false)}
-            className="p-3 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 
-                     transition-all duration-200 hover:scale-110 border border-blue-500/20"
+            className="p-3 rounded-xl bg-gradient-to-r from-green-500/20 to-green-600/20 
+                     hover:from-green-500/30 hover:to-green-600/30 text-green-300 hover:text-green-200 
+                     transition-all duration-200 hover:scale-110 active:scale-95 border border-green-500/30 
+                     hover:border-green-400/50 hover:shadow-lg hover:shadow-green-500/20 group relative"
             title="Expand block library"
           >
-            <FontAwesomeIcon icon={faChevronRight} className="w-4 h-4" />
+            <FontAwesomeIcon 
+              icon={faChevronRight} 
+              className="w-4 h-4 group-hover:animate-pulse" 
+            />
+            {/* Subtle glow effect */}
+            <div className="absolute inset-0 rounded-xl bg-green-500/10 opacity-0 group-hover:opacity-100 
+                          transition-opacity duration-200 -z-10 blur-sm"></div>
           </button>
 
+          {/* Recommendations Badge */}
           {recommendedBlocks.length > 0 && (
             <button
               onClick={() => {
                 setIsCollapsed(false);
                 setShowRecommended(true);
               }}
-              className="p-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 hover:text-amber-300 
-                       transition-all duration-200 pulse"
+              className="p-2.5 rounded-lg bg-gradient-to-r from-amber-500/20 to-amber-600/20 
+                       hover:from-amber-500/30 hover:to-amber-600/30 text-amber-300 hover:text-amber-200 
+                       transition-all duration-200 border border-amber-500/30 hover:border-amber-400/50
+                       hover:shadow-lg hover:shadow-amber-500/20 hover:scale-105 active:scale-95
+                       animate-pulse group relative"
               title={`${recommendedBlocks.length} recommended blocks`}
             >
-              <FontAwesomeIcon icon={faLightbulb} className="w-3 h-3" />
+              <FontAwesomeIcon icon={faLightbulb} className="w-3.5 h-3.5" />
+              {/* Badge for count */}
+              <div className="absolute -top-1 -right-1 bg-amber-400 text-amber-900 text-xs 
+                            rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                {recommendedBlocks.length}
+              </div>
             </button>
           )}
 
+          {/* Category Icons */}
           <div className="flex flex-col items-center space-y-3">
             {Object.entries(groupedBlocks).map(([type, blocks]) => (
               <div
                 key={type}
-                className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
+                className="p-2.5 rounded-lg bg-slate-700/30 hover:bg-slate-600/50 text-slate-400 
+                         hover:text-white transition-all duration-200 cursor-pointer border 
+                         border-slate-600/20 hover:border-slate-500/40 hover:shadow-md 
+                         hover:shadow-slate-500/10 hover:scale-105 active:scale-95 group"
                 onClick={() => {
                   setIsCollapsed(false);
                   setSelectedCategory(type);
@@ -600,8 +620,9 @@ const BlockPalette = ({ blockTypes }) => {
             ))}
           </div>
 
+          {/* Bottom Label */}
           <div className="mt-auto">
-            <div className="transform -rotate-90 whitespace-nowrap text-white/40 text-xs font-medium tracking-wider">
+            <div className="transform -rotate-90 whitespace-nowrap text-white/40 text-xs font-medium tracking-wider mt-5">
               BLOCKS
             </div>
           </div>
