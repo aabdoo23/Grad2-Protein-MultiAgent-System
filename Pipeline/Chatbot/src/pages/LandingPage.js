@@ -29,12 +29,19 @@ function LandingPage() {
           </h2>
 
           {/* Feature Highlights */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
             <div className="bg-[#233c48] rounded-xl p-6">
               <div className="text-[#13a4ec] text-2xl mb-4">🧬</div>
               <h3 className="text-white text-lg font-semibold mb-2">Protein Generation</h3>
               <p className="text-[#92b7c9] text-sm">
                 Generate novel protein sequences with specific properties using advanced AI models
+              </p>
+            </div>
+            <div className="bg-[#233c48] rounded-xl p-6">
+              <div className="text-[#13a4ec] text-2xl mb-4">⚗️</div>
+              <h3 className="text-white text-lg font-semibold mb-2">Model Fine-tuning</h3>
+              <p className="text-[#92b7c9] text-sm">
+                Fine-tune protein language models on your own data for specialized applications
               </p>
             </div>
             <div className="bg-[#233c48] rounded-xl p-6">
@@ -60,6 +67,12 @@ function LandingPage() {
               className="bg-[#13a4ec] hover:bg-[#0f8fd1] text-white px-8 py-3 rounded-xl text-lg font-medium transition-colors duration-200"
             >
                 Try Pipeline Sandbox
+            </Link>
+            <Link 
+              to="/finetuning" 
+              className="bg-[#233c48] hover:bg-[#2a4653] text-white px-8 py-3 rounded-xl text-lg font-medium transition-colors duration-200"
+            >
+                Fine-tune Models
             </Link>
             <Link 
               to="/chatbot" 

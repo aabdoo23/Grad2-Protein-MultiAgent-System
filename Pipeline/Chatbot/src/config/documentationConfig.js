@@ -899,6 +899,197 @@ const documentation = [
             'Zhang, C., Shine, M., Pyle, A. M., & Zhang, Y. (2022). US-align: Universal Structure Alignment of Proteins, Nucleic Acids and Macromolecular Complexes. Nature Methods, 19(2), 195-204.'
         ]
     }, {
+        id: 'blast_analysis',
+        name: 'BLAST Analysis',
+        category: 'Analysis',
+        description: 'Interactive analysis of sequence search results with scatter plots and hit tables for exploring homology relationships',
+        toolsUsed: ['Matplotlib', 'Plotly', 'Pandas', 'Interactive data visualization', 'Statistical analysis'],
+
+        frontendUsage: {
+            userInterface: 'Analysis block with interactive visualization panel displaying scatter plots and data tables',
+            userInputs: [
+                {
+                    name: 'BLAST Results',
+                    type: 'Connection from BLAST search blocks',
+                    description: 'BLAST search results from NCBI or local BLAST searches',
+                    required: true
+                }
+            ],
+            configParams: 'No configuration parameters - automatic analysis with interactive controls',
+            screenshots: {
+                blockInterface: 'Screenshot placeholder: BLAST Analysis block with results connection',
+                resultsSample: 'Screenshot placeholder: Interactive scatter plot showing E-value vs bit score with hit table'
+            }
+        },
+
+        inputFormat: {
+            description: 'BLAST search results with hit information',
+            formats: [
+                'blast_results: object - BLAST results with alignments, scores, and hit details'
+            ]
+        },
+        outputFormat: {
+            description: 'Interactive analysis dashboard with visualizations',
+            structure: {
+                success: 'boolean',
+                analysis_type: 'string ("blast_analysis")',
+                visualizations: 'object (scatter plots, histograms, summary statistics)',
+                hit_table: 'array (formatted hit data for interactive table)',
+                summary_stats: 'object (total hits, best scores, coverage statistics)'
+            }
+        },
+        exampleUsage: 'Analyze BLAST search results to identify the best homologous sequences and understand score distributions',
+        limitations: ['Requires BLAST results input', 'Visualization complexity increases with large result sets'],
+        citations: [
+            'Camacho, C., Coulouris, G., Avagyan, V., Ma, N., Papadopoulos, J., Bealer, K., & Madden, T. L. (2009). BLAST+: architecture and applications. BMC bioinformatics, 10(1), 1-9.'
+        ]
+    },
+
+    {
+        id: 'foldseek_analysis',
+        name: 'FoldSeek Analysis',
+        category: 'Analysis',
+        description: 'Interactive analysis of structural search results with scatter plots and hit tables for exploring structural relationships',
+        toolsUsed: ['Matplotlib', 'Plotly', 'Pandas', 'Interactive data visualization', '3D structure analysis'],
+
+        frontendUsage: {
+            userInterface: 'Analysis block with interactive visualization panel displaying structural similarity plots and hit tables',
+            userInputs: [
+                {
+                    name: 'FoldSeek Results',
+                    type: 'Connection from structure search blocks',
+                    description: 'FoldSeek structural search results with similarity scores',
+                    required: true
+                }
+            ],
+            configParams: 'No configuration parameters - automatic analysis with interactive controls',
+            screenshots: {
+                blockInterface: 'Screenshot placeholder: FoldSeek Analysis block with structure search connection',
+                resultsSample: 'Screenshot placeholder: Interactive plots showing TM-score vs RMSD with structural hit table'
+            }
+        },
+
+        inputFormat: {
+            description: 'FoldSeek structural search results',
+            formats: [
+                'foldseek_results: object - Structural search results with TM-scores, alignments, and hit details'
+            ]
+        },
+        outputFormat: {
+            description: 'Interactive structural analysis dashboard',
+            structure: {
+                success: 'boolean',
+                analysis_type: 'string ("foldseek_analysis")',
+                visualizations: 'object (TM-score plots, RMSD distributions, structural alignments)',
+                hit_table: 'array (formatted structural hit data)',
+                summary_stats: 'object (best TM-scores, coverage statistics, database distribution)'
+            }
+        },
+        exampleUsage: 'Analyze FoldSeek results to identify structurally similar proteins and understand fold conservation patterns',
+        limitations: ['Requires FoldSeek results input', 'Complex visualizations may be slow with large datasets'],
+        citations: [
+            'van Kempen, M., Kim, S. S., Tumescheit, C., et al. (2024). Fast and accurate protein structure search with Foldseek. Nature Biotechnology, 42(2), 243-246.'
+        ]
+    },
+
+    {
+        id: 'msa_analysis',
+        name: 'MSA Analysis',
+        category: 'Analysis',
+        description: 'Interactive analysis of Multiple Sequence Alignment results with conservation plots, sequence logos, and alignment quality metrics',
+        toolsUsed: ['BioPython', 'Matplotlib', 'Plotly', 'Logomaker', 'Sequence conservation analysis'],
+
+        frontendUsage: {
+            userInterface: 'Analysis block with comprehensive MSA visualization including conservation plots and sequence logos',
+            userInputs: [
+                {
+                    name: 'MSA Results',
+                    type: 'Connection from MSA search blocks',
+                    description: 'Multiple sequence alignment results from ColabFold or other MSA tools',
+                    required: true
+                }
+            ],
+            configParams: 'No configuration parameters - automatic analysis with comprehensive visualizations',
+            screenshots: {
+                blockInterface: 'Screenshot placeholder: MSA Analysis block with MSA results connection',
+                resultsSample: 'Screenshot placeholder: Conservation plots, sequence logos, and alignment statistics'
+            }
+        },
+
+        inputFormat: {
+            description: 'Multiple sequence alignment results',
+            formats: [
+                'msa_results: object - MSA data with aligned sequences, conservation scores, and alignment metadata'
+            ]
+        },
+        outputFormat: {
+            description: 'Comprehensive MSA analysis with conservation metrics',
+            structure: {
+                success: 'boolean',
+                analysis_type: 'string ("msa_analysis")',
+                visualizations: 'object (conservation plots, sequence logos, gap analysis)',
+                conservation_scores: 'array (per-position conservation values)',
+                alignment_quality: 'object (coverage, identity, gaps statistics)',
+                sequence_count: 'int (number of sequences in alignment)'
+            }
+        },
+        exampleUsage: 'Analyze MSA results to identify conserved regions, functional motifs, and alignment quality for downstream analysis',
+        limitations: ['Requires quality MSA input', 'Large alignments may impact visualization performance'],
+        citations: [
+            'Cock, P. J., Antao, T., Chang, J. T., Chapman, B. A., Cox, C. J., et al. (2009). Biopython: freely available Python tools for computational molecular biology and bioinformatics. Bioinformatics, 25(11), 1422-1423.'
+        ]
+    },
+
+    {
+        id: 'taxonomy_analysis',
+        name: 'Taxonomy Analysis',
+        category: 'Analysis',
+        description: 'Interactive analysis of taxonomic distribution from BLAST results showing species distribution and phylogenetic diversity',
+        toolsUsed: ['NCBI Taxonomy API', 'Matplotlib', 'Plotly', 'Pandas', 'Taxonomic classification', 'Tree visualization'],
+
+        frontendUsage: {
+            userInterface: 'Analysis block with taxonomic visualization including pie charts, tree plots, and species distribution tables',
+            userInputs: [
+                {
+                    name: 'BLAST Results',
+                    type: 'Connection from BLAST search blocks',
+                    description: 'BLAST results containing taxonomic information from database hits',
+                    required: true
+                }
+            ],
+            configParams: 'No configuration parameters - automatic taxonomic analysis with interactive plots',
+            screenshots: {
+                blockInterface: 'Screenshot placeholder: Taxonomy Analysis block with BLAST results connection',
+                resultsSample: 'Screenshot placeholder: Taxonomic pie charts, species distribution, and phylogenetic tree visualization'
+            }
+        },
+
+        inputFormat: {
+            description: 'BLAST results with taxonomic annotations',
+            formats: [
+                'blast_results: object - BLAST results containing species information and taxonomic identifiers'
+            ]
+        },
+        outputFormat: {
+            description: 'Comprehensive taxonomic analysis with distribution plots',
+            structure: {
+                success: 'boolean',
+                analysis_type: 'string ("taxonomy_analysis")',
+                visualizations: 'object (taxonomic pie charts, distribution plots, phylogenetic trees)',
+                species_distribution: 'object (species counts and percentages)',
+                taxonomic_tree: 'object (hierarchical taxonomic classification)',
+                diversity_metrics: 'object (Shannon diversity, species richness)'
+            }
+        },
+        exampleUsage: 'Analyze BLAST results to understand the evolutionary distribution and taxonomic diversity of homologous sequences',
+        limitations: ['Requires BLAST results with taxonomic information', 'Dependent on database annotation quality', 'May require internet access for taxonomy resolution'],
+        citations: [
+            'Federhen, S. (2012). The NCBI Taxonomy database. Nucleic acids research, 40(D1), D136-D143.',
+            'Camacho, C., Coulouris, G., Avagyan, V., Ma, N., Papadopoulos, J., Bealer, K., & Madden, T. L. (2009). BLAST+: architecture and applications. BMC bioinformatics, 10(1), 1-9.'
+        ]
+    },
+
+    {
         id: 'multi_download',
         name: 'Multi Download',
         category: 'I/O',
@@ -936,5 +1127,5 @@ const documentation = [
     }
 ];
 
-const categories = ['All', 'I/O', 'Generate Protein', 'Iterate', '3D Structure Prediction', 'Multiple Sequence Alignment', 'BLAST Search', '3D Structure Search', 'Docking', 'Phylogenetic Analysis', 'Structure Analysis'];
+const categories = ['All', 'I/O', 'Generate Protein', 'Iterate', '3D Structure Prediction', 'Multiple Sequence Alignment', 'BLAST Search', '3D Structure Search', 'Docking', 'Analysis', 'Phylogenetic Analysis', 'Structure Analysis'];
 export { documentation, categories };

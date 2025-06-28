@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, session, send_from_directory, send_file, Response
 from flask_cors import CORS
+from dotenv import load_dotenv
 from util.flow.pipeline_controller import PipelineController
 from util.chatbot.conversation_memory import ConversationMemory
 from util.flow.job_manager import JobManager, JobStatus
@@ -8,13 +9,21 @@ from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 from Tools.Search.BLAST.database_builder import BlastDatabaseBuilder
 from util.modules.download_handler import DownloadHandler
+from util.finetune_client import finetune_client
+from database.db_manager import DatabaseManager
+from util.auth_manager import AuthManager
+from functools import wraps
 import os
 import threading
 import io
 import zipfile
+import requests
 from datetime import datetime
 import uuid
 from werkzeug.utils import secure_filename
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 # Configure CORS to allow credentials and specific headers
@@ -26,7 +35,42 @@ CORS(app, supports_credentials=True, resources={
         "expose_headers": ["Content-Disposition"]
     }
 })
-app.secret_key = "YOUR_SECRET_KEY"  # Needed for session management
+
+# Configure session management
+app.secret_key = os.getenv('SECRET_KEY', os.urandom(24))  # Use environment variable or generate random key
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+
+# Initialize database and authentication
+try:
+    db_manager = DatabaseManager()
+    auth_manager = AuthManager(db_manager)
+    print("Database connection established successfully")
+    
+    # Enable debug logging for authentication
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    auth_logger = logging.getLogger('util.auth_manager')
+    auth_logger.setLevel(logging.INFO)
+    
+except Exception as e:
+    print(f"Warning: Database connection failed: {e}")
+    db_manager = None
+    auth_manager = None
+
+# Authentication decorator
+def require_auth(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not auth_manager:
+            return jsonify({'success': False, 'error': 'Authentication service unavailable'}), 503
+        
+        if 'user' not in session:
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+        
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Configure static file serving
 STATIC_PDB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
@@ -69,7 +113,7 @@ def get_pdb_content():
             # For relative paths, try different subdirectories
             filename_only = os.path.basename(file_path_param)
             
-            # Try pdb_files directory first (for FoldseekSearcher results)
+            # Try pdb_files directory (for FoldseekSearcher results)
             pdb_files_dir = os.path.join(STATIC_PDB_DIR, 'pdb_files')
             pdb_files_path = os.path.join(pdb_files_dir, filename_only)
             
@@ -588,6 +632,407 @@ def download_files_zip():
     except Exception as e:
         app.logger.error(f"Error creating ZIP file: {str(e)}")
         return jsonify({'success': False, 'error': f'Failed to create ZIP file: {str(e)}'}), 500
+
+# Authentication API endpoints
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    """Register a new user."""
+    if not auth_manager:
+        return jsonify({'success': False, 'error': 'Authentication service unavailable'}), 503
+    
+    try:
+        data = request.json
+        required_fields = ['username', 'email', 'password', 'full_name']
+        
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({
+                    'success': False, 
+                    'error': f'Missing required field: {field}'
+                }), 400
+        
+        result = auth_manager.register_user(
+            username=data['username'],
+            email=data['email'],
+            password=data['password'],
+            full_name=data['full_name'],
+            institution=data.get('institution')
+        )
+        
+        if result['success']:
+            return jsonify(result), 201
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        app.logger.error(f"Registration error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Registration failed'}), 500
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """Authenticate user and create session."""
+    if not auth_manager:
+        return jsonify({'success': False, 'error': 'Authentication service unavailable'}), 503
+    
+    try:
+        data = request.json
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({
+                'success': False, 
+                'error': 'Username and password are required'
+            }), 400
+        
+        result = auth_manager.authenticate_user(username, password)
+        
+        if result['success']:
+            # Store user in session
+            session['user'] = result['user']
+            session.permanent = True
+            
+            return jsonify({
+                'success': True,
+                'user': result['user'],
+                'message': 'Login successful'
+            })
+        else:
+            return jsonify(result), 401
+            
+    except Exception as e:
+        app.logger.error(f"Login error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Login failed'}), 500
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    """Logout user and clear session."""
+    try:
+        # Clear all session data
+        session.clear()
+        # Also explicitly remove user_id if it exists
+        session.pop('user_id', None)
+        session.pop('username', None)
+        
+        response = jsonify({'success': True, 'message': 'Logout successful'})
+        # Ensure session cookie is cleared on client side
+        response.set_cookie('session', '', expires=0, httponly=True, samesite='Lax')
+        return response
+    except Exception as e:
+        app.logger.error(f"Logout error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Logout failed'}), 500
+
+@app.route('/api/auth/me', methods=['GET'])
+def get_current_user():
+    """Get current authenticated user."""
+    if 'user' in session:
+        return jsonify({
+            'success': True,
+            'user': session['user']
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': 'Not authenticated'
+        }), 401
+
+@app.route('/api/auth/change-password', methods=['POST'])
+@require_auth
+def change_password():
+    """Change user password."""
+    try:
+        data = request.json
+        old_password = data.get('old_password')
+        new_password = data.get('new_password')
+        
+        if not old_password or not new_password:
+            return jsonify({
+                'success': False, 
+                'error': 'Old password and new password are required'
+            }), 400
+        
+        username = session['user']['user_name']
+        result = auth_manager.change_password(username, old_password, new_password)
+        
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        app.logger.error(f"Password change error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Password change failed'}), 500
+
+@app.route('/api/auth/credits', methods=['GET'])
+@require_auth
+def get_user_credits():
+    """Get current user's credits."""
+    try:
+        username = session['user']['user_name']
+        credits = auth_manager.get_user_credits(username)
+        return jsonify({
+            'success': True,
+            'credits': credits
+        })
+    except Exception as e:
+        app.logger.error(f"Get credits error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to get credits'}), 500
+
+# Fine-tuning API endpoints
+
+@app.route('/api/finetune/models/base', methods=['GET'])
+@require_auth
+def get_base_models():
+    """Get list of available base models for fine-tuning."""
+    try:
+        result = finetune_client.get_base_models()
+        return jsonify(result)
+    except Exception as e:
+        app.logger.error(f"Error fetching base models: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to connect to fine-tuning server: {str(e)}'
+        }), 500
+
+@app.route('/api/finetune/models/user/<user_id>', methods=['GET'])
+@require_auth
+def get_user_finetuned_models(user_id):
+    """Get list of user's fine-tuned models."""
+    try:
+        # Ensure user can only access their own models
+        current_user = session['user']['user_name']
+        if user_id != current_user:
+            return jsonify({
+                'success': False, 
+                'error': 'Access denied: can only view own models'
+            }), 403
+        
+        result = finetune_client.get_user_models(user_id)
+        return jsonify(result)
+    except Exception as e:
+        app.logger.error(f"Error fetching user models for {user_id}: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to fetch user models: {str(e)}'
+        }), 500
+
+@app.route('/api/finetune/models/user/current', methods=['GET'])
+@require_auth
+def get_current_user_models():
+    """Get current authenticated user's fine-tuned models."""
+    try:
+        current_user = session['user']['user_name']
+        result = finetune_client.get_user_models(current_user)
+        return jsonify(result)
+    except Exception as e:
+        app.logger.error(f"Error fetching current user models: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to fetch user models: {str(e)}'
+        }), 500
+
+@app.route('/api/finetune/jobs/user/current', methods=['GET'])
+@require_auth
+def get_current_user_jobs():
+    """Get current authenticated user's fine-tuning jobs."""
+    try:
+        current_user = session['user']['user_name']
+        result = finetune_client.get_user_jobs(current_user)
+        return jsonify(result)
+    except Exception as e:
+        app.logger.error(f"Error fetching current user jobs: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to fetch user jobs: {str(e)}'
+        }), 500
+
+@app.route('/api/finetune/start', methods=['POST'])
+@require_auth
+def start_finetuning():
+    """Start a fine-tuning job."""
+    try:
+        data = request.json
+        
+        # Get authenticated user
+        current_user = session['user']['user_name']
+        
+        # Validate required fields (remove user_id since we get it from session)
+        required_fields = ['model_key', 'fasta_content']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({
+                    'success': False, 
+                    'error': f'Missing required field: {field}'
+                }), 400
+        
+        result = finetune_client.start_finetuning(
+            model_key=data['model_key'],
+            fasta_content=data['fasta_content'],
+            user_id=current_user,
+            finetune_mode=data.get('finetune_mode'),
+            n_trials=data.get('n_trials')
+        )
+        
+        return jsonify({
+            'success': True,
+            'job_id': result['job_id'],
+            'status': result['status']
+        })
+        
+    except ValueError as e:
+        return jsonify({
+            'success': False, 
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        app.logger.error(f"Error starting fine-tuning job: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to start fine-tuning job: {str(e)}'
+        }), 500
+
+@app.route('/api/finetune/generate', methods=['POST'])
+@require_auth
+def generate_sequence():
+    """Generate a protein sequence using a base or fine-tuned model."""
+    try:
+        data = request.json
+        
+        # Get authenticated user
+        current_user = session['user']['user_name']
+        
+        # Validate required fields (remove user_id since we get it from session)
+        required_fields = ['prompt']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({
+                    'success': False, 
+                    'error': f'Missing required field: {field}'
+                }), 400
+        
+        result = finetune_client.generate_sequence(
+            prompt=data['prompt'],
+            user_id=current_user,
+            base_model_key=data.get('base_model_key'),
+            model_dir_on_volume=data.get('model_dir_on_volume'),
+            max_new_tokens=data.get('max_new_tokens')
+        )
+        
+        return jsonify({
+            'success': True,
+            'job_id': result['job_id'],
+            'status': result['status']
+        })
+        
+    except ValueError as e:
+        return jsonify({
+            'success': False, 
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        app.logger.error(f"Error starting generation job: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to start generation job: {str(e)}'
+        }), 500
+
+@app.route('/api/finetune/status/<job_id>', methods=['GET'])
+@require_auth
+def get_finetune_job_status(job_id):
+    """Get the status of a fine-tuning or generation job."""
+    try:
+        result = finetune_client.get_job_status(job_id)
+        
+        return jsonify({
+            'success': True,
+            'job_id': result['job_id'],
+            'status': finetune_client.normalize_job_status(result['status']),
+            'output': result.get('output')
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error fetching job status for {job_id}: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to fetch job status: {str(e)}'
+        }), 500
+
+@app.route('/api/finetune/health', methods=['GET'])
+def check_finetune_server_health():
+    """Check if the fine-tuning server is accessible."""
+    try:
+        health_data = finetune_client.health_check()
+        return jsonify({
+            'success': True,
+            'server_status': 'online',
+            'health_data': health_data
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'server_status': 'offline',
+            'error': str(e)
+        }), 503
+
+@app.route('/api/finetune/models/current/<job_id>', methods=['DELETE'])
+@require_auth
+def delete_current_user_model(job_id):
+    """Delete a specific fine-tuned model for the current user."""
+    try:
+        current_user = session['user']['user_name']
+        result = finetune_client.delete_model(current_user, job_id)
+        return jsonify(result)
+    except Exception as e:
+        app.logger.error(f"Error deleting model {job_id} for current user: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to delete model: {str(e)}'
+        }), 500
+
+@app.route('/api/finetune/models/user/<user_id>/<job_id>', methods=['DELETE'])
+@require_auth
+def delete_user_finetuned_model(user_id, job_id):
+    """Delete a specific fine-tuned model for a user."""
+    try:
+        # Ensure user can only delete their own models
+        current_user = session['user']['user_name']
+        if user_id != current_user:
+            return jsonify({
+                'success': False, 
+                'error': 'Access denied: can only delete own models'
+            }), 403
+        
+        result = finetune_client.delete_model(user_id, job_id)
+        return jsonify(result)
+    except Exception as e:
+        app.logger.error(f"Error deleting model {job_id} for user {user_id}: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to delete model: {str(e)}'
+        }), 500
+
+@app.route('/api/finetune/jobs/user/<user_id>', methods=['GET'])
+@require_auth
+def get_user_finetune_jobs(user_id):
+    """Get all fine-tuning jobs for a user."""
+    try:
+        # Ensure user can only access their own jobs
+        current_user = session['user']['user_name']
+        if user_id != current_user:
+            return jsonify({
+                'success': False, 
+                'error': 'Access denied: can only view own jobs'
+            }), 403
+        
+        result = finetune_client.get_user_jobs(user_id)
+        return jsonify(result)
+    except Exception as e:
+        app.logger.error(f"Error fetching jobs for user {user_id}: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to fetch user jobs: {str(e)}'
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
