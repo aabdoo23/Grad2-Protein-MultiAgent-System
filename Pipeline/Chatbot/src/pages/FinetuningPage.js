@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faFlask,
@@ -114,11 +114,10 @@ const FinetuningPage = () => {
               isLoading={loading}
               isServerOnline={isServerOnline}
             />
-          )}
-
-          {activeTab === 'generate' && (
+          )}          {activeTab === 'generate' && (
             <GenerateForm
               baseModels={baseModels}
+              userModels={userModels}
               onSubmit={handleGenerateSequence}
               isLoading={loading}
               isServerOnline={isServerOnline}

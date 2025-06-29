@@ -28,14 +28,13 @@ def test_session_logout():
         'username': 'testuser123',
         'password': 'TestPass123!'
     }
-    
     login_response = session.post(f"{base_url}/api/auth/login", json=login_data)
     
     if login_response.status_code == 200:
         login_result = login_response.json()
         if login_result.get('success'):
             print("   ✅ Login successful!")
-            print(f"   User: {login_result['user']['username']}")
+            print(f"   User: {login_result['user']['user_name']}")
         else:
             print(f"   ❌ Login failed: {login_result.get('error')}")
             return

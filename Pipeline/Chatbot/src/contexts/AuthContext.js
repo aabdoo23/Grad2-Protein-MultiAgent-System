@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
@@ -43,9 +43,11 @@ export const AuthProvider = ({ children }) => {
   const login = (userData) => {
     setUser(userData);
   };
-
   const logout = async () => {
     try {
+      // First, clear local state immediately to prevent UI flickering
+      setUser(null);
+      
       const response = await fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
@@ -58,14 +60,10 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Logout failed:', error);
-    } finally {
-      // Always clear user state regardless of API response
-      setUser(null);
-      // Force a re-check of authentication status
-      setTimeout(() => {
-        checkAuth();
-      }, 100);
     }
+    
+    // Don't call checkAuth immediately after logout to prevent race conditions
+    // The session should be cleared on the server side
   };
 
   const updateUserCredits = async () => {
