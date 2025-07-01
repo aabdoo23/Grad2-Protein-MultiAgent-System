@@ -32,6 +32,7 @@ const FinetuningPage = () => {
   const {
     baseModels,
     userJobs,
+    finetunedModels,
     serverHealth,
     statistics,
     storageInfo,
@@ -168,7 +169,7 @@ const FinetuningPage = () => {
             
             {/* Refresh Button */}
             <button
-              onClick={refreshAll}
+              onClick={() => refreshAll(user?.user_name || user?.username || user?.email)}
               disabled={loading}
               className="px-3 py-1 bg-[#233c48] hover:bg-[#2a4653] text-white text-sm rounded transition-colors disabled:opacity-50"
             >
@@ -188,7 +189,7 @@ const FinetuningPage = () => {
         {/* Connection Status Banner */}
         <ConnectionStatusBanner 
           connectionError={connectionError} 
-          onRetry={refreshAll}
+          onRetry={() => refreshAll(user?.user_name || user?.username || user?.email)}
           className="mb-4"
         />
 
@@ -282,6 +283,7 @@ const FinetuningPage = () => {
               <GenerateForm
                 baseModels={baseModels}
                 userModels={completedJobs} // Use completed jobs as available models
+                finetunedModels={finetunedModels} // Add finetuned models
                 onSubmit={handleGenerateSequence}
                 isLoading={loading}
                 isServerOnline={isServerOnline}
@@ -331,7 +333,7 @@ const FinetuningPage = () => {
               <JobsList
                 jobs={userJobs}
                 pollingJobs={pollingJobs}
-                onRefresh={refreshAll}
+                onRefresh={() => refreshAll(user?.user_name || user?.username || user?.email)}
                 onDelete={handleDeleteJob}
                 onCleanup={handleCleanupJob}
                 isLoading={loading}

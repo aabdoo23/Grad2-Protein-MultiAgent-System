@@ -20,6 +20,7 @@ export const useAdvancedFinetuning = () => {
   // Core state
   const [baseModels, setBaseModels] = useState([]);
   const [userJobs, setUserJobs] = useState([]);
+  const [finetunedModels, setFinetunedModels] = useState([]);
   const [serverHealth, setServerHealth] = useState(null);
   const [statistics, setStatistics] = useState(null);
   const [storageInfo, setStorageInfo] = useState(null);
@@ -129,6 +130,18 @@ export const useAdvancedFinetuning = () => {
     }
   }, [handleError]);
   
+  const loadFinetunedModels = useCallback(async (userName = null) => {
+    try {
+      const result = await finetuningService.getFinetunedModels(userName);
+      const models = result.finetuned_models || [];
+      setFinetunedModels(models);
+      return models;
+    } catch (error) {
+      handleError(error, 'loadFinetunedModels');
+      return [];
+    }
+  }, [handleError]);
+  
   // ========== JOB MANAGEMENT ==========
   
   const startFinetuning = useCallback(async (params) => {
@@ -168,18 +181,47 @@ export const useAdvancedFinetuning = () => {
     clearError();
     
     try {
-      // Validate parameters
-      const validation = finetuningService.validateGenerationParams(params);
-      if (!validation.isValid) {
-        throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+      const { model_type, ...otherParams } = params;
+      
+      if (model_type === 'base') {
+        // Generate using base model directly
+        const validation = finetuningService.validateBaseModelGenerationParams({
+          model_name: params.model_name,
+          prompt: params.prompt,
+          max_new_tokens: params.max_new_tokens,
+          num_return_sequences: params.num_return_sequences,
+          temperature: params.temperature,
+          top_p: params.top_p,
+          top_k: params.top_k,
+        });
+        
+        if (!validation.isValid) {
+          throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+        }
+        
+        const result = await finetuningService.generateWithBaseModel({
+          model_name: params.model_name,
+          prompt: params.prompt,
+          max_new_tokens: params.max_new_tokens || 200,
+          num_return_sequences: params.num_return_sequences || 1,
+          temperature: params.temperature || 1.0,
+          top_p: params.top_p || 0.9,
+          top_k: params.top_k || 50,
+        });
+        
+        return result;
+      } else {
+        // Generate using finetuned model
+        const validation = finetuningService.validateGenerationParams(params);
+        if (!validation.isValid) {
+          throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+        }
+        
+        const finalParams = { ...DEFAULT_GENERATION_PARAMS, ...params };
+        const result = await finetuningService.generateSequence(finalParams);
+        
+        return result;
       }
-      
-      // Merge with defaults
-      const finalParams = { ...DEFAULT_GENERATION_PARAMS, ...params };
-      
-      const result = await finetuningService.generateSequence(finalParams);
-      
-      return result;
     } catch (error) {
       throw handleError(error, 'generateSequence');
     } finally {
@@ -304,20 +346,21 @@ export const useAdvancedFinetuning = () => {
   
   // ========== UTILITY FUNCTIONS ==========
   
-  const refreshAll = useCallback(async () => {
+  const refreshAll = useCallback(async (userName = null) => {
     setLoading(true);
     try {
       await Promise.all([
         checkServerHealth(),
         loadBaseModels(),
         loadUserJobs(),
+        loadFinetunedModels(userName),
         loadStatistics(),
         loadStorageInfo()
       ]);
     } finally {
       setLoading(false);
     }
-  }, [checkServerHealth, loadBaseModels, loadUserJobs, loadStatistics, loadStorageInfo]);
+  }, [checkServerHealth, loadBaseModels, loadUserJobs, loadFinetunedModels, loadStatistics, loadStorageInfo]);
   
   const isServerOnline = useCallback(() => {
     return serverHealth?.status === 'healthy' && !connectionError;
@@ -380,6 +423,7 @@ export const useAdvancedFinetuning = () => {
     // Data
     baseModels,
     userJobs,
+    finetunedModels,
     serverHealth,
     statistics,
     storageInfo,
@@ -410,6 +454,7 @@ export const useAdvancedFinetuning = () => {
     // Data loading
     loadUserJobs,
     loadBaseModels,
+    loadFinetunedModels,
     loadStatistics,
     loadStorageInfo,
     refreshAll,

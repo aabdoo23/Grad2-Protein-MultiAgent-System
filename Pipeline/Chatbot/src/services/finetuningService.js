@@ -196,6 +196,30 @@ class FinetuningService {
     return await this.uploadRequest('/finetune', formData);
   }
 
+  // ========== FINETUNED MODELS ENDPOINTS ==========
+
+  /**
+   * Get all finetuned models, optionally filtered by user
+   * @param {string} [userName] - Optional username to filter by
+   * @returns {Promise<object>} List of finetuned models
+   */
+  async getFinetunedModels(userName = null) {
+    const queryParams = userName ? `?user_name=${encodeURIComponent(userName)}` : '';
+    return await this.apiRequest(`/finetuned-models${queryParams}`);
+  }
+
+  /**
+   * Get finetuned models for a specific user
+   * @param {string} userName - Username to get models for
+   * @returns {Promise<object>} List of user's finetuned models
+   */
+  async getUserFinetunedModels(userName) {
+    if (!userName) {
+      throw new Error('Username is required');
+    }
+    return await this.apiRequest(`/finetuned-models/${encodeURIComponent(userName)}`);
+  }
+
   // ========== GENERATION ENDPOINTS ==========
 
   /**
@@ -232,6 +256,47 @@ class FinetuningService {
       body: JSON.stringify({
         model_name,
         model_dir,
+        prompt,
+        max_new_tokens,
+        num_return_sequences,
+        temperature,
+        top_p,
+        top_k,
+      }),
+    });
+  }
+
+  /**
+   * Generate protein sequences using a base model directly (without fine-tuning)
+   * @param {object} params - Generation parameters
+   * @param {string} params.model_name - Base model name
+   * @param {string} params.prompt - Input prompt for generation
+   * @param {number} [params.max_new_tokens=200] - Maximum number of new tokens to generate
+   * @param {number} [params.num_return_sequences=1] - Number of sequences to generate
+   * @param {number} [params.temperature=1.0] - Sampling temperature
+   * @param {number} [params.top_p=0.9] - Top-p sampling parameter
+   * @param {number} [params.top_k=50] - Top-k sampling parameter
+   * @returns {Promise<object>} Generated sequences
+   */
+  async generateWithBaseModel(params) {
+    const {
+      model_name,
+      prompt,
+      max_new_tokens = 200,
+      num_return_sequences = 1,
+      temperature = 1.0,
+      top_p = 0.9,
+      top_k = 50,
+    } = params;
+
+    if (!model_name || !prompt) {
+      throw new Error('model_name and prompt are required');
+    }
+
+    return await this.apiRequest('/generate-base', {
+      method: 'POST',
+      body: JSON.stringify({
+        model_name,
         prompt,
         max_new_tokens,
         num_return_sequences,
@@ -524,6 +589,52 @@ class FinetuningService {
 
     if (!params.model_dir) {
       errors.push('Model directory is required');
+    }
+
+    if (!params.prompt) {
+      errors.push('Prompt is required');
+    }
+
+    // Validate numeric parameters
+    if (params.max_new_tokens && params.max_new_tokens < 1) {
+      warnings.push('Max new tokens should be at least 1');
+    }
+
+    if (params.temperature && (params.temperature <= 0 || params.temperature > 2)) {
+      warnings.push('Temperature should be between 0 and 2');
+    }
+
+    if (params.top_p && (params.top_p <= 0 || params.top_p > 1)) {
+      warnings.push('Top-p should be between 0 and 1');
+    }
+
+    if (params.top_k && params.top_k < 1) {
+      warnings.push('Top-k should be at least 1');
+    }
+
+    if (params.num_return_sequences && params.num_return_sequences < 1) {
+      warnings.push('Number of return sequences should be at least 1');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+
+  /**
+   * Validate base model generation parameters
+   * @param {object} params - Parameters to validate
+   * @returns {object} Validation result
+   */
+  validateBaseModelGenerationParams(params) {
+    const errors = [];
+    const warnings = [];
+
+    // Required parameters for base model generation
+    if (!params.model_name) {
+      errors.push('Model name is required');
     }
 
     if (!params.prompt) {

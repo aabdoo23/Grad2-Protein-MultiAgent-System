@@ -559,12 +559,14 @@ export const FinetuneForm = ({
 export const GenerateForm = ({ 
   baseModels, 
   userModels = [],
+  finetunedModels = [],
   onSubmit, 
   isLoading = false, 
   isServerOnline = true,
-  generationResult = null, // Add this prop to show results
-  onClearResults = null // Add this prop to clear results
+  generationResult = null,
+  onClearResults = null
 }) => {
+  const [modelType, setModelType] = useState('base'); // 'base' or 'finetuned'
   const [formData, setFormData] = useState({
     prompt: '<|startoftext|>',
     model_name: '',
@@ -579,26 +581,77 @@ export const GenerateForm = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.prompt || !formData.model_name || !formData.model_dir) {
-      alert('Please fill in all required fields: prompt, model name, and model directory');
+    if (!formData.prompt || !formData.model_name) {
+      alert('Please fill in all required fields: prompt and model');
       return;
     }
 
-    onSubmit(formData);
+    if (modelType === 'finetuned' && !formData.model_dir) {
+      alert('Please select a fine-tuned model directory');
+      return;
+    }
+
+    // Add model_type to form data for the hook to handle properly
+    const submissionData = {
+      ...formData,
+      model_type: modelType
+    };
+
+    onSubmit(submissionData);
   };
 
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleModelTypeChange = (type) => {
+    setModelType(type);
+    // Reset model selection when switching types
+    updateField('model_name', '');
+    updateField('model_dir', '');
+  };
+
   return (
     <div className="space-y-6">
       <Card title="Generate Protein Sequence">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Model Type Selection */}
+          <FormField 
+            label="Model Type" 
+            required
+            description="Choose between base models or your fine-tuned models"
+          >
+            <div className="flex space-x-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="modelType"
+                  value="base"
+                  checked={modelType === 'base'}
+                  onChange={() => handleModelTypeChange('base')}
+                  className="mr-2 text-blue-500 focus:ring-blue-500"
+                />
+                <span className="text-white">Base Model</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="modelType"
+                  value="finetuned"
+                  checked={modelType === 'finetuned'}
+                  onChange={() => handleModelTypeChange('finetuned')}
+                  className="mr-2 text-blue-500 focus:ring-blue-500"
+                />
+                <span className="text-white">Fine-tuned Model</span>
+              </label>
+            </div>
+          </FormField>
+
+          {/* Prompt */}
           <FormField 
             label="Prompt" 
             required
-            description="Starting text for sequence generation"
+            description="Starting text for sequence generation (e.g., '<|startoftext|>' or protein prefix)"
           >
             <input
               type="text"
@@ -610,12 +663,12 @@ export const GenerateForm = ({
             />
           </FormField>
 
-          {/* Model Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Model Selection based on type */}
+          {modelType === 'base' ? (
             <FormField 
-              label="Base Model Name" 
+              label="Base Model" 
               required
-              description="The base model architecture"
+              description="Choose a pre-trained protein language model"
             >
               <select
                 value={formData.model_name}
@@ -629,45 +682,79 @@ export const GenerateForm = ({
                 ))}
               </select>
             </FormField>
-
-            <FormField 
-              label="Model Directory" 
-              required
-              description="Path to the fine-tuned model directory"
-            >
-              <input
-                type="text"
-                value={formData.model_dir}
-                onChange={(e) => updateField('model_dir', e.target.value)}
-                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-                placeholder="/workspace/volume1/finetuned/user-model_abc123/final_model"
+          ) : (
+            <div className="space-y-4">
+              <FormField 
+                label="Fine-tuned Model" 
                 required
-              />
-              {userModels.length > 0 && (
+                description="Choose from your trained models"
+              >
                 <select
-                  value=""
+                  value={formData.model_dir}
                   onChange={(e) => {
-                    if (e.target.value) {
-                      const selectedJob = userModels.find(job => job.job_id === e.target.value);
-                      if (selectedJob && selectedJob.result?.model_dir) {
-                        updateField('model_dir', selectedJob.result.model_dir);
-                      }
+                    const selectedModel = finetunedModels.find(m => m.model_path === e.target.value);
+                    if (selectedModel) {
+                      updateField('model_dir', selectedModel.model_path);
+                      updateField('model_name', selectedModel.base_model_name);
                     }
                   }}
-                  className="w-full mt-2 bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                  className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  required
                 >
-                  <option value="">Or select from your completed jobs...</option>
-                  {userModels
-                    .filter(job => job.status === 'completed' && job.result?.model_dir)
-                    .map((job) => (
-                      <option key={job.job_id} value={job.job_id}>
-                        {job.job_id.slice(0, 8)}... - {job.result?.best_params?.learning_rate || 'Unknown params'}
-                      </option>
-                    ))}
+                  <option value="">Select fine-tuned model</option>
+                  {finetunedModels.map((model) => (
+                    <option key={model.id} value={model.model_path}>
+                      {model.model_name} (based on {model.base_model_name})
+                    </option>
+                  ))}
                 </select>
+              </FormField>
+
+              {finetunedModels.length === 0 && (
+                <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4">
+                  <p className="text-yellow-400 text-sm">
+                    <FontAwesomeIcon icon={faFileText} className="mr-2" />
+                    No fine-tuned models found. Complete a fine-tuning job first to use custom models.
+                  </p>
+                </div>
               )}
-            </FormField>
-          </div>
+
+              {/* Fallback to job selection for backwards compatibility */}
+              {userModels.length > 0 && (
+                <FormField 
+                  label="Or Select from Recent Jobs" 
+                  description="Choose from recently completed fine-tuning jobs"
+                >
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const selectedJob = userModels.find(job => job.job_id === e.target.value);
+                        if (selectedJob && selectedJob.result?.model_dir) {
+                          updateField('model_dir', selectedJob.result.model_dir);
+                          // Try to extract base model from job data
+                          const baseModel = selectedJob.hyperparameters?.model || 
+                                          selectedJob.result?.finetuned_model_name?.split('-')[1] || 
+                                          'progen2-small';
+                          updateField('model_name', baseModel);
+                        }
+                      }
+                    }}
+                    className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">Select from completed jobs...</option>
+                    {userModels
+                      .filter(job => job.status === 'completed' && job.result?.model_dir)
+                      .map((job) => (
+                        <option key={job.job_id} value={job.job_id}>
+                          Job {job.job_id.slice(0, 8)}... - {new Date(job.created_at).toLocaleDateString()}
+                        </option>
+                      ))}
+                  </select>
+                </FormField>
+              )}
+            </div>
+          )}
 
           {/* Generation Parameters */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -713,7 +800,58 @@ export const GenerateForm = ({
                 className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
               />
             </FormField>
+
+            <FormField 
+              label="Top-p"
+              description="Nucleus sampling parameter"
+            >
+              <input
+                type="number"
+                step="0.05"
+                min="0.1"
+                max="1.0"
+                value={formData.top_p}
+                onChange={(e) => updateField('top_p', parseFloat(e.target.value))}
+                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              />
+            </FormField>
+
+            <FormField 
+              label="Top-k"
+              description="Top-k sampling parameter"
+            >
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={formData.top_k}
+                onChange={(e) => updateField('top_k', parseInt(e.target.value))}
+                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              />
+            </FormField>
           </div>
+
+          {/* Model Info Display */}
+          {modelType === 'base' && formData.model_name && (
+            <div className="bg-blue-900/30 border border-blue-600 rounded-lg p-4">
+              <p className="text-blue-400 text-sm">
+                <FontAwesomeIcon icon={faDna} className="mr-2" />
+                Using base model: <strong>{formData.model_name}</strong>
+              </p>
+            </div>
+          )}
+
+          {modelType === 'finetuned' && formData.model_dir && (
+            <div className="bg-green-900/30 border border-green-600 rounded-lg p-4">
+              <p className="text-green-400 text-sm">
+                <FontAwesomeIcon icon={faDna} className="mr-2" />
+                Using fine-tuned model: <strong>{formData.model_name}</strong>
+              </p>
+              <p className="text-green-300 text-xs mt-1">
+                Path: {formData.model_dir}
+              </p>
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Button
@@ -723,7 +861,7 @@ export const GenerateForm = ({
               size="md"
               className="w-full sm:w-auto"
             >
-              {isLoading ? 'Generating...' : 'Generate Sequence'}
+              {isLoading ? 'Generating...' : `Generate with ${modelType === 'base' ? 'Base' : 'Fine-tuned'} Model`}
             </Button>
             
             {generationResult && onClearResults && (
