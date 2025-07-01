@@ -87,13 +87,16 @@ class PrankTool:
                 result_path = output_dir
               # Ensure the result directory exists
             os.makedirs(result_path, exist_ok=True)
-            
-            # Get the P2Rank directory to run the command from the correct location
+              # Get the P2Rank directory to run the command from the correct location
             p2rank_dir = Path(self.p2rank_path).parent
             prank_executable = Path(self.p2rank_path).name
             
-            # Define the command with absolute paths and explicit relative path for executable
-            command = f'./{prank_executable} predict -f "{os.path.abspath(pdb_path)}" -o "{os.path.abspath(result_path)}"'
+            # Define the command with absolute paths
+            # On Windows, use just the executable name; on Unix, use ./executable
+            if platform.system() == "Windows":
+                command = f'{prank_executable} predict -f "{os.path.abspath(pdb_path)}" -o "{os.path.abspath(result_path)}"'
+            else:
+                command = f'./{prank_executable} predict -f "{os.path.abspath(pdb_path)}" -o "{os.path.abspath(result_path)}"'
             
             self.logger.info(f"Running P2Rank command: {command}")
             self.logger.info(f"Working directory: {p2rank_dir}")

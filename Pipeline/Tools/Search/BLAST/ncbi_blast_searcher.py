@@ -250,8 +250,7 @@ class NCBI_BLAST_Searcher:
             while attempts < max_attempts:
                 attempts += 1
                 time.sleep(polling_interval)
-                
-                # Check the status using the existing check_status method
+                  # Check the status using the existing check_status method
                 status_result = self.check_status(rid)
                 if not status_result["success"]:
                     return status_result
@@ -261,7 +260,7 @@ class NCBI_BLAST_Searcher:
                     results = self.get_results(rid)
                     if results["success"]:
                         # Normalize results using the schema normalizer
-                        normalized_results = self.schema_normalizer.normalize_blast_results(results["results"], sequence)
+                        normalized_results = self.schema_normalizer.normalize_blast_results(results["results"], sequence, e_value)
                         return {"success": True, "results": normalized_results}
                     else:
                         return {"success": False, "error": results.get("error", "Failed to get results")}
@@ -284,8 +283,7 @@ class NCBI_BLAST_Searcher:
             Dict[str, Any]: Dictionary containing:
                 - success: bool indicating if check was successful
                 - status: Current status ('submitted', 'running', 'completed', 'failed')
-                - results: Processed BLAST results if completed
-                - error: Error message if unsuccessful
+                - results: Processed BLAST results if completed                - error: Error message if unsuccessful
         """
         try:
             status_result = self.check_status(rid)
@@ -301,7 +299,8 @@ class NCBI_BLAST_Searcher:
                 results = self.get_results(rid)
                 if results['success']:
                     # Normalize results using the schema normalizer
-                    normalized_results = self.schema_normalizer.normalize_blast_results(results['results'], results['results'].get('query', ''))
+                    # Note: e_value parameter not available in check_results context, using None
+                    normalized_results = self.schema_normalizer.normalize_blast_results(results['results'], results['results'].get('query', ''), None)
                     
                     return {
                         "success": True,

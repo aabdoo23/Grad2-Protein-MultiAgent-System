@@ -9,15 +9,15 @@ const useWorkspaceStore = create(
     connections: {}, // Changed to an object of objects
     viewport: { x: 0, y: 0, zoom: 1 },
     selectedNodes: [],
-    selectedEdges: [],
-
-    // Actions
+    selectedEdges: [],    // Actions
     addBlock: (block) => {
       set((state) => {
         const newBlock = {
           ...block,
           type: block.blockTypeId || block.type,
           blockTypeId: block.blockTypeId || block.type,
+          // Set default preserveOnReset value based on block type
+          preserveOnReset: ['file_upload', 'blast_db_builder'].includes(block.blockTypeId || block.type),
         };
         state.blocks.push(newBlock);
         state.connections[newBlock.id] = {}; // Initialize connections for the new block
@@ -165,9 +165,8 @@ const useWorkspaceStore = create(
           }
         });
       });
-    },
-
-    clearWorkspace: () => set((state) => {
+    },    clearWorkspace: () => set((state) => {
+      console.warn('🚨 clearWorkspace called! Clearing all blocks and connections.');
       state.blocks = [];
       state.connections = {};
       state.selectedNodes = [];

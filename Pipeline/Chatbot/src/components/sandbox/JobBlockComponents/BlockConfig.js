@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { blockConfigSchema } from '../config/blockConfigSchema';
+import { blockConfigSchema } from '../../../config/sandbox/blockConfigSchema';
 
 const InputField = ({ type, label, value, onChange, options, placeholder, min, max, step, rows }) => {
   const renderInput = () => {

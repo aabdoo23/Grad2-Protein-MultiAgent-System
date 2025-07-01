@@ -233,41 +233,75 @@ class BlastDatabaseBuilder:
                 try:
                     os.remove(f"{db_path}{ext}")
                 except FileNotFoundError:
-                    pass
-
-            # Create the BLAST database
+                    pass            # Create the BLAST database
             subprocess.run(
                 [MAKEBLASTDB_PATH, "-in", fasta_file_path, "-dbtype", "prot", "-out", db_path],
                 check=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-
+            
             # Set appropriate permissions
             for ext in ['.phr', '.pin', '.psq']:
                 file_path = f"{db_path}{ext}"
                 if os.path.exists(file_path):
                     os.chmod(file_path, 0o644)
-
+                    
             self.active_databases[db_name] = db_path
             logger.info(f"BLAST database '{db_name}' created successfully at {db_path}")
             return True
-
+            
         except subprocess.CalledProcessError as e:
             logger.error(f"Error creating BLAST database: {e}")
             return False
 
-    def build_database(self, 
+    def _create_blast_database_from_sequences(self, sequences_list: List[str], db_name: str = "sequences_db") -> tuple:
+        """
+        Create a BLAST database from a list of protein sequences.
+        
+        Args:
+            sequences_list (List[str]): List of protein sequences
+            db_name (str): Name for the database
+            
+        Returns:
+            tuple: (success: bool, fasta_path: str)
+        """
+        try:
+            # Create a timestamp for unique file naming
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            db_dir = os.path.join(BLAST_DBS_DIR, f"{db_name}_{timestamp}")
+            os.makedirs(db_dir, exist_ok=True)
+            
+            # Create FASTA file from sequences
+            fasta_file_path = os.path.join(db_dir, f"{db_name}.fasta")
+            with open(fasta_file_path, 'w') as f:
+                for i, sequence in enumerate(sequences_list):
+                    f.write(f">sequence_{i+1}\n{sequence}\n")
+            
+            logger.info(f"Created FASTA file with {len(sequences_list)} sequences at {fasta_file_path}")
+            
+            # Create BLAST database from the FASTA file
+            success = self._create_blast_database_from_fasta(fasta_file_path, db_name)
+            
+            return success, fasta_file_path
+            
+        except Exception as e:
+            logger.error(f"Error creating BLAST database from sequences: {e}")
+            return False, ""
+
+    def build_database(self,
                       fasta_file: Optional[str] = None,
                       pfam_ids: Optional[Union[str, List[str]]] = None,
+                      sequences_list: Optional[List[str]] = None,
                       sequence_types: Optional[List[str]] = None,
                       db_name: Optional[str] = None) -> Dict[str, Any]:
         """
-        Build a BLAST database from either a FASTA file or Pfam IDs.
+        Build a BLAST database from either a FASTA file, Pfam IDs, or a list of sequences.
         
         Args:
             fasta_file (Optional[str]): Path to FASTA file
             pfam_ids (Optional[Union[str, List[str]]]): Pfam ID(s) as string or list of strings
+            sequences_list (Optional[List[str]]): List of protein sequences
             sequence_types (Optional[List[str]]): List of sequence types to include for Pfam IDs
             db_name (Optional[str]): Name for the database
             
@@ -281,16 +315,26 @@ class BlastDatabaseBuilder:
         try:
             if not self._check_blast_installation():
                 return {"success": False, "error": "BLAST executables not found"}
-            if not fasta_file and not pfam_ids:
-                return {"success": False, "error": "Either fasta_file or pfam_ids must be provided"}
-            if fasta_file and pfam_ids:
-                return {"success": False, "error": "Cannot provide both fasta_file and pfam_ids"}
+              # Check that only one input method is provided
+            input_count = sum(bool(x) for x in [fasta_file, pfam_ids, sequences_list])
+            if input_count == 0:
+                return {"success": False, "error": "Either fasta_file, pfam_ids, or sequences_list must be provided"}
+            if input_count > 1:
+                return {"success": False, "error": "Cannot provide multiple input methods (fasta_file, pfam_ids, sequences_list)"}
+            
             if not db_name:
-                db_name = "custom_db" if fasta_file else "pfam_db"
-
+                if fasta_file:
+                    db_name = "custom_db"
+                elif pfam_ids:
+                    db_name = "pfam_db"
+                else:
+                    db_name = "sequences_db"
+                    
             if fasta_file:
                 success = self._create_blast_database_from_fasta(fasta_file, db_name)
                 fasta_path = fasta_file  # Use the input FASTA file path
+            elif sequences_list:
+                success, fasta_path = self._create_blast_database_from_sequences(sequences_list, db_name)
             else:
                 # Convert single string to list if necessary
                 if isinstance(pfam_ids, str):

@@ -3,10 +3,10 @@ import { useDropzone } from 'react-dropzone';
 import { debounce } from 'lodash';
 import { blastService, uploadService } from '../../../services/api';
 
-const BlastDatabaseBuilder = ({ onUpdateParameters }) => {
+const BlastDatabaseBuilder = ({ onUpdateParameters, inputData, connections }) => {
   const [pfamIds, setPfamIds] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
-  const [inputMethod, setInputMethod] = useState('pfam'); // 'pfam' or 'file'
+  const [inputMethod, setInputMethod] = useState('pfam'); // 'pfam', 'file', or 'connected'
   const [sequenceCounts, setSequenceCounts] = useState({
     unreviewed: 0,
     reviewed: 0,
@@ -17,10 +17,29 @@ const BlastDatabaseBuilder = ({ onUpdateParameters }) => {
     reviewed: true,
     uniprot: true
   });
-  const [validIds, setValidIds] = useState([]);
-  const [invalidIds, setInvalidIds] = useState([]);
+  const [validIds, setValidIds] = useState([]);  const [invalidIds, setInvalidIds] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Check if there's a connected sequences_list input
+  const hasConnectedSequences = connections?.sequences_list && inputData?.sequences_list;
+  const connectedSequencesCount = hasConnectedSequences ? inputData.sequences_list.length : 0;
+
+  // Auto-switch to connected mode when sequences are connected
+  useEffect(() => {
+    if (hasConnectedSequences && inputMethod !== 'connected') {
+      setInputMethod('connected');
+      setError(null);
+      setUploadedFile(null);
+      setPfamIds('');
+      
+      // Update parameters to use connected sequences
+      onUpdateParameters({
+        input_method: 'connected',
+        sequences_data: inputData.sequences_list
+      });
+    }
+  }, [hasConnectedSequences, inputData, inputMethod, onUpdateParameters]);
   // Handle file upload
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -125,18 +144,32 @@ const BlastDatabaseBuilder = ({ onUpdateParameters }) => {
     setUploadedFile(null); // Clear uploaded file when switching to Pfam IDs
     fetchSequenceCounts(value);
   };
-
   // Handle input method change
   const handleInputMethodChange = (method) => {
     setInputMethod(method);
     if (method === 'pfam') {
       setUploadedFile(null);
       setError(null);
-    } else {
+    } else if (method === 'file') {
       setPfamIds('');
       setSequenceCounts({ unreviewed: 0, reviewed: 0, uniprot: 0 });
       setValidIds([]);
       setInvalidIds([]);
+    } else if (method === 'connected') {
+      setPfamIds('');
+      setUploadedFile(null);
+      setSequenceCounts({ unreviewed: 0, reviewed: 0, uniprot: 0 });
+      setValidIds([]);
+      setInvalidIds([]);
+      setError(null);
+      
+      // Update parameters for connected input
+      if (hasConnectedSequences) {
+        onUpdateParameters({
+          input_method: 'connected',
+          sequences_data: inputData.sequences_list
+        });
+      }
     }
   };
 
@@ -157,8 +190,7 @@ const BlastDatabaseBuilder = ({ onUpdateParameters }) => {
       sequence_types: selectedTypesList,
       input_method: 'pfam'
     });
-  };
-  const getTimeFormatted = (count) => {
+  };  const getTimeFormatted = (count) => {
     const time = Math.round(count/20);
     if (time < 60) {
       return `${time} seconds`;
@@ -167,39 +199,98 @@ const BlastDatabaseBuilder = ({ onUpdateParameters }) => {
     } else {
       return `${Math.round(time/3600)} hours`;
     }
-  }
+  };
+  
   return (
     <div className="p-4 space-y-4">
-      {/* Input Method Selection */}
+      {/* Info message about new workflow */}
+      {!hasConnectedSequences && (
+        <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-3">
+          <div className="flex items-start space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-blue-400 text-sm font-medium">New: Connect sequences from File Upload</p>
+              <p className="text-blue-300/80 text-xs mt-1">
+                You can now upload a FASTA file to a File Upload block and connect its Sequences List output to this block's input
+              </p>
+            </div>
+          </div>
+        </div>
+      )}{/* Input Method Selection */}
       <div>
         <label className="block text-sm font-medium text-gray-200 mb-3">
           Choose Database Source
         </label>
-        <div className="flex space-x-4">
+        <div className="flex flex-col space-y-2">
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
               type="radio"
               name="inputMethod"
-              value="pfam"
-              checked={inputMethod === 'pfam'}
-              onChange={() => handleInputMethodChange('pfam')}
-              className="form-radio h-4 w-4 text-blue-500 border-gray-600 bg-gray-700"
+              value="connected"
+              checked={inputMethod === 'connected'}
+              onChange={() => handleInputMethodChange('connected')}
+              disabled={!hasConnectedSequences}
+              className="form-radio h-4 w-4 text-blue-500 border-gray-600 bg-gray-700 disabled:opacity-50"
             />
-            <span className="text-sm text-gray-300">Use Pfam IDs</span>
+            <span className={`text-sm ${hasConnectedSequences ? 'text-gray-300' : 'text-gray-500'}`}>
+              Use Connected Sequences {hasConnectedSequences ? `(${connectedSequencesCount} sequences)` : '(No connection)'}
+            </span>
           </label>
-          <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="radio"
-              name="inputMethod"
-              value="file"
-              checked={inputMethod === 'file'}
-              onChange={() => handleInputMethodChange('file')}
-              className="form-radio h-4 w-4 text-blue-500 border-gray-600 bg-gray-700"
-            />
-            <span className="text-sm text-gray-300">Upload FASTA File</span>
-          </label>
+          <div className="flex space-x-4">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="radio"
+                name="inputMethod"
+                value="pfam"
+                checked={inputMethod === 'pfam'}
+                onChange={() => handleInputMethodChange('pfam')}
+                className="form-radio h-4 w-4 text-blue-500 border-gray-600 bg-gray-700"
+              />
+              <span className="text-sm text-gray-300">Use Pfam IDs</span>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="radio"
+                name="inputMethod"
+                value="file"
+                checked={inputMethod === 'file'}
+                onChange={() => handleInputMethodChange('file')}
+                className="form-radio h-4 w-4 text-blue-500 border-gray-600 bg-gray-700"
+              />
+              <span className="text-sm text-gray-300">Upload FASTA File</span>
+            </label>
+          </div>
         </div>
-      </div>
+      </div>      {/* Connected Sequences Display */}
+      {inputMethod === 'connected' && hasConnectedSequences && (
+        <div className="bg-gray-800 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-200 mb-2">Connected Sequences</h4>
+          <div className="space-y-2">
+            <div className="text-xs text-gray-500">
+              Sequences will be used to build the BLAST database
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Warning for connected mode without connection */}
+      {inputMethod === 'connected' && !hasConnectedSequences && (
+        <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-3">
+          <div className="flex items-start space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <p className="text-yellow-400 text-sm font-medium">No sequences connected</p>
+              <p className="text-yellow-300/80 text-xs mt-1">
+                Connect a File Upload block with Sequences List output to use this option
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pfam IDs Input */}
       {inputMethod === 'pfam' && (

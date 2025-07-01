@@ -1,12 +1,12 @@
 import React, { forwardRef, useImperativeHandle, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import * as NGL from 'ngl';
-import BlastResults from './BlastResults';
+import BlastResults from './result-viewers/BlastResults';
 import FoldSeekResults from './result-viewers/FoldSeekResults';
 import SequenceGenerationResults from './result-viewers/SequenceGenerationResults';
 import EvaluationResults from './result-viewers/EvaluationResults';
 import PhylogeneticTreeResults from './result-viewers/PhylogeneticTreeResults';
-import { AWAIT_TIME, BASE_URL } from '../config/config';
+import { AWAIT_TIME, BASE_URL } from '../config/appConfig';
 
 const JobStatus = forwardRef((props, ref) => {
   const [jobs, setJobs] = useState([]);
@@ -251,7 +251,12 @@ const JobStatus = forwardRef((props, ref) => {
       case 'generate_protein':
         return <SequenceGenerationResults sequence={job.result.sequence} info={job.result.info} />;
       case 'evaluate_structure':
-        return <EvaluationResults metrics={job.result.metrics} />;      case 'search_similarity':
+        return <EvaluationResults 
+          metrics={job.result.metrics} 
+          interpretations={job.result.interpretations}
+          summary={job.result.summary}
+          quality_assessment={job.result.quality_assessment}
+        />;      case 'search_similarity':
         return <BlastResults results={job.result.results} />;
       case 'search_structure':
         return <FoldSeekResults results={job.result.results} originalPdbPath={job.result.pdb_file} />;

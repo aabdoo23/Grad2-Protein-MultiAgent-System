@@ -23,7 +23,7 @@ export const blockTypes = [
     color: '#522B29',
     inputs: ['input'],
     outputs: []
-  },
+  },  
   {
     id: 'generate_protein',
     name: 'Generate Protein',
@@ -31,7 +31,10 @@ export const blockTypes = [
     description: 'Generate a protein sequence with specific properties',
     color: '#005f73',
     inputs: [],
-    outputs: ['sequence']
+    outputs: ['sequence'],
+    config: {
+      prompt: ""
+    }
   },
   {
     id: 'sequence_iterator',
@@ -96,7 +99,7 @@ export const blockTypes = [
     description: 'Search using ColabFold MSA (Fast, modern, ~20 sec)',
     color: '#264653',
     inputs: ['sequence'],
-    outputs: ['results'],
+    outputs: ['msa_results'],
     config: {
       e_value: 0.0001,
       iterations: 1,
@@ -111,7 +114,7 @@ export const blockTypes = [
     description: 'Search using NCBI BLAST (Standard, ~6 min)',
     color: '#0E3938',
     inputs: ['sequence'],
-    outputs: ['results'],
+    outputs: ['blast_results'],
     config: {
       e_value: 0.0001,
       database: "nr"
@@ -124,10 +127,9 @@ export const blockTypes = [
     description: 'Search using Local BLAST (Custom database, ~1 min)',
     color: '#1C4C49',
     inputs: ['sequence', 'database'],
-    outputs: ['results'],
+    outputs: ['blast_results'],
     config: {
-      e_value: 0.0001,
-      interpro_ids: []
+      e_value: 0.0001
     }
   },
   {
@@ -137,29 +139,28 @@ export const blockTypes = [
     description: 'Search for similar protein structures using FoldSeek',
     color: '#28666E',
     inputs: ['structure'],
-    outputs: ['results']
-  },
-  {
+    outputs: ['foldseek_results']
+  },  {
     id: 'blast_db_builder',
     name: 'BLAST Database Builder',
     type: 'BLAST Search',
-    description: 'Build a BLAST database from FASTA file or Pfam IDs',
+    description: 'Build a BLAST database from connected sequences, FASTA file, or Pfam IDs',
     color: '#38726C',
-    inputs: [],
+    inputs: ['sequences_list'],
     outputs: ['database', 'fasta'],
     config: {
       fasta_file: "",
       pfam_ids: [],
       db_name: ""
     }
-  },  {
+  },{
     id: 'perform_docking',
     name: 'Molecular Docking',
     type: 'Docking',
     description: 'Perform molecular docking between a protein and ligand using AutoDock Vina',
     color: '#033F63',
     inputs: ['structure', 'molecule', 'binding_sites'],
-    outputs: ['results'], 
+    outputs: ['docking_results'], 
     config: {
       center_x: 0,
       center_y: 0,
@@ -180,13 +181,54 @@ export const blockTypes = [
     inputs: ['structure'],
     outputs: ['binding_sites']
   },
+  
+  {
+    id: 'blast_analysis',
+    name: 'BLAST Analysis',
+    type: 'Analysis',
+    description: 'Interactive analysis of sequence search results with scatter plots and hit tables',
+    color: '#1D4D3D',
+    inputs: ['blast_results'],
+    outputs: [],
+    config: {}
+  },
+   {
+    id: 'foldseek_analysis',
+    name: 'FoldSeek Analysis',
+    type: 'Analysis',
+    description: 'Interactive analysis of structural search results with scatter plots and hit tables',
+    color: '#205543',
+    inputs: ['foldseek_results'],
+    outputs: [],
+    config: {}
+  },
+  {
+    id: 'msa_analysis',
+    name: 'MSA Analysis',
+    type: 'Analysis',
+    description: 'Interactive analysis of Multiple Sequence Alignment results',
+    color: '#235D4A',
+    inputs: ['msa_results'],
+    outputs: [],
+    config: {}
+  },
+  {
+    id: 'taxonomy_analysis',
+    name: 'Taxonomy Analysis',
+    type: 'Analysis',
+    description: 'Interactive analysis of taxonomic distribution from BLAST results',
+    color: '#2D6348',
+    inputs: ['blast_results'],
+    outputs: [],
+    config: {}
+  },
   {
     id: 'build_phylogenetic_tree',
     name: 'Phylogenetic Tree',
-    type: 'Phylogenetic Analysis',
+    type: 'Analysis',
     description: 'Build phylogenetic tree from BLAST/MSA results',
-    color: '#2D5A27',
-    inputs: ['results'],
+    color: '#376946',
+    inputs: ['blast_results'],
     outputs: ['tree'],
     config: {
       tree_method: 'neighbor_joining',
@@ -195,17 +237,24 @@ export const blockTypes = [
       min_sequence_length: 50,
       remove_gaps: true
     }
-  },
-  {
+  },  {
     id: 'analyze_ramachandran',
     name: 'Ramachandran Plot',
-    type: 'Structure Analysis',
+    type: 'Analysis',
     description: 'Generate Ramachandran plot analysis for protein backbone conformations',
-    color: '#8B4513',
+    color: '#3C6C45',
     inputs: ['structure'],
-    outputs: ['ramachandran_plot'],
-    config: {
-      output_dir: ""
-    }
-  }
+    outputs: ['ramachandran_plot']
+  },
+  {
+    id: 'evaluate_structure',
+    name: 'Structure Comparison',
+    type: 'Analysis',
+    description: 'Compare two protein structures using USAlign to calculate TM-score, RMSD, and sequence identity',
+    color: '#325939',
+    inputs: ['structure', 'structure'],
+    outputs: ['structure_comparison']
+  },
+  
+  
 ];

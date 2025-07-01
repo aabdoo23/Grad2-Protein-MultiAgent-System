@@ -5,12 +5,6 @@ export const blockConfigSchema = {
       label: 'Enter sequences (one per line)',
       placeholder: 'Enter sequences here, one per line...',
       rows: 8
-    },
-    fasta_file: {
-      type: 'file',
-      label: 'Upload FASTA file',
-      accept: '.fasta,.fa,.fna',
-      description: 'Upload a FASTA file containing sequences to iterate through'
     }
   },
   openfold_predict: {
@@ -111,12 +105,6 @@ export const blockConfigSchema = {
       max: 1,
       step: 0.0001,
       defaultValue: 0.0001
-    },
-    interpro_ids: {
-      type: 'tagInput',
-      label: 'InterPro IDs',
-      placeholder: 'Enter InterPro IDs and press Enter',
-      defaultValue: []
     }
   },  blast_db_builder: {
     db_name: {

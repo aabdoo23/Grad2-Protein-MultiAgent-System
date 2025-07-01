@@ -9,4 +9,5 @@ Pipeline/Chatbot/node_modules
 Pipeline/Tools/TDStructure/Prediction/visualizations/
 Pipeline/static/
 Pipeline/.env
+Pipeline/server
 # Pipeline/Chatbot/src/config/

@@ -58,7 +58,8 @@ const WorkspaceSurface = ({
   setLoopConfig,
   formatMetric,
   initViewer,
-  onClearBlockOutput
+  onClearBlockOutput,
+  isAutomate
 }) => {
   const {
     updateViewport,
@@ -78,9 +79,24 @@ const WorkspaceSurface = ({
       outputs: [],
       config: null,
     };
-  };
+  };  const createNodeFromBlock = (block) => {
+    // Get connections for this block
+    const blockConnections = connections[block.id] || {};
+    
+    // Resolve input data for this block
+    const inputData = {};
+    Object.entries(blockConnections).forEach(([inputHandle, connection]) => {
+      if (connection) {
+        const connectionArray = Array.isArray(connection) ? connection : [connection];
+        connectionArray.forEach((conn) => {
+          if (conn && conn.source && blockOutputs[conn.source]) {
+            // Map the connection data to the input handle
+            inputData[inputHandle] = blockOutputs[conn.source];
+          }
+        });
+      }
+    });
 
-  const createNodeFromBlock = (block) => {
     return {
       id: block.id,
       type: 'jobBlock',
@@ -93,11 +109,14 @@ const WorkspaceSurface = ({
         onDeleteBlock: () => onDeleteBlock(block.id),
         updateBlock: (updates) => updateBlock(block.id, updates),
         blockOutput: blockOutputs[block.id],
+        connections: blockConnections,
+        inputData: inputData,
         loopConfig,
         setLoopConfig,
         formatMetric,
         initViewer,
-        onClearOutput: () => onClearBlockOutput(block.id)
+        onClearOutput: () => onClearBlockOutput(block.id),
+        isAutomate
       },
     };
   };
@@ -137,7 +156,6 @@ const WorkspaceSurface = ({
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
   // Update nodes and edges when blocks or connections change
   useEffect(() => {
     const newNodes = blocks.map(createNodeFromBlock);
@@ -156,6 +174,13 @@ const WorkspaceSurface = ({
                 target: targetId,
                 sourceHandle: connection.sourceHandle,
                 targetHandle: targetHandle,
+                style: edgeStyles.default,
+                animated: true,
+                zIndex: 1000,
+                markerEnd: {
+                  type: 'arrowclosed',
+                  color: '#13a4ec',
+                },
               });
             }
           });
@@ -163,7 +188,7 @@ const WorkspaceSurface = ({
       });
     });
     setEdges(newEdges);
-  }, [blocks, connections, blockOutputs, blockTypes, runBlock, updateBlockParameters, onDeleteBlock, loopConfig, setLoopConfig, setNodes, setEdges]);
+  }, [blocks, connections, blockOutputs, blockTypes, runBlock, updateBlockParameters, onDeleteBlock, updateBlock, loopConfig, setLoopConfig, isAutomate, formatMetric, initViewer, onClearBlockOutput]);
 
   const onNodeDragStop = useCallback((event, node) => {
     updateBlock(node.id, { position: node.position });

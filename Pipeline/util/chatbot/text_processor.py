@@ -24,7 +24,7 @@ class PipelineFunction(Enum):
             PipelineFunction.GENERATE_PROTEIN.value: "Generate a protein sequence",
             PipelineFunction.PREDICT_STRUCTURE.value: "Predict protein structure",
             PipelineFunction.SEARCH_STRUCTURE.value: "Search for similar structures",
-            PipelineFunction.EVALUATE_STRUCTURE.value: "Evaluate structure quality",
+            PipelineFunction.EVALUATE_STRUCTURE.value: "Compare two protein structures",
             PipelineFunction.SEARCH_SIMILARITY.value: "Search for similar sequences",
             PipelineFunction.PREDICT_BINDING_SITES.value: "Predict protein binding sites",
             PipelineFunction.PERFORM_DOCKING.value: "Perform molecular docking",
@@ -55,6 +55,7 @@ Return a JSON object with two fields:
 Valid function names and their purposes:
 - generate_protein: Generate a new protein sequence
 - predict_structure: Predict 3D structure of a protein sequence
+- evaluate_structure: Compare two protein structures using USAlign
 - predict_binding_sites: Predict protein binding sites using P2Rank
 - search_similarity: Search for similar protein sequences using BLAST or ColabFold MSA
 - search_structure: Search for similar protein structures using FoldSeek
@@ -98,6 +99,10 @@ For build_phylogenetic_tree, you can include these optional parameters:
 
 For analyze_ramachandran, you can include these optional parameters:
 - "output_dir": Custom output directory for Ramachandran plot and data files
+
+For evaluate_structure, you MUST include these parameters:
+- "pdb_file1": Path to the first PDB file for comparison
+- "pdb_file2": Path to the second PDB file for comparison
 
 Example response format:
 {
@@ -143,6 +148,8 @@ Rules:
 16. For predict_structure, ONLY include the model parameter if EXPLICITLY mentioned in the request
 17. For search_similarity, ONLY include the search_type parameter if EXPLICITLY mentioned in the request
 18. If a model or search type is not explicitly specified, DO NOT include the corresponding parameter
+19. For evaluate_structure, both pdb_file1 and pdb_file2 parameters are required and must specify the paths to the two PDB files to compare
+20. Only include evaluate_structure if structure comparison is explicitly requested
 """
         try:
             response = self.client.chat.completions.create(

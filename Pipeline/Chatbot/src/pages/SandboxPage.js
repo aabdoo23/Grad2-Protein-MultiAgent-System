@@ -1,16 +1,16 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import BlockPalette from './BlockPalette';
-import WorkspaceSurface from './WorkspaceSurface';
-import JobManager from '../JobManager';
-import { downloadService, jobService } from '../../services/api';
-import { blockTypes } from './config/blockTypes';
-import useWorkspaceStore from '../../store/workspaceStore';
-import { AWAIT_TIME } from '../../config/config';
+import BlockPalette from '../components/sandbox/BlockPalette';
+import WorkspaceSurface from '../components/sandbox/WorkspaceSurface';
+import JobManager from '../components/JobManager';
+import { downloadService, jobService } from '../services/api';
+import { blockTypes } from '../config/sandbox/blockTypes';
+import useWorkspaceStore from '../store/workspaceStore';
+import { AWAIT_TIME } from '../config/appConfig';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { showErrorToast } from '../../services/notificationService';
+import { showErrorToast } from '../services/notificationService';
 
 // Mol* imports
 import { createPluginUI } from 'molstar/lib/mol-plugin-ui';
@@ -174,22 +174,19 @@ const SandboxPage = () => {
   const addBlock = (newBlockInstance) => {
     addBlockToStore(newBlockInstance);
   };
-
   // Update block parameters (can still be a local utility if it then calls store)
-  const updateBlockParameters = (blockId, parameters) => {
+  const updateBlockParameters = useCallback((blockId, parameters) => {
     const block = blocks.find(b => b.id === blockId);
     if (block) {
       updateBlockInStore(blockId, { parameters: { ...block.parameters, ...parameters } });
     }
-  };
-
+  }, [blocks, updateBlockInStore]);
   // Update block properties (this now calls the store action)
-  const updateBlock = (blockId, updates) => {
+  const updateBlock = useCallback((blockId, updates) => {
     updateBlockInStore(blockId, updates);
-  };
-
+  }, [updateBlockInStore]);
   // Delete a block and its connections (this now calls the store action)
-  const deleteBlock = (blockId) => {
+  const deleteBlock = useCallback((blockId) => {
     // Also dispose Mol* plugin if a block is deleted
     const viewerDomId = `viewer-${blockId}`;
     if (molstarPlugins.current[viewerDomId]) {
@@ -198,25 +195,35 @@ const SandboxPage = () => {
       delete molstarPlugins.current[viewerDomId];
     }
     deleteBlockInStore(blockId);
-  };
-
-  const clearBlockOutput = (blockId) => {
+  }, [deleteBlockInStore]);
+  const clearBlockOutput = useCallback((blockId) => {
     setBlockOutputs(prev => {
       const newOutputs = { ...prev };
       delete newOutputs[blockId];
       return newOutputs;
     });
-  };
-
+  }, []);
   // Add this function after the deleteBlock function
   const clearOutputs = () => {
-    // Reset all block statuses to 'idle'
-    blocks.forEach(block => updateBlockInStore(block.id, { status: 'idle' }));
+    // Reset block statuses to 'idle' only for blocks that don't have preserveOnReset
+    blocks.forEach(block => {
+      if (!block.preserveOnReset) {
+        updateBlockInStore(block.id, { status: 'idle' });
+      }
+    });
 
-    // Clear all block outputs
-    setBlockOutputs({});
+    // Clear block outputs only for blocks that don't have preserveOnReset
+    setBlockOutputs(prev => {
+      const newOutputs = { ...prev };
+      blocks.forEach(block => {
+        if (!block.preserveOnReset) {
+          delete newOutputs[block.id];
+        }
+      });
+      return newOutputs;
+    });
 
-    console.log('All block outputs cleared and statuses reset');
+    console.log('Block outputs cleared and statuses reset (respecting preserve settings)');
   };
 
   // Add loop control functions
@@ -266,14 +273,14 @@ const SandboxPage = () => {
     }
   };
 
-  // Add helper functions for resetting blocks and outputs
+  // Add helper functions for resetting blocks and outputs  
   const resetBlocksBetween = (startBlockId, endBlockId) => {
     const startIndex = blocks.findIndex(b => b.id === startBlockId);
     const endIndex = blocks.findIndex(b => b.id === endBlockId);
 
     if (startIndex !== -1 && endIndex !== -1) {
       for (let i = startIndex; i <= endIndex; i++) {
-        if (blocks[i]) {
+        if (blocks[i] && !blocks[i].preserveOnReset) {
           // Only update the status while preserving all other properties
           updateBlockInStore(blocks[i].id, {
             status: 'idle',
@@ -287,7 +294,6 @@ const SandboxPage = () => {
       }
     }
   };
-
   const resetOutputsBetween = (startBlockId, endBlockId) => {
     const startIndex = blocks.findIndex(b => b.id === startBlockId);
     const endIndex = blocks.findIndex(b => b.id === endBlockId);
@@ -296,7 +302,7 @@ const SandboxPage = () => {
       setBlockOutputs(prevOutputs => {
         const newBlockOutputs = { ...prevOutputs };
         for (let i = startIndex; i <= endIndex; i++) {
-          if (blocks[i] && blocks[i].id) {
+          if (blocks[i] && blocks[i].id && !blocks[i].preserveOnReset) {
             delete newBlockOutputs[blocks[i].id];
           }
         }
@@ -305,27 +311,6 @@ const SandboxPage = () => {
     } else {
       console.warn("resetOutputsBetween: Could not reset outputs, start or end block not found or invalid range. Start:", startBlockId, "End:", endBlockId);
     }
-  };
-
-  const getNextBlocksInChain = (currentBlockId) => {
-    const nextBlocks = blocks.filter(block => {
-      const blockConnection = connections[block.id];
-      if (!blockConnection) return false;
-      
-      // Check if any input handle has a connection from the current block
-      return Object.entries(blockConnection).some(([handle, connections]) => {
-        // Handle both array and single connection for backward compatibility
-        const connectionArray = Array.isArray(connections) ? connections : [connections];
-        return connectionArray.some(conn => conn && conn.source === currentBlockId);
-      });
-    });
-
-    if (nextBlocks.length > 0) {
-      console.log('Next blocks:', nextBlocks.map(b => b.id).join(', '));
-      return nextBlocks;
-    }
-    console.log('No next blocks found - end of sequence');
-    return [];
   };
 
   const runBlock = async (blockId, params = null) => {
@@ -349,8 +334,7 @@ const SandboxPage = () => {
           connectionArray.forEach(conn => {
             if (conn && blockOutputs[conn.source]) {
               const sourceOutput = blockOutputs[conn.source];
-              console.log(`Getting ${conn.sourceHandle} from block ${conn.source}:`, sourceOutput);
-              switch (conn.sourceHandle) {
+              console.log(`Getting ${conn.sourceHandle} from block ${conn.source}:`, sourceOutput);              switch (conn.sourceHandle) {
                 case 'sequence':
                   if (sourceOutput.sequence !== undefined) { // If source explicitly provides a single sequence
                     blockInputs.sequence = sourceOutput.sequence;
@@ -375,6 +359,10 @@ const SandboxPage = () => {
                   break;
                 case 'metrics': blockInputs.metrics = sourceOutput.metrics; break;
                 case 'results': blockInputs.results = sourceOutput.results; break;
+                case 'blast_results': blockInputs.blast_results = sourceOutput.results; break;
+                case 'foldseek_results': blockInputs.foldseek_results = sourceOutput.results; break;
+                case 'msa_results': blockInputs.msa_results = sourceOutput.results; break;
+                case 'docking_results': blockInputs.docking_results = sourceOutput.results; break;
                 case 'binding_sites':
                   // Handle binding sites output - pass through the data for downstream processing
                   blockInputs.binding_sites = sourceOutput.binding_sites;
@@ -549,22 +537,11 @@ const SandboxPage = () => {
                 }, 100); // Reduced delay
               }
               return { ...prev, currentIteration: nextIteration }; // Update to the actual next iteration
-            });
-          } else if (isAutomate && blockId !== loopConfig.endBlockId) { // Only chain if not the end of an active loop
+            });          } else if (isAutomate && blockId !== loopConfig.endBlockId) { 
             // Standard automation chain if not the end of an active loop iteration
-            console.log('Standard automation: Running next blocks in chain from multi_download');
-            const nextBlocks = getNextBlocksInChain(blockId);
-            if (nextBlocks.length > 0) {
-              setTimeout(() => {
-                nextBlocks.forEach(nextBlock => {
-                  if (nextBlock && nextBlock.id) {
-                    runBlock(nextBlock.id, { ...blockOutputsRef.current[blockId] });
-                  }
-                });
-              }, AWAIT_TIME);
-            } else {
-              console.log('Pipeline sequence completed after multi_download.');
-            }
+            // Automation is now handled by the centralized useEffect automation logic
+            // Set lastCompletedBlockId to trigger automation chain
+            setLastCompletedBlockId(blockId);
           }
         } else {
           updateBlockInStore(blockId, { status: 'failed' });
@@ -675,8 +652,7 @@ const SandboxPage = () => {
         updateBlockInStore(blockId, { 
           status: 'completed', 
           parameters: { ...currentRunParams } // Persist the final state of currentRunParams
-        });
-        if (loopConfig.isEnabled && loopConfig.iterationType === 'sequence' && loopConfig.sequenceBlockId === blockId) {
+        });        if (loopConfig.isEnabled && loopConfig.iterationType === 'sequence' && loopConfig.sequenceBlockId === blockId) {
             console.log("Sequence iterator is the loop's sequence provider and has finished. Stopping loop.");
             stopLoop(); 
         }
@@ -715,27 +691,11 @@ const SandboxPage = () => {
       }));
 
       console.log('Sequence iterator output:', output);
-      console.log('isAutomate:', isAutomate);
-
+      console.log('isAutomate:', isAutomate);      // Automation is now handled by the centralized useEffect automation logic
+      // Set lastCompletedBlockId to trigger automation chain
       if (isAutomate) {
-        console.log('Automation enabled, running next blocks in sequence iterator chain');
-        const nextBlocks = getNextBlocksInChain(blockId);
-        if (nextBlocks.length > 0) {
-          setTimeout(() => {
-            nextBlocks.forEach(nextBlock => {
-              if (nextBlock && nextBlock.id) {
-                console.log(`Triggering next block ${nextBlock.id} with sequence data`);
-                runBlock(nextBlock.id, {
-                  sequence: currentSequence,
-                  sequence_name: `sequence_${currentIndex + 1}`
-                });
-              }
-            });
-          }, 1000);
-        } else {
-          console.log('No connected blocks found for sequence iterator');
-        }
-      }      return;
+        setLastCompletedBlockId(blockId);
+      }return;
     }
 
     // Input Data Check (for standard blocks, after blockInputs is populated)
@@ -747,6 +707,10 @@ const SandboxPage = () => {
             case 'molecule': return 'molecule_file';
             case 'metrics': return 'metrics';
             case 'results': return 'results';
+            case 'blast_results': return 'blast_results';
+            case 'foldseek_results': return 'foldseek_results';
+            case 'msa_results': return 'msa_results';
+            case 'docking_results': return 'docking_results';
             case 'binding_sites': return 'binding_sites';
             case 'fasta': return 'fasta_file'; // Used by sequence_iterator if input is a file
             default: return handleName; // Assumes the data is directly under the handle name in blockInputs
@@ -933,33 +897,57 @@ const SandboxPage = () => {
 
     pollingInterval = setInterval(checkStatus, AWAIT_TIME);
     checkStatus();
-  };
-
-  // --- NEW: useEffect to trigger automation chain only after status is updated ---
+  };  // --- NEW: useEffect to trigger automation chain only after status is updated ---
   useEffect(() => {
+    console.log('Automation useEffect triggered:', { isAutomate, lastCompletedBlockId });
+    
     if (!isAutomate || !lastCompletedBlockId) return;
+    
+    // Use the blocks from the store directly to avoid dependency issues
+    const currentBlocks = useWorkspaceStore.getState().blocks;
+    const currentConnections = useWorkspaceStore.getState().connections;
+    
+    console.log('Current blocks in automation:', currentBlocks.length);
+    
     // Find the block in the latest Zustand state
-    const completedBlock = blocks.find(b => b.id === lastCompletedBlockId && b.status === 'completed');
-    if (!completedBlock) return;
-    // Get next blocks in chain
-    const nextBlocks = getNextBlocksInChain(lastCompletedBlockId);
+    const completedBlock = currentBlocks.find(b => b.id === lastCompletedBlockId && b.status === 'completed');
+    if (!completedBlock) {
+      console.log('Completed block not found or not completed:', lastCompletedBlockId);
+      return;
+    }
+    
+    // Get next blocks in chain using current state
+    const nextBlocks = currentBlocks.filter(block => {
+      const blockConnection = currentConnections[block.id];
+      if (!blockConnection) return false;
+      
+      // Check if any input handle has a connection from the current block
+      return Object.entries(blockConnection).some(([handle, connections]) => {
+        // Handle both array and single connection for backward compatibility
+        const connectionArray = Array.isArray(connections) ? connections : [connections];
+        return connectionArray.some(conn => conn && conn.source === lastCompletedBlockId);
+      });
+    });
+    
     if (nextBlocks.length > 0) {
+      console.log('Next blocks:', nextBlocks.map(b => b.id).join(', '));
       setTimeout(() => {
         nextBlocks.forEach(nextBlock => {
           if (nextBlock && nextBlock.id) {
-            // Pass the current block's output to the next block in the chain
-            const inputForNextBlock = lastCompletedBlockId === loopConfig.sequenceBlockId
-              ? blockOutputsRef.current[lastCompletedBlockId]
-              : blockOutputsRef.current[lastCompletedBlockId];
             console.log(`Automated chain (useEffect): Triggering ${nextBlock.id} from ${lastCompletedBlockId}`);
-            runBlock(nextBlock.id, inputForNextBlock);
+            // Don't pass params - let the normal connection-based input processing handle the data mapping
+            runBlock(nextBlock.id);
           }
         });
       }, AWAIT_TIME);
+    } else {
+      console.log('No next blocks found - automation chain completed');
     }
-    // Reset lastCompletedBlockId so it doesn't retrigger
-    setLastCompletedBlockId(null);
-  }, [lastCompletedBlockId, isAutomate, blocks, loopConfig.sequenceBlockId]);
+      // Reset lastCompletedBlockId so it doesn't retrigger (delayed to prevent race conditions)
+    setTimeout(() => {
+      setLastCompletedBlockId(null);
+    }, 100);
+  }, [lastCompletedBlockId, isAutomate, loopConfig.sequenceBlockId]);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -995,183 +983,170 @@ const SandboxPage = () => {
     }
   };
 
-  // Add this new component for the top bar
-  const TopBar = () => (
-    <header className="flex flex-col bg-[#111c22]/95 backdrop-blur-sm border-b border-[#233c48]">
-      {/* Main bar */}
-      <div className="flex items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-4">
-          <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em] flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#13a4ec]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-            </svg>
-            Protomatic
-          </h2>
-        </div>
-
-        <div className="flex items-center gap-4">
-          {/* Quick actions */}
-          <button
-            onClick={clearOutputs}
-            className="px-4 py-2 bg-[#233c48] text-white rounded-lg text-sm hover:bg-[#2a4a5a] transition-all duration-200 flex items-center gap-2 group"
-            title="Clear all outputs and reset blocks"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Clear Outputs
-          </button>
-
-          <button
-            onClick={handleClearAllBlocks}
-            className="px-4 py-2 bg-[#c82333] text-white border border-[#c82333] rounded-lg text-sm hover:bg-[#dc3545] transition-all duration-200 flex items-center gap-2 group"
-            title="Clear all blocks from workspace"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white group-hover:rotate-12 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Clear All
-          </button>
-
-          {/* Settings toggle */}
-          <button
-            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            className="px-4 py-2 bg-[#233c48] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#2a4a5a] transition-all duration-200 flex items-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Settings
-          </button>
-        </div>
-      </div>
-
-      {/* Collapsible settings panel */}
-      {isSettingsOpen && (
-        <div className="px-6 py-4 bg-[#1a2c35] border-t border-[#233c48]">
-          <div className="flex flex-wrap gap-6">
-            {/* Loop Controls */}
-            <div className="flex-1 min-w-[300px]">
-              <div className="flex items-center gap-4 bg-[#233c48] px-4 py-3 rounded-lg border border-[#344854]">
-                <div className="flex items-center gap-3">
-                  <span className="text-white text-sm font-medium">Loop</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={loopConfig.isEnabled}
-                      onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))}
-                    />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
-                  </label>
-                </div>
-                {loopConfig.isEnabled && (
-                  <div className="flex flex-wrap gap-3">
-                    <select
-                      className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-                      value={loopConfig.startBlockId || ''}
-                      onChange={(e) => setLoopConfig(prev => ({ ...prev, startBlockId: e.target.value }))}
-                    >
-                      <option value="">Select Start Block</option>
-                      {blocks.map(b => (
-                        <option key={`start-${b.id}`} value={b.id}>
-                          {b.type} - ({b.id})
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-                      value={loopConfig.endBlockId || ''}
-                      onChange={(e) => setLoopConfig(prev => ({ ...prev, endBlockId: e.target.value }))}
-                    >
-                      <option value="">Select End Block</option>
-                      {blocks.map(b => (
-                        <option key={`end-${b.id}`} value={b.id}>
-                          {b.type} - ({b.id})
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-                      value={loopConfig.iterationType}
-                      onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationType: e.target.value }))}
-                    >
-                      <option value="count">Count</option>
-                      <option value="sequence">Sequence</option>
-                    </select>
-                    {loopConfig.iterationType === 'count' ? (
-                      <input
-                        type="number"
-                        min="1"
-                        value={loopConfig.iterationCount}
-                        onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationCount: parseInt(e.target.value) }))}
-                        className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-20"
-                      />
-                    ) : (
-                      <select
-                        className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
-                        value={loopConfig.sequenceBlockId || ''}
-                        onChange={(e) => setLoopConfig(prev => ({ ...prev, sequenceBlockId: e.target.value }))}
-                      >
-                        <option value="">Select Sequence Block</option>
-                        {blocks
-                          .filter(b => b.type === 'sequence_iterator')
-                          .map(b => (
-                            <option key={b.id} value={b.id}>
-                              {b.id}
-                            </option>
-                          ))}
-                      </select>
-                    )}
-                    <button
-                      onClick={startLoop}
-                      className="px-4 py-1.5 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1] transition-colors duration-200 flex items-center gap-2"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Start Loop
-                    </button>
-                    <button
-                      onClick={stopLoop}
-                      className="px-4 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200 flex items-center gap-2"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 15l4-4m0" />
-                      </svg>
-                      Stop Loop
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-            {/* Automation toggle */}
-            <div className="flex items-center gap-3 bg-[#233c48] px-4 py-2 rounded-lg border border-[#344854]">
-              <span className="text-white text-sm font-medium">Automate</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" checked={isAutomate} onChange={() => setIsAutomate(!isAutomate)} />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
-              </label>
-            </div>
-          </div>
-        </div>
-      )}
-    </header>
-  );
-
-  return (
-    <div className="flex flex-col h-screen bg-[#111c22]">
-      <TopBar />
+   return (
+    <div className="flex flex-col h-full bg-gradient-to-br from-[#0f1419] via-[#111c22] to-[#0d1117]">
       <DndProvider backend={HTML5Backend}>
         <div className="flex flex-1 overflow-hidden">
-          <div className="bg-[#1a2b34] border-r border-[#233c48] overflow-y-auto p-4 transition-all duration-100 ease-in-out">
+          {/* Dynamic Sidebar Container */}
+          <div className="flex-shrink-0 bg-gradient-to-b from-[#1a2b34] to-[#152028] border-r border-[#233c48]/50 shadow-2xl backdrop-blur-sm">
             <BlockPalette blockTypes={blockTypes} />
           </div>
 
-          <div className="flex-1 relative overflow-auto">
+          {/* Main Workspace */}
+          <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-[#111c22] to-[#0d1520]">
+            {/* Floating Action Buttons */}
+            <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
+              {/* Settings Toggle */}
+              <button
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                className="w-12 h-12 bg-[#233c48] hover:bg-[#2a4a5a] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                title="Settings"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+
+              {/* Clear Outputs */}
+              <button
+                onClick={clearOutputs}
+                className="w-12 h-12 bg-[#233c48] hover:bg-[#2a4a5a] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                title="Clear all outputs"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 group-hover:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+
+              {/* Clear All Blocks */}
+              <button
+                onClick={handleClearAllBlocks}
+                className="w-12 h-12 bg-[#c82333] hover:bg-[#dc3545] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                title="Clear all blocks"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 group-hover:rotate-12 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+
+              {/* Automation Toggle */}
+              <button
+                onClick={() => setIsAutomate(!isAutomate)}
+                className={`w-12 h-12 ${isAutomate ? 'bg-[#13a4ec]' : 'bg-[#233c48]'} hover:bg-[#2a4a5a] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center`}
+                title={`Automation: ${isAutomate ? 'ON' : 'OFF'}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Settings Panel */}
+            {isSettingsOpen && (
+              <div className="absolute top-4 left-4 right-20 z-40 bg-[#1a2c35] border border-[#233c48] rounded-lg p-4 shadow-xl backdrop-blur-sm">
+                <div className="flex flex-wrap gap-4">
+                  {/* Loop Controls */}
+                  <div className="flex-1 min-w-[300px]">
+                    <div className="flex items-center gap-4 bg-[#233c48] px-4 py-3 rounded-lg border border-[#344854]">
+                      <div className="flex items-center gap-3">
+                        <span className="text-white text-sm font-medium">Loop</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={loopConfig.isEnabled}
+                            onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))}
+                          />
+                          <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
+                        </label>
+                      </div>
+                      {loopConfig.isEnabled && (
+                        <div className="flex flex-wrap gap-3">
+                          <select
+                            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                            value={loopConfig.startBlockId || ''}
+                            onChange={(e) => setLoopConfig(prev => ({ ...prev, startBlockId: e.target.value }))}
+                          >
+                            <option value="">Select Start Block</option>
+                            {blocks.map(b => (
+                              <option key={`start-${b.id}`} value={b.id}>
+                                {b.type} - ({b.id})
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                            value={loopConfig.endBlockId || ''}
+                            onChange={(e) => setLoopConfig(prev => ({ ...prev, endBlockId: e.target.value }))}
+                          >
+                            <option value="">Select End Block</option>
+                            {blocks.map(b => (
+                              <option key={`end-${b.id}`} value={b.id}>
+                                {b.type} - ({b.id})
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                            value={loopConfig.iterationType}
+                            onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationType: e.target.value }))}
+                          >
+                            <option value="count">Count</option>
+                            <option value="sequence">Sequence</option>
+                          </select>
+                          {loopConfig.iterationType === 'count' ? (
+                            <input
+                              type="number"
+                              min="1"
+                              value={loopConfig.iterationCount}
+                              onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationCount: parseInt(e.target.value) }))}
+                              className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-20"
+                            />
+                          ) : (
+                            <select
+                              className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                              value={loopConfig.sequenceBlockId || ''}
+                              onChange={(e) => setLoopConfig(prev => ({ ...prev, sequenceBlockId: e.target.value }))}
+                            >
+                              <option value="">Select Sequence Block</option>
+                              {blocks
+                                .filter(b => b.type === 'sequence_iterator')
+                                .map(b => (
+                                  <option key={b.id} value={b.id}>
+                                    {b.id}
+                                  </option>
+                                ))}
+                            </select>
+                          )}
+                          <button
+                            onClick={startLoop}
+                            className="px-4 py-1.5 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1] transition-colors duration-200 flex items-center gap-2"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Start Loop
+                          </button>
+                          <button
+                            onClick={stopLoop}
+                            className="px-4 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200 flex items-center gap-2"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10h6v4H9z" />
+                            </svg>
+                            Stop Loop
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <WorkspaceSurface
               blocks={blocks}
               blockTypes={blockTypes}
@@ -1189,6 +1164,7 @@ const SandboxPage = () => {
               formatMetric={formatMetric}
               initViewer={initViewer}
               onClearBlockOutput={clearBlockOutput}
+              isAutomate={isAutomate}
             />
           </div>
         </div>
