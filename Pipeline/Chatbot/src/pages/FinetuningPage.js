@@ -21,7 +21,7 @@ import {
   GenerationHistory,
   saveGenerationToHistory 
 } from '../components/finetuning/FormComponents';
-import { ModelsList, JobsList } from '../components/finetuning/JobComponents';
+import { JobsList } from '../components/finetuning/JobComponents';
 
 const FinetuningPage = () => {
   const [activeTab, setActiveTab] = useState('finetune');
@@ -35,7 +35,6 @@ const FinetuningPage = () => {
     finetunedModels,
     serverHealth,
     statistics,
-    storageInfo,
     activeJobs,
     completedJobs,
     failedJobs,

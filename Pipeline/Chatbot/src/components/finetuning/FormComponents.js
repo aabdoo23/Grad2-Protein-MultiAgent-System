@@ -573,7 +573,7 @@ export const GenerateForm = ({
     model_dir: '',
     max_new_tokens: 200,
     num_return_sequences: 1,
-    temperature: 0.7,
+    temperature: 1.0,
     top_p: 0.9,
     top_k: 50
   });
@@ -901,10 +901,6 @@ export const GenerationHistory = ({ onSelectGeneration, className = "" }) => {
   const [history, setHistory] = useState(getGenerationHistory());
   const [showHistory, setShowHistory] = useState(false);
 
-  const refreshHistory = () => {
-    setHistory(getGenerationHistory());
-  };
-
   const handleClearHistory = () => {
     if (window.confirm('Are you sure you want to clear all generation history?')) {
       clearGenerationHistory();
@@ -973,29 +969,3 @@ export const GenerationHistory = ({ onSelectGeneration, className = "" }) => {
 
 // Export the storage utilities for use in the main component
 export { saveGenerationToHistory, getGenerationHistory, clearGenerationHistory };
-
-// For testing - you can call this to populate with the sample data
-export const useSampleData = () => {
-  const sampleGenerationResult = {
-    "generation_id": "6ef21094-95a4-45bf-89ce-b26b60419080",
-    "model_name": "protgpt2",
-    "model_dir": "/workspace/volume1/finetuned/user-protgpt2-20250701_125828/final_model",
-    "prompt": "MELHILEHRVRVLSVARQGLWLYTHPLIKLLFLPHRSRCKFFSLTETPEDYTLMVDEEGFKELPPSEFLQVAEATWLVMNVSSHSGAVMQA",
-    "generated_sequences": [
-      {
-        "sequence_id": 1,
-        "generated_text": "\nMELHILEHRVRVLSVARQGLWLYTHPLIKLLFLPHRSRCKFFSLTETPEDYTLMVDEEGFKELPPSEFLQVAEATWLVMNVSSHSGAVMQA\nLQSLVRQMRQLLPHLPDLPSPPPTPPSPSLPPPTTPRPPPTTPPPPPSPTPSTTPPPSPTPLFP\nNITTLLPRLQALSEDIADLRDTLLKLQGLHLHLPTPPPDPGPPPAPGDPLLPRLNVTAQGLRG\nLHQHLSVLRGLWGNLTQQHQHLSGLYRRLDGLFLSHYQSHQPSPTTPWPPPSPPSPTPPYPPT\nPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSP\nTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPP\nPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPY\nPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPR\nPSPTPPFPPPTPPYPPTPGPSPTPPF"
-      },
-      // ... more sequences
-    ],
-    "generation_params": {
-      "max_new_tokens": 200,
-      "temperature": 0.7,
-      "top_p": 0.9,
-      "top_k": 50,
-      "num_return_sequences": 13
-    }
-  };
-
-  return sampleGenerationResult;
-};
