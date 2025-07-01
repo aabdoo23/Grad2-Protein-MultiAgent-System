@@ -11,7 +11,6 @@ import logging
 
 # Import all modules
 from api.auth import auth_bp, init_auth_module
-from api.finetune import finetune_bp, init_finetune_module
 from api.pipeline import pipeline_bp, init_pipeline_module
 from api.files import files_bp, init_files_module
 from api.search import search_bp, init_search_module
@@ -25,7 +24,6 @@ from Tools.TDStructure.Evaluation.structure_evaluator import StructureEvaluator
 from Tools.Search.BLAST.ncbi_blast_searcher import NCBI_BLAST_Searcher
 from Tools.Search.BLAST.database_builder import BlastDatabaseBuilder
 from util.modules.download_handler import DownloadHandler
-from util.finetune_client import finetune_client
 from database.db_manager import DatabaseManager
 from util.auth_manager import AuthManager
 
@@ -91,7 +89,6 @@ def create_app():
     
     # Initialize all modules with their dependencies
     init_auth_module(auth_manager, app.logger)
-    init_finetune_module(finetune_client, app.logger)
     init_pipeline_module(controller, job_manager, memory, app.logger)
     init_files_module(STATIC_PDB_DIR, UPLOAD_DIR, download_handler, app.logger)
     init_search_module(blast_searcher, foldseek_searcher, structure_evaluator, 
@@ -99,7 +96,6 @@ def create_app():
     
     # Register blueprints
     app.register_blueprint(auth_bp)
-    app.register_blueprint(finetune_bp)
     app.register_blueprint(pipeline_bp)
     app.register_blueprint(files_bp)
     app.register_blueprint(search_bp)

@@ -1,5 +1,271 @@
 import { useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faDownload, 
+  faCopy, 
+  faExpand, 
+  faCompress,
+  faEye,
+  faEyeSlash,
+  faFileText,
+  faDna
+} from '@fortawesome/free-solid-svg-icons';
 import { FormField, Button, Card } from './CommonComponents';
+
+// Storage utility for generation history
+const GENERATION_HISTORY_KEY = 'protein_generation_history';
+
+const saveGenerationToHistory = (generationResult) => {
+  try {
+    const history = JSON.parse(localStorage.getItem(GENERATION_HISTORY_KEY) || '[]');
+    const newEntry = {
+      ...generationResult,
+      timestamp: new Date().toISOString(),
+      id: generationResult.generation_id || Date.now().toString()
+    };
+    
+    // Keep only the last 50 generations
+    const updatedHistory = [newEntry, ...history].slice(0, 50);
+    localStorage.setItem(GENERATION_HISTORY_KEY, JSON.stringify(updatedHistory));
+    
+    return updatedHistory;
+  } catch (error) {
+    console.error('Failed to save generation to history:', error);
+    return [];
+  }
+};
+
+const getGenerationHistory = () => {
+  try {
+    return JSON.parse(localStorage.getItem(GENERATION_HISTORY_KEY) || '[]');
+  } catch (error) {
+    console.error('Failed to load generation history:', error);
+    return [];
+  }
+};
+
+const clearGenerationHistory = () => {
+  localStorage.removeItem(GENERATION_HISTORY_KEY);
+};
+
+// Component to display generated protein sequences
+export const GeneratedSequencesDisplay = ({ 
+  generationResult, 
+  onClose,
+  className = ""
+}) => {
+  const [expandedSequences, setExpandedSequences] = useState(new Set());
+  const [showAllSequences, setShowAllSequences] = useState(false);
+
+  if (!generationResult?.generated_sequences) {
+    return null;
+  }
+
+  const { generated_sequences, generation_params, model_name, model_dir, prompt } = generationResult;
+
+  const toggleSequenceExpansion = (sequenceId) => {
+    const newExpanded = new Set(expandedSequences);
+    if (newExpanded.has(sequenceId)) {
+      newExpanded.delete(sequenceId);
+    } else {
+      newExpanded.add(sequenceId);
+    }
+    setExpandedSequences(newExpanded);
+  };
+
+  const copySequence = (sequence) => {
+    navigator.clipboard.writeText(sequence);
+    // You could add a toast notification here
+    alert('Sequence copied to clipboard!');
+  };
+
+  const downloadSequences = (format = 'fasta') => {
+    let content = '';
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    
+    if (format === 'fasta') {
+      generated_sequences.forEach((seq, index) => {
+        const cleanSequence = seq.generated_text.replace(/\n/g, '').replace(prompt, '');
+        content += `>Generated_Sequence_${seq.sequence_id || index + 1}_${model_name}\n`;
+        content += `${cleanSequence}\n\n`;
+      });
+    } else if (format === 'json') {
+      content = JSON.stringify(generationResult, null, 2);
+    } else if (format === 'txt') {
+      content = `Generated Protein Sequences\n`;
+      content += `=========================\n\n`;
+      content += `Model: ${model_name}\n`;
+      content += `Model Directory: ${model_dir}\n`;
+      content += `Prompt: ${prompt}\n`;
+      content += `Generated: ${new Date().toISOString()}\n`;
+      content += `Parameters: ${JSON.stringify(generation_params, null, 2)}\n\n`;
+      
+      generated_sequences.forEach((seq, index) => {
+        const cleanSequence = seq.generated_text.replace(/\n/g, '').replace(prompt, '');
+        content += `Sequence ${seq.sequence_id || index + 1}:\n`;
+        content += `${cleanSequence}\n\n`;
+      });
+    }
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `generated_sequences_${timestamp}.${format === 'json' ? 'json' : format === 'fasta' ? 'fasta' : 'txt'}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const displayedSequences = showAllSequences ? generated_sequences : generated_sequences.slice(0, 5);
+
+  return (
+    <Card 
+      title={
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faDna} className="text-green-400" />
+            <span>Generated Protein Sequences ({generated_sequences.length})</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => downloadSequences('fasta')}
+              size="sm"
+              variant="secondary"
+            >
+              <FontAwesomeIcon icon={faDownload} className="w-4 h-4 mr-1" />
+              FASTA
+            </Button>
+            <Button
+              onClick={() => downloadSequences('json')}
+              size="sm"
+              variant="secondary"
+            >
+              <FontAwesomeIcon icon={faDownload} className="w-4 h-4 mr-1" />
+              JSON
+            </Button>
+            <Button
+              onClick={() => downloadSequences('txt')}
+              size="sm"
+              variant="secondary"
+            >
+              <FontAwesomeIcon icon={faDownload} className="w-4 h-4 mr-1" />
+              TXT
+            </Button>
+            {onClose && (
+              <Button
+                onClick={onClose}
+                size="sm"
+                variant="secondary"
+              >
+                ×
+              </Button>
+            )}
+          </div>
+        </div>
+      }
+      className={className}
+    >
+      <div className="space-y-4">
+        {/* Generation Info */}
+        <div className="bg-[#1a2d35] rounded-lg p-4">
+          <h4 className="text-white font-medium mb-2">Generation Details</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-400">Model:</span>
+              <span className="text-white ml-2">{model_name}</span>
+            </div>
+            <div>
+              <span className="text-gray-400">Sequences:</span>
+              <span className="text-white ml-2">{generated_sequences.length}</span>
+            </div>
+            <div>
+              <span className="text-gray-400">Max Tokens:</span>
+              <span className="text-white ml-2">{generation_params?.max_new_tokens || 'N/A'}</span>
+            </div>
+            <div>
+              <span className="text-gray-400">Temperature:</span>
+              <span className="text-white ml-2">{generation_params?.temperature || 'N/A'}</span>
+            </div>
+          </div>
+          <div className="mt-2">
+            <span className="text-gray-400">Prompt:</span>
+            <div className="text-white ml-2 font-mono text-xs bg-[#233c48] p-2 rounded mt-1">
+              {prompt}
+            </div>
+          </div>
+        </div>
+
+        {/* Sequences */}
+        <div className="space-y-3">
+          {displayedSequences.map((seq, index) => {
+            const isExpanded = expandedSequences.has(seq.sequence_id || index);
+            const cleanSequence = seq.generated_text.replace(/\n/g, '').replace(prompt, '');
+            const displaySequence = isExpanded ? cleanSequence : cleanSequence.slice(0, 100) + (cleanSequence.length > 100 ? '...' : '');
+            
+            return (
+              <div key={seq.sequence_id || index} className="bg-[#1a2d35] rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h5 className="text-white font-medium">
+                    Sequence {seq.sequence_id || index + 1}
+                    <span className="text-gray-400 ml-2 text-sm">({cleanSequence.length} amino acids)</span>
+                  </h5>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => copySequence(cleanSequence)}
+                      size="xs"
+                      variant="secondary"
+                    >
+                      <FontAwesomeIcon icon={faCopy} className="w-3 h-3" />
+                    </Button>
+                    {cleanSequence.length > 100 && (
+                      <Button
+                        onClick={() => toggleSequenceExpansion(seq.sequence_id || index)}
+                        size="xs"
+                        variant="secondary"
+                      >
+                        <FontAwesomeIcon 
+                          icon={isExpanded ? faCompress : faExpand} 
+                          className="w-3 h-3" 
+                        />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="font-mono text-xs bg-[#233c48] p-3 rounded border border-gray-600 overflow-x-auto">
+                  <div className="text-green-400 whitespace-pre-wrap break-all">
+                    {displaySequence}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Show More/Less Button */}
+        {generated_sequences.length > 5 && (
+          <div className="text-center">
+            <Button
+              onClick={() => setShowAllSequences(!showAllSequences)}
+              variant="secondary"
+              size="sm"
+            >
+              <FontAwesomeIcon 
+                icon={showAllSequences ? faEyeSlash : faEye} 
+                className="w-4 h-4 mr-2" 
+              />
+              {showAllSequences 
+                ? 'Show Less' 
+                : `Show All (${generated_sequences.length - 5} more)`
+              }
+            </Button>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+};
 
 export const FinetuneForm = ({ 
   baseModels, 
@@ -8,34 +274,53 @@ export const FinetuneForm = ({
   isServerOnline = true 
 }) => {
   const [formData, setFormData] = useState({
-    model_key: '',
-    fasta_content: '',
-    finetune_mode: 'qlora',
-    n_trials: 5
+    model: '',
+    fastaFile: null,
+    fastaContent: '',
+    use_lora: true,
+    use_optuna: true,
+    n_trials: 5,
+    learning_rate: 5e-5,
+    per_device_train_batch_size: 4,
+    num_train_epochs: 2,
+    weight_decay: 0.01,
+    optuna_lr_min: 1e-7,
+    optuna_lr_max: 1e-6,
+    optuna_batch_sizes: [4, 8],
+    optuna_epochs_min: 1,
+    optuna_epochs_max: 3,
+    optuna_weight_decay_min: 0.0,
+    optuna_weight_decay_max: 0.2
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.model_key || !formData.fasta_content) {
-      alert('Please fill in all required fields');
+    if (!formData.model || (!formData.fastaFile && !formData.fastaContent)) {
+      alert('Please select a model and provide FASTA data (either upload a file or paste content)');
       return;
     }
 
-    onSubmit(formData);
+    // Create the submission data
+    const submissionData = { ...formData };
+    
+    // If no file was uploaded but content was pasted, create a file from the content
+    if (!formData.fastaFile && formData.fastaContent) {
+      const blob = new Blob([formData.fastaContent], { type: 'text/plain' });
+      submissionData.fastaFile = new File([blob], 'sequences.fasta', { type: 'text/plain' });
+    }
+
+    onSubmit(submissionData);
   };
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFormData(prev => ({
-          ...prev,
-          fasta_content: e.target.result
-        }));
-      };
-      reader.readAsText(file);
+      setFormData(prev => ({
+        ...prev,
+        fastaFile: file,
+        fastaContent: '' // Clear text content when file is uploaded
+      }));
     }
   };
 
@@ -49,8 +334,8 @@ export const FinetuneForm = ({
         {/* Model Selection */}
         <FormField label="Base Model" required>
           <select
-            value={formData.model_key}
-            onChange={(e) => updateField('model_key', e.target.value)}
+            value={formData.model}
+            onChange={(e) => updateField('model', e.target.value)}
             className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
             required
           >
@@ -74,45 +359,181 @@ export const FinetuneForm = ({
               onChange={handleFileUpload}
               className="text-gray-300 text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-[#233c48] file:text-gray-300 hover:file:bg-[#2a4653]"
             />
+            {formData.fastaFile && (
+              <p className="text-sm text-green-400">
+                File selected: {formData.fastaFile.name}
+              </p>
+            )}
             <textarea
-              value={formData.fasta_content}
-              onChange={(e) => updateField('fasta_content', e.target.value)}
+              value={formData.fastaContent}
+              onChange={(e) => updateField('fastaContent', e.target.value)}
               className="w-full h-32 bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none font-mono text-sm"
               placeholder=">protein1&#10;MKVLIVLLQKTSR...&#10;>protein2&#10;MQIFVKTLTGKTI..."
-              required
+              disabled={!!formData.fastaFile}
             />
+            {formData.fastaFile && (
+              <p className="text-xs text-gray-400">
+                Text area disabled - file upload takes priority
+              </p>
+            )}
           </div>
         </FormField>
 
         {/* Advanced Options */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField 
-            label="Fine-tuning Mode"
-            description="QLoRA is faster and uses less memory"
-          >
-            <select
-              value={formData.finetune_mode}
-              onChange={(e) => updateField('finetune_mode', e.target.value)}
-              className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-white">Training Parameters</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField 
+              label="Use LoRA"
+              description="LoRA fine-tuning is faster and uses less memory"
             >
-              <option value="qlora">QLoRA (Recommended)</option>
-              <option value="full">Full Fine-tuning</option>
-            </select>
-          </FormField>
+              <select
+                value={formData.use_lora.toString()}
+                onChange={(e) => updateField('use_lora', e.target.value === 'true')}
+                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="true">Yes (Recommended)</option>
+                <option value="false">No (Full Fine-tuning)</option>
+              </select>
+            </FormField>
 
-          <FormField 
-            label="Number of Trials"
-            description="More trials may improve results but take longer"
-          >
-            <input
-              type="number"
-              min="1"
-              max="20"
-              value={formData.n_trials}
-              onChange={(e) => updateField('n_trials', parseInt(e.target.value))}
-              className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-            />
-          </FormField>
+            <FormField 
+              label="Use Optuna Optimization"
+              description="Automatically find best hyperparameters"
+            >
+              <select
+                value={formData.use_optuna.toString()}
+                onChange={(e) => updateField('use_optuna', e.target.value === 'true')}
+                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="true">Yes (Recommended)</option>
+                <option value="false">No (Use manual parameters)</option>
+              </select>
+            </FormField>
+          </div>
+
+          {formData.use_optuna && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField 
+                label="Number of Trials"
+                description="More trials may improve results but take longer"
+              >
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={formData.n_trials}
+                  onChange={(e) => updateField('n_trials', parseInt(e.target.value))}
+                  className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                />
+              </FormField>
+
+              <FormField 
+                label="Learning Rate Range"
+                description="Min to Max learning rate for search"
+              >
+                <div className="space-y-2">
+                  <input
+                    type="number"
+                    step="1e-7"
+                    min="1e-9"
+                    max="1e-3"
+                    value={formData.optuna_lr_min}
+                    onChange={(e) => updateField('optuna_lr_min', parseFloat(e.target.value))}
+                    placeholder="Min (e.g., 1e-7)"
+                    className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                  />
+                  <input
+                    type="number"
+                    step="1e-7"
+                    min="1e-8"
+                    max="1e-2"
+                    value={formData.optuna_lr_max}
+                    onChange={(e) => updateField('optuna_lr_max', parseFloat(e.target.value))}
+                    placeholder="Max (e.g., 1e-6)"
+                    className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                  />
+                </div>
+              </FormField>
+
+              <FormField 
+                label="Epoch Range"
+                description="Min to Max epochs for search"
+              >
+                <div className="space-y-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={formData.optuna_epochs_min}
+                    onChange={(e) => updateField('optuna_epochs_min', parseInt(e.target.value))}
+                    placeholder="Min epochs"
+                    className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={formData.optuna_epochs_max}
+                    onChange={(e) => updateField('optuna_epochs_max', parseInt(e.target.value))}
+                    placeholder="Max epochs"
+                    className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                  />
+                </div>
+              </FormField>
+            </div>
+          )}
+
+          {!formData.use_optuna && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <FormField label="Learning Rate">
+                <input
+                  type="number"
+                  step="1e-5"
+                  min="1e-7"
+                  max="1e-3"
+                  value={formData.learning_rate}
+                  onChange={(e) => updateField('learning_rate', parseFloat(e.target.value))}
+                  className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                />
+              </FormField>
+
+              <FormField label="Batch Size">
+                <input
+                  type="number"
+                  min="1"
+                  max="32"
+                  value={formData.per_device_train_batch_size}
+                  onChange={(e) => updateField('per_device_train_batch_size', parseInt(e.target.value))}
+                  className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                />
+              </FormField>
+
+              <FormField label="Epochs">
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={formData.num_train_epochs}
+                  onChange={(e) => updateField('num_train_epochs', parseInt(e.target.value))}
+                  className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                />
+              </FormField>
+
+              <FormField label="Weight Decay">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="0.5"
+                  value={formData.weight_decay}
+                  onChange={(e) => updateField('weight_decay', parseFloat(e.target.value))}
+                  className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                />
+              </FormField>
+            </div>
+          )}
         </div>
 
         <Button
@@ -140,203 +561,303 @@ export const GenerateForm = ({
   userModels = [],
   onSubmit, 
   isLoading = false, 
-  isServerOnline = true 
+  isServerOnline = true,
+  generationResult = null, // Add this prop to show results
+  onClearResults = null // Add this prop to clear results
 }) => {
   const [formData, setFormData] = useState({
     prompt: '<|startoftext|>',
-    base_model_key: '',
-    model_dir_on_volume: '',
-    finetuned_model_job_id: '',
-    max_new_tokens: 200
+    model_name: '',
+    model_dir: '',
+    max_new_tokens: 200,
+    num_return_sequences: 1,
+    temperature: 0.7,
+    top_p: 0.9,
+    top_k: 50
   });
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.prompt || (!formData.base_model_key && !formData.model_dir_on_volume && !formData.finetuned_model_job_id)) {
-      alert('Please fill in all required fields and select a model');
+    if (!formData.prompt || !formData.model_name || !formData.model_dir) {
+      alert('Please fill in all required fields: prompt, model name, and model directory');
       return;
     }
 
-    // Prepare the submission data
-    let submissionData = {
-      prompt: formData.prompt,
-      max_new_tokens: formData.max_new_tokens
-    };
-
-    // Handle different model selection types
-    if (formData.base_model_key) {
-      submissionData.base_model_key = formData.base_model_key;
-    } else if (formData.finetuned_model_job_id) {
-      // For fine-tuned models, we'll use the model_dir_on_volume field
-      // with a special path format that the backend can recognize
-      submissionData.model_dir_on_volume = `/finetuned_models/${formData.finetuned_model_job_id}`;
-    } else if (formData.model_dir_on_volume) {
-      submissionData.model_dir_on_volume = formData.model_dir_on_volume;
-    }
-
-    onSubmit(submissionData);
+    onSubmit(formData);
   };
 
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleModelChange = (modelType, value) => {
-    // Clear other model selections when one is chosen
-    setFormData(prev => ({
-      ...prev,
-      base_model_key: modelType === 'base' ? value : '',
-      model_dir_on_volume: modelType === 'custom' ? value : '',
-      finetuned_model_job_id: modelType === 'finetuned' ? value : ''
-    }));
-  };
-
-  // Get the currently selected model info for display
-  const getSelectedModelInfo = () => {
-    if (formData.base_model_key) {
-      return { type: 'Base Model', name: formData.base_model_key };
-    }
-    if (formData.finetuned_model_job_id) {
-      const selectedModel = userModels.find(model => model.job_id === formData.finetuned_model_job_id);
-      return { 
-        type: 'Fine-tuned Model', 
-        name: selectedModel ? `${selectedModel.model_key} (${selectedModel.job_id.slice(0, 8)}...)` : 'Unknown'
-      };
-    }
-    if (formData.model_dir_on_volume) {
-      return { type: 'Custom Path', name: formData.model_dir_on_volume };
-    }
-    return null;
-  };
-
-  const selectedModel = getSelectedModelInfo();
   return (
-    <Card title="Generate Protein Sequence">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <FormField 
-          label="Prompt" 
-          required
-          description="Starting text for sequence generation"
-        >
-          <input
-            type="text"
-            value={formData.prompt}
-            onChange={(e) => updateField('prompt', e.target.value)}
-            className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-            placeholder="<|startoftext|>"
+    <div className="space-y-6">
+      <Card title="Generate Protein Sequence">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <FormField 
+            label="Prompt" 
             required
-          />
-        </FormField>
+            description="Starting text for sequence generation"
+          >
+            <input
+              type="text"
+              value={formData.prompt}
+              onChange={(e) => updateField('prompt', e.target.value)}
+              className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              placeholder="<|startoftext|>"
+              required
+            />
+          </FormField>
 
-        {/* Model Selection */}
-        <FormField 
-          label="Select Model" 
-          required
-          description="Choose from base models, your fine-tuned models, or specify a custom path"
-        >
-          {/* Selected Model Display */}
-          {selectedModel && (
-            <div className="mb-3 p-3 bg-[#1a2e3a] rounded border border-green-500/30">
-              <div className="text-sm text-green-400 font-medium">
-                Selected: {selectedModel.type}
-              </div>
-              <div className="text-white text-sm mt-1">
-                {selectedModel.name}
-              </div>
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            {/* Base Models */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Base Models
-              </label>
+          {/* Model Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField 
+              label="Base Model Name" 
+              required
+              description="The base model architecture"
+            >
               <select
-                value={formData.base_model_key}
-                onChange={(e) => handleModelChange('base', e.target.value)}
+                value={formData.model_name}
+                onChange={(e) => updateField('model_name', e.target.value)}
                 className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                required
               >
-                <option value="">Select a base model</option>
+                <option value="">Select base model</option>
                 {baseModels.map((model) => (
                   <option key={model} value={model}>{model}</option>
                 ))}
               </select>
-            </div>
+            </FormField>
 
-            {/* Fine-tuned Models */}
-            {userModels.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Your Fine-tuned Models ({userModels.length})
-                </label>
-                <select
-                  value={formData.finetuned_model_job_id}
-                  onChange={(e) => handleModelChange('finetuned', e.target.value)}
-                  className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="">Select a fine-tuned model</option>
-                  {userModels.map((model) => (
-                    <option key={model.job_id} value={model.job_id}>
-                      {model.model_key} - {model.finetune_mode} (Job: {model.job_id.slice(0, 8)}...)
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {userModels.length === 0 && (
-              <div className="text-sm text-gray-400 bg-[#1a2e3a] p-3 rounded border border-gray-600">
-                No fine-tuned models available. Create one in the "Fine-tune Model" tab first.
-              </div>
-            )}
-
-            {/* Custom Model Path */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Custom Model Path (Advanced)
-              </label>
+            <FormField 
+              label="Model Directory" 
+              required
+              description="Path to the fine-tuned model directory"
+            >
               <input
                 type="text"
-                value={formData.model_dir_on_volume}
-                onChange={(e) => handleModelChange('custom', e.target.value)}
+                value={formData.model_dir}
+                onChange={(e) => updateField('model_dir', e.target.value)}
                 className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-                placeholder="Path to your custom model directory"
+                placeholder="/workspace/volume1/finetuned/user-model_abc123/final_model"
+                required
               />
-            </div>
+              {userModels.length > 0 && (
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const selectedJob = userModels.find(job => job.job_id === e.target.value);
+                      if (selectedJob && selectedJob.result?.model_dir) {
+                        updateField('model_dir', selectedJob.result.model_dir);
+                      }
+                    }
+                  }}
+                  className="w-full mt-2 bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                >
+                  <option value="">Or select from your completed jobs...</option>
+                  {userModels
+                    .filter(job => job.status === 'completed' && job.result?.model_dir)
+                    .map((job) => (
+                      <option key={job.job_id} value={job.job_id}>
+                        {job.job_id.slice(0, 8)}... - {job.result?.best_params?.learning_rate || 'Unknown params'}
+                      </option>
+                    ))}
+                </select>
+              )}
+            </FormField>
           </div>
-        </FormField>
 
-        <FormField 
-          label="Max New Tokens"
-          description="Maximum length of generated sequence"
-        >
-          <input
-            type="number"
-            min="10"
-            max="1000"
-            value={formData.max_new_tokens}
-            onChange={(e) => updateField('max_new_tokens', parseInt(e.target.value))}
-            className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-          />
-        </FormField>
+          {/* Generation Parameters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <FormField 
+              label="Max New Tokens"
+              description="Maximum number of tokens to generate"
+            >
+              <input
+                type="number"
+                min="1"
+                max="1000"
+                value={formData.max_new_tokens}
+                onChange={(e) => updateField('max_new_tokens', parseInt(e.target.value))}
+                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              />
+            </FormField>
 
-        <Button
-          type="submit"
-          disabled={isLoading || !isServerOnline}
-          loading={isLoading}
-          size="md"
-          className="w-full sm:w-auto"
-        >
-          {isLoading ? 'Generating...' : 'Generate Sequence'}
-        </Button>
-        
-        {!isServerOnline && (
-          <p className="text-red-400 text-sm">
-            Fine-tuning server is offline. Please check connection.
-          </p>
-        )}
-      </form>
+            <FormField 
+              label="Number of Sequences"
+              description="How many sequences to generate"
+            >
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={formData.num_return_sequences}
+                onChange={(e) => updateField('num_return_sequences', parseInt(e.target.value))}
+                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              />
+            </FormField>
+
+            <FormField 
+              label="Temperature"
+              description="Sampling temperature (higher = more random)"
+            >
+              <input
+                type="number"
+                step="0.1"
+                min="0.1"
+                max="2.0"
+                value={formData.temperature}
+                onChange={(e) => updateField('temperature', parseFloat(e.target.value))}
+                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              />
+            </FormField>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              type="submit"
+              disabled={isLoading || !isServerOnline}
+              loading={isLoading}
+              size="md"
+              className="w-full sm:w-auto"
+            >
+              {isLoading ? 'Generating...' : 'Generate Sequence'}
+            </Button>
+            
+            {generationResult && onClearResults && (
+              <Button
+                type="button"
+                onClick={onClearResults}
+                variant="secondary"
+                size="md"
+                className="w-full sm:w-auto"
+              >
+                Clear Results
+              </Button>
+            )}
+          </div>
+          
+          {!isServerOnline && (
+            <p className="text-red-400 text-sm">
+              Fine-tuning server is offline. Please check connection.
+            </p>
+          )}
+        </form>
+      </Card>
+
+      {/* Show generation results if available */}
+      {generationResult && (
+        <GeneratedSequencesDisplay
+          generationResult={generationResult}
+          className="mt-6"
+        />
+      )}
+    </div>
+  );
+};
+
+// Generation History Component
+export const GenerationHistory = ({ onSelectGeneration, className = "" }) => {
+  const [history, setHistory] = useState(getGenerationHistory());
+  const [showHistory, setShowHistory] = useState(false);
+
+  const refreshHistory = () => {
+    setHistory(getGenerationHistory());
+  };
+
+  const handleClearHistory = () => {
+    if (window.confirm('Are you sure you want to clear all generation history?')) {
+      clearGenerationHistory();
+      setHistory([]);
+    }
+  };
+
+  if (history.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card 
+      title={
+        <div className="flex items-center justify-between">
+          <span>Generation History ({history.length})</span>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowHistory(!showHistory)}
+              size="sm"
+              variant="secondary"
+            >
+              {showHistory ? 'Hide' : 'Show'} History
+            </Button>
+            <Button
+              onClick={handleClearHistory}
+              size="sm"
+              variant="danger"
+            >
+              Clear All
+            </Button>
+          </div>
+        </div>
+      }
+      className={className}
+    >
+      {showHistory && (
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {history.map((generation) => (
+            <div 
+              key={generation.id}
+              className="bg-[#1a2d35] rounded p-3 hover:bg-[#233c48] cursor-pointer transition-colors"
+              onClick={() => onSelectGeneration?.(generation)}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-white text-sm font-medium">
+                    {generation.model_name} - {generation.generated_sequences?.length || 0} sequences
+                  </div>
+                  <div className="text-gray-400 text-xs">
+                    {new Date(generation.timestamp).toLocaleString()}
+                  </div>
+                  <div className="text-gray-500 text-xs font-mono">
+                    {generation.prompt?.slice(0, 50)}...
+                  </div>
+                </div>
+                <FontAwesomeIcon icon={faEye} className="text-gray-400 w-4 h-4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
+};
+
+// Export the storage utilities for use in the main component
+export { saveGenerationToHistory, getGenerationHistory, clearGenerationHistory };
+
+// For testing - you can call this to populate with the sample data
+export const useSampleData = () => {
+  const sampleGenerationResult = {
+    "generation_id": "6ef21094-95a4-45bf-89ce-b26b60419080",
+    "model_name": "protgpt2",
+    "model_dir": "/workspace/volume1/finetuned/user-protgpt2-20250701_125828/final_model",
+    "prompt": "MELHILEHRVRVLSVARQGLWLYTHPLIKLLFLPHRSRCKFFSLTETPEDYTLMVDEEGFKELPPSEFLQVAEATWLVMNVSSHSGAVMQA",
+    "generated_sequences": [
+      {
+        "sequence_id": 1,
+        "generated_text": "\nMELHILEHRVRVLSVARQGLWLYTHPLIKLLFLPHRSRCKFFSLTETPEDYTLMVDEEGFKELPPSEFLQVAEATWLVMNVSSHSGAVMQA\nLQSLVRQMRQLLPHLPDLPSPPPTPPSPSLPPPTTPRPPPTTPPPPPSPTPSTTPPPSPTPLFP\nNITTLLPRLQALSEDIADLRDTLLKLQGLHLHLPTPPPDPGPPPAPGDPLLPRLNVTAQGLRG\nLHQHLSVLRGLWGNLTQQHQHLSGLYRRLDGLFLSHYQSHQPSPTTPWPPPSPPSPTPPYPPT\nPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSP\nTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPP\nPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPY\nPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPGPSPTPPFPPPTPPYPPTPR\nPSPTPPFPPPTPPYPPTPGPSPTPPF"
+      },
+      // ... more sequences
+    ],
+    "generation_params": {
+      "max_new_tokens": 200,
+      "temperature": 0.7,
+      "top_p": 0.9,
+      "top_k": 50,
+      "num_return_sequences": 13
+    }
+  };
+
+  return sampleGenerationResult;
 };

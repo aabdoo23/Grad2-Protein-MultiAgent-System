@@ -124,10 +124,12 @@ class DatabaseManager:
                     cursor.execute(query)
                 
                 result = cursor.fetchone()
+                conn.commit()  # Ensure the transaction is committed
                 return result[0] if result else None
                 
             except pyodbc.Error as e:
                 logger.error(f"Scalar query execution error: {e}")
+                conn.rollback()
                 raise
     
     def test_connection(self) -> bool:

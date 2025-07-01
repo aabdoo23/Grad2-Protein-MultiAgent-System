@@ -234,7 +234,7 @@ class FinetuningDAL:
         # Try SQL Server syntax first, fall back to standard SQL
         try:
             query = """
-                INSERT INTO finetuned_model (base_model_id, user_name, job_id, model_name,
+                INSERT INTO finetuned_models (base_model_id, user_name, job_id, model_name,
                                            path, model_size_bytes, performance_metrics)
                 OUTPUT INSERTED.id
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -247,7 +247,7 @@ class FinetuningDAL:
             # Fall back to standard SQL approach
             try:
                 query = """
-                    INSERT INTO finetuned_model (base_model_id, user_name, job_id, model_name,
+                    INSERT INTO finetuned_models (base_model_id, user_name, job_id, model_name,
                                                path, model_size_bytes, performance_metrics)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 """
@@ -265,7 +265,7 @@ class FinetuningDAL:
         """Get all finetuned models for a user"""
         query = """
             SELECT fm.*, bm.model_name as base_model_name, fj.job_name
-            FROM finetuned_model fm
+            FROM finetuned_models fm
             JOIN base_model bm ON fm.base_model_id = bm.id
             JOIN finetuning_job fj ON fm.job_id = fj.id
             WHERE fm.user_name = ? AND fm.is_active = 1
@@ -277,7 +277,7 @@ class FinetuningDAL:
         """Get finetuned model by ID"""
         query = """
             SELECT fm.*, bm.model_name as base_model_name, fj.job_name
-            FROM finetuned_model fm
+            FROM finetuned_models fm
             JOIN base_model bm ON fm.base_model_id = bm.id
             JOIN finetuning_job fj ON fm.job_id = fj.id
             WHERE fm.id = ? AND fm.is_active = 1
@@ -329,7 +329,7 @@ class FinetuningDAL:
             query = """
                 SELECT gc.*, fm.model_name as finetuned_model_name
                 FROM generate_call gc
-                JOIN finetuned_model fm ON gc.finetuned_model_id = fm.id
+                JOIN finetuned_models fm ON gc.finetuned_model_id = fm.id
                 WHERE gc.user_name = ?
                 ORDER BY gc.created_at DESC
                 OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
@@ -341,7 +341,7 @@ class FinetuningDAL:
                 query = """
                     SELECT gc.*, fm.model_name as finetuned_model_name
                     FROM generate_call gc
-                    JOIN finetuned_model fm ON gc.finetuned_model_id = fm.id
+                    JOIN finetuned_models fm ON gc.finetuned_model_id = fm.id
                     WHERE gc.user_name = ?
                     ORDER BY gc.created_at DESC
                     LIMIT ?
