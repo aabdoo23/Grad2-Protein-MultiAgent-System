@@ -226,36 +226,34 @@ class FinetuningDAL:
         return self.db.execute_query(query, params, fetch=True) or []
     
     # Finetuned model operations
-    def create_finetuned_model(self, base_model_id: int, user_name: str, job_id: int,
-                              model_name: str, path: str, model_size_bytes: int = None,
+    def create_finetuned_model(self, job_id: str, user_name: str, model_name: str, 
+                              model_path: str, base_model_name: str, model_size_bytes: int = None,
                               performance_metrics: Dict[str, Any] = None) -> Optional[int]:
         """Create a new finetuned model"""
         metrics_json = json.dumps(performance_metrics) if performance_metrics else None
         # Try SQL Server syntax first, fall back to standard SQL
         try:
             query = """
-                INSERT INTO finetuned_models (base_model_id, user_name, job_id, model_name,
-                                           path, model_size_bytes, performance_metrics)
+                INSERT INTO finetuned_models (job_id, user_name, model_name, model_path,
+                                           base_model_name, model_size_bytes, performance_metrics)
                 OUTPUT INSERTED.id
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """
-            result = self.db.execute_scalar(query, (base_model_id, user_name, job_id,
-                                                  model_name, path, model_size_bytes,
+            result = self.db.execute_scalar(query, (job_id, user_name, model_name, 
+                                                  model_path, base_model_name, model_size_bytes,
                                                   metrics_json))
             return result
         except Exception as e:
-            # Fall back to standard SQL approach
+            # Fall back to PostgreSQL approach
             try:
                 query = """
-                    INSERT INTO finetuned_models (base_model_id, user_name, job_id, model_name,
-                                               path, model_size_bytes, performance_metrics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO finetuned_models (job_id, user_name, model_name, model_path,
+                                               base_model_name, model_size_bytes, performance_metrics)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
                 """
-                self.db.execute_query(query, (base_model_id, user_name, job_id,
-                                            model_name, path, model_size_bytes,
-                                            metrics_json))
-                # Get the last inserted ID
-                result = self.db.execute_scalar("SELECT last_insert_rowid()")  # SQLite
+                result = self.db.execute_scalar(query, (job_id, user_name, model_name,
+                                              model_path, base_model_name, model_size_bytes,
+                                              metrics_json))
                 return result
             except Exception as e2:
                 print(f"Error creating finetuned model: {e2}")
@@ -264,10 +262,8 @@ class FinetuningDAL:
     def get_user_models(self, user_name: str) -> List[Dict[str, Any]]:
         """Get all finetuned models for a user"""
         query = """
-            SELECT fm.*, bm.model_name as base_model_name, fj.job_name
+            SELECT fm.*, fm.base_model_name
             FROM finetuned_models fm
-            JOIN base_model bm ON fm.base_model_id = bm.id
-            JOIN finetuning_job fj ON fm.job_id = fj.id
             WHERE fm.user_name = ? AND fm.is_active = 1
             ORDER BY fm.created_at DESC
         """
@@ -276,10 +272,8 @@ class FinetuningDAL:
     def get_finetuned_model(self, model_id: int) -> Optional[Dict[str, Any]]:
         """Get finetuned model by ID"""
         query = """
-            SELECT fm.*, bm.model_name as base_model_name, fj.job_name
+            SELECT fm.*
             FROM finetuned_models fm
-            JOIN base_model bm ON fm.base_model_id = bm.id
-            JOIN finetuning_job fj ON fm.job_id = fj.id
             WHERE fm.id = ? AND fm.is_active = 1
         """
         result = self.db.execute_query(query, (model_id,), fetch=True)
