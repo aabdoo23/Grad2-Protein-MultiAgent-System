@@ -77,39 +77,55 @@ const BlockType = ({ blockType, isCompact = false, onBlockAdd }) => {
   if (isCompact) {
     return (
       <div
-        className="group relative p-2 mb-2 rounded-lg cursor-move transition-all duration-300 hover:scale-105 hover:shadow-xl border border-transparent hover:border-white/20"
+        className="group relative p-2 mb-2 rounded-lg cursor-move transition-all duration-300 hover:scale-105 hover:shadow-xl border border-transparent"
         style={{
           background: `linear-gradient(135deg, ${blockType.color}dd, ${blockType.color}aa)`,
           backdropFilter: 'blur(10px)',
         }}
         draggable
         onDragStart={(event) => onDragStart(event, blockType)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={(e) => {
+          setIsHovered(true);
+          e.target.style.borderColor = 'var(--color-borderLight)';
+        }}
+        onMouseLeave={(e) => {
+          setIsHovered(false);
+          e.target.style.borderColor = 'transparent';
+        }}
         title={blockType.description}
       >
         <div className="flex items-center gap-2">
           <FontAwesomeIcon
             icon={getTypeIcon(blockType.type)}
-            className="text-white/90 text-sm flex-shrink-0"
+            className="text-sm flex-shrink-0"
+            style={{ color: 'rgba(255, 255, 255, 0.9)' }}
           />
-          <span className="text-white font-medium text-sm truncate">
+          <span className="font-medium text-sm truncate" style={{ color: 'white' }}>
             {blockType.name}
           </span>
         </div>
 
         {/* Hover tooltip */}
         {isHovered && (
-          <div className="absolute left-full ml-2 top-0 z-50 bg-gray-900 text-white p-3 rounded-lg shadow-xl border border-gray-700 w-64 animate-in slide-in-from-left-2">
+          <div 
+            className="absolute left-full ml-2 top-0 z-50 p-3 rounded-lg shadow-xl border w-64 animate-in slide-in-from-left-2"
+            style={{
+              backgroundColor: 'var(--color-secondary)',
+              color: 'var(--color-textPrimary)',
+              borderColor: 'var(--color-border)'
+            }}
+          >
             <h4 className="font-bold text-sm mb-1">{blockType.name}</h4>
-            <p className="text-xs text-gray-300 mb-2">{blockType.description}</p>
-            <div className="flex items-center gap-3 text-xs text-gray-400">
+            <p className="text-xs mb-2" style={{ color: 'var(--color-textSecondary)' }}>
+              {blockType.description}
+            </p>
+            <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--color-textMuted)' }}>
               <span className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-success)' }}></div>
                 {blockType.inputs.length} in
               </span>
               <span className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-info)' }}></div>
                 {blockType.outputs.length} out
               </span>
             </div>
@@ -380,20 +396,33 @@ const BlockPalette = ({ blockTypes }) => {
     <div className={`relative flex flex-col h-full transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-80'
       }`}>
 
-      <div className="flex-shrink-0 p-4 border-b border-white/10">
+      <div className="flex-shrink-0 p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
         {!isCollapsed && (
           <div className="mb-4">            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-white font-bold text-lg flex items-center gap-2">
-                <FontAwesomeIcon icon={faLayerGroup} className="text-blue-400" />
+              <h2 className="font-bold text-lg flex items-center gap-2" style={{ color: 'var(--color-textPrimary)' }}>
+                <FontAwesomeIcon icon={faLayerGroup} style={{ color: 'var(--color-accent)' }} />
                 Block Library
               </h2>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowRecommended(!showRecommended)}
-                  className={`p-2 rounded-lg transition-colors ${showRecommended
-                    ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
-                    : 'hover:bg-white/10 text-white/60 hover:text-white'
-                    }`}
+                  className="p-2 rounded-lg transition-colors"
+                  style={{
+                    backgroundColor: showRecommended ? 'var(--color-warning)' : 'transparent',
+                    color: showRecommended ? 'white' : 'var(--color-textSecondary)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (showRecommended) {
+                      e.target.style.backgroundColor = '#d97706'; // darker warning
+                    } else {
+                      e.target.style.backgroundColor = 'var(--color-tertiary)';
+                      e.target.style.color = 'var(--color-textPrimary)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = showRecommended ? 'var(--color-warning)' : 'transparent';
+                    e.target.style.color = showRecommended ? 'white' : 'var(--color-textSecondary)';
+                  }}
                   title="Show recommended blocks"
                 >
                   <FontAwesomeIcon icon={faLightbulb} className="w-3 h-3" />
@@ -401,10 +430,27 @@ const BlockPalette = ({ blockTypes }) => {
                 {/* Compact View Toggle */}
                 <button
                   onClick={() => setIsCompact(!isCompact)}
-                  className={`p-2 rounded-lg transition-all duration-200 border hover:shadow-lg ${isCompact
-                    ? 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border-blue-500/40 hover:border-blue-400/60 shadow-blue-500/20'
-                    : 'bg-slate-700/50 hover:bg-slate-600/60 text-slate-300 hover:text-white border-slate-600/30 hover:border-slate-500/50 hover:shadow-slate-500/10'
-                    }`}
+                  className="p-2 rounded-lg transition-all duration-200 border hover:shadow-lg"
+                  style={{
+                    backgroundColor: isCompact ? 'var(--color-info)' : 'var(--color-secondary)',
+                    color: isCompact ? 'white' : 'var(--color-textSecondary)',
+                    borderColor: isCompact ? 'var(--color-info)' : 'var(--color-border)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (isCompact) {
+                      e.target.style.backgroundColor = '#2563eb'; // darker blue
+                      e.target.style.borderColor = '#3b82f6';
+                    } else {
+                      e.target.style.backgroundColor = 'var(--color-tertiary)';
+                      e.target.style.color = 'var(--color-textPrimary)';
+                      e.target.style.borderColor = 'var(--color-borderLight)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = isCompact ? 'var(--color-info)' : 'var(--color-secondary)';
+                    e.target.style.color = isCompact ? 'white' : 'var(--color-textSecondary)';
+                    e.target.style.borderColor = isCompact ? 'var(--color-info)' : 'var(--color-border)';
+                  }}
                   title={isCompact ? "Detailed view" : "Compact view"}
                 >
                   <FontAwesomeIcon icon={isCompact ? faStop : faLayerGroup} className="w-3 h-3" />
@@ -434,13 +480,16 @@ const BlockPalette = ({ blockTypes }) => {
               </div>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <p className="text-white/60">
+              <p style={{ color: 'var(--color-textSecondary)' }}>
                 {totalBlocks} blocks • {Object.keys(filteredGroupedBlocks).length} categories
               </p>
               {recommendedBlocks.length > 0 && !showRecommended && (
                 <button
                   onClick={() => setShowRecommended(true)}
-                  className="text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1"
+                  className="transition-colors flex items-center gap-1"
+                  style={{ color: 'var(--color-warning)' }}
+                  onMouseEnter={(e) => e.target.style.color = '#d97706'}
+                  onMouseLeave={(e) => e.target.style.color = 'var(--color-warning)'}
                 >
                   <FontAwesomeIcon icon={faLightbulb} className="w-3 h-3" />
                   <span className="text-xs">{recommendedBlocks.length} suggested</span>
@@ -456,20 +505,29 @@ const BlockPalette = ({ blockTypes }) => {
             <div className="relative mb-3">
               <FontAwesomeIcon
                 icon={faSearch}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4"
+                style={{ color: 'var(--color-textMuted)' }}
               />
               <input
                 type="text"
                 placeholder="Search blocks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 
-                         focus:outline-none focus:border-blue-400/50 focus:bg-white/10 transition-all"
+                className="w-full pl-10 pr-10 py-2.5 border rounded-lg transition-all focus:outline-none focus:ring-2"
+                style={{
+                  backgroundColor: 'var(--color-tertiary)',
+                  borderColor: 'var(--color-border)',
+                  color: 'var(--color-textPrimary)',
+                  '--tw-ring-color': 'var(--color-accent)'
+                }}
               />
               {searchQuery && (
                 <button
                   onClick={clearSearch}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors"
+                  style={{ color: 'var(--color-textMuted)' }}
+                  onMouseEnter={(e) => e.target.style.color = 'var(--color-textSecondary)'}
+                  onMouseLeave={(e) => e.target.style.color = 'var(--color-textMuted)'}
                 >
                   <FontAwesomeIcon icon={faTimes} className="w-3 h-3" />
                 </button>
@@ -481,26 +539,37 @@ const BlockPalette = ({ blockTypes }) => {
               {/* Filter Toggle Button */}
               <button
                 onClick={() => setFiltersExpanded(!filtersExpanded)}
-                className="w-full flex items-center justify-between p-2.5 bg-gradient-to-r from-white/5 to-white/10 
-                         border border-white/10 rounded-lg hover:border-white/20 transition-all duration-200 
-                         hover:shadow-lg hover:shadow-white/5 group"
+                className="w-full flex items-center justify-between p-2.5 border rounded-lg transition-all duration-200 hover:shadow-lg group"
+                style={{
+                  backgroundColor: 'var(--color-secondary)',
+                  borderColor: 'var(--color-border)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'var(--color-tertiary)';
+                  e.target.style.borderColor = 'var(--color-borderLight)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'var(--color-secondary)';
+                  e.target.style.borderColor = 'var(--color-border)';
+                }}
               >
                 <div className="flex items-center gap-2">
                   <FontAwesomeIcon 
                     icon={faFilter} 
-                    className={`w-3 h-3 transition-all duration-200 ${filtersExpanded ? 'text-blue-400' : 'text-white/60'}`} 
+                    className="w-3 h-3 transition-all duration-200"
+                    style={{ color: filtersExpanded ? 'var(--color-accent)' : 'var(--color-textSecondary)' }}
                   />
-                  <span className="text-white/80 text-sm font-medium">
+                  <span className="text-sm font-medium" style={{ color: 'var(--color-textPrimary)' }}>
                     Filters & Sort
                   </span>
                   {(selectedCategory !== 'all' || sortBy !== 'type' || showRecommended) && (
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--color-accent)' }}></div>
                   )}
                 </div>
                 <FontAwesomeIcon
                   icon={filtersExpanded ? faChevronDown : faChevronRight}
-                  className={`w-3 h-3 text-white/40 transition-all duration-200 group-hover:text-white/60 
-                           ${filtersExpanded ? 'rotate-0' : 'rotate-0'}`}
+                  className="w-3 h-3 transition-all duration-200"
+                  style={{ color: 'var(--color-textMuted)' }}
                 />
               </button>
 
@@ -512,18 +581,39 @@ const BlockPalette = ({ blockTypes }) => {
                     : 'max-h-0 opacity-0 mt-0'
                 }`}
               >
-                <div className="space-y-3 p-3 bg-gradient-to-br from-white/5 to-white/10 rounded-lg border border-white/10 backdrop-blur-sm">
+                <div 
+                  className="space-y-3 p-3 rounded-lg border backdrop-blur-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--color-tertiary), var(--color-quaternary))',
+                    borderColor: 'var(--color-border)'
+                  }}
+                >
                   {/* Sort Controls */}
                   <div className="space-y-2">
-                    <label className="text-white/60 text-xs font-medium tracking-wide uppercase">
+                    <label 
+                      className="text-xs font-medium tracking-wide uppercase"
+                      style={{ color: 'var(--color-textSecondary)' }}
+                    >
                       Sort By
                     </label>
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded-lg text-white text-sm
-                               focus:outline-none focus:border-blue-400/50 focus:bg-black/30 transition-all
-                               backdrop-blur-sm"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all backdrop-blur-sm"
+                      style={{
+                        backgroundColor: 'var(--color-secondary)',
+                        borderColor: 'var(--color-border)',
+                        color: 'var(--color-textPrimary)',
+                        '--tw-ring-color': 'var(--color-accent)'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = 'var(--color-accent)';
+                        e.target.style.backgroundColor = 'var(--color-tertiary)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = 'var(--color-border)';
+                        e.target.style.backgroundColor = 'var(--color-secondary)';
+                      }}
                     >
                       <option value="type">By Type</option>
                       <option value="name">By Name</option>
@@ -533,7 +623,10 @@ const BlockPalette = ({ blockTypes }) => {
 
                   {/* Category Filter */}
                   <div className="space-y-2">
-                    <label className="text-white/60 text-xs font-medium tracking-wide uppercase">
+                    <label 
+                      className="text-xs font-medium tracking-wide uppercase"
+                      style={{ color: 'var(--color-textSecondary)' }}
+                    >
                       Categories
                     </label>
                     <div className="flex flex-wrap gap-1.5">
@@ -541,12 +634,34 @@ const BlockPalette = ({ blockTypes }) => {
                         <button
                           key={category}
                           onClick={() => setSelectedCategory(category)}
-                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 capitalize
-                                   hover:scale-105 active:scale-95 ${
-                            selectedCategory === category
-                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25 border border-blue-400/30'
-                              : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white border border-white/10 hover:border-white/20'
-                          }`}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 capitalize hover:scale-105 active:scale-95 border"
+                          style={selectedCategory === category 
+                            ? {
+                                background: 'linear-gradient(135deg, var(--color-accent), var(--color-info))',
+                                color: 'white',
+                                borderColor: 'var(--color-accent)',
+                                boxShadow: `0 4px 12px ${selectedCategory === category ? 'var(--color-accent)' : 'transparent'}25`
+                              }
+                            : {
+                                backgroundColor: 'var(--color-tertiary)',
+                                color: 'var(--color-textSecondary)',
+                                borderColor: 'var(--color-border)'
+                              }
+                          }
+                          onMouseEnter={(e) => {
+                            if (selectedCategory !== category) {
+                              e.target.style.backgroundColor = 'var(--color-quaternary)';
+                              e.target.style.color = 'var(--color-textPrimary)';
+                              e.target.style.borderColor = 'var(--color-borderLight)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (selectedCategory !== category) {
+                              e.target.style.backgroundColor = 'var(--color-tertiary)';
+                              e.target.style.color = 'var(--color-textSecondary)';
+                              e.target.style.borderColor = 'var(--color-border)';
+                            }
+                          }}
                         >
                           {category === 'all' ? 'All' : category}
                           {category !== 'all' && groupedBlocks[category] && (
@@ -570,10 +685,24 @@ const BlockPalette = ({ blockTypes }) => {
           {/* Expand Button - Made more prominent */}
           <button
             onClick={() => setIsCollapsed(false)}
-            className="p-3 rounded-xl bg-gradient-to-r from-green-500/20 to-green-600/20 
-                     hover:from-green-500/30 hover:to-green-600/30 text-green-300 hover:text-green-200 
-                     transition-all duration-200 hover:scale-110 active:scale-95 border border-green-500/30 
-                     hover:border-green-400/50 hover:shadow-lg hover:shadow-green-500/20 group relative"
+            className="p-3 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 border group relative"
+            style={{
+              background: 'linear-gradient(135deg, var(--color-success)20, var(--color-success)30)',
+              color: 'var(--color-success)',
+              borderColor: 'var(--color-success)30'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, var(--color-success)30, var(--color-success)40)';
+              e.target.style.color = 'var(--color-textPrimary)';
+              e.target.style.borderColor = 'var(--color-success)50';
+              e.target.style.boxShadow = `0 4px 12px var(--color-success)20`;
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, var(--color-success)20, var(--color-success)30)';
+              e.target.style.color = 'var(--color-success)';
+              e.target.style.borderColor = 'var(--color-success)30';
+              e.target.style.boxShadow = 'none';
+            }}
             title="Expand block library"
           >
             <FontAwesomeIcon 
@@ -581,8 +710,10 @@ const BlockPalette = ({ blockTypes }) => {
               className="w-4 h-4 group-hover:animate-pulse" 
             />
             {/* Subtle glow effect */}
-            <div className="absolute inset-0 rounded-xl bg-green-500/10 opacity-0 group-hover:opacity-100 
-                          transition-opacity duration-200 -z-10 blur-sm"></div>
+            <div 
+              className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 -z-10 blur-sm"
+              style={{ backgroundColor: 'var(--color-success)10' }}
+            ></div>
           </button>
 
           {/* Recommendations Badge */}
@@ -592,11 +723,24 @@ const BlockPalette = ({ blockTypes }) => {
                 setIsCollapsed(false);
                 setShowRecommended(true);
               }}
-              className="p-2.5 rounded-lg bg-gradient-to-r from-amber-500/20 to-amber-600/20 
-                       hover:from-amber-500/30 hover:to-amber-600/30 text-amber-300 hover:text-amber-200 
-                       transition-all duration-200 border border-amber-500/30 hover:border-amber-400/50
-                       hover:shadow-lg hover:shadow-amber-500/20 hover:scale-105 active:scale-95
-                       animate-pulse group relative"
+              className="p-2.5 rounded-lg transition-all duration-200 border hover:scale-105 active:scale-95 animate-pulse group relative"
+              style={{
+                background: 'linear-gradient(135deg, var(--color-warning)20, var(--color-warning)30)',
+                color: 'var(--color-warning)',
+                borderColor: 'var(--color-warning)30'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, var(--color-warning)30, var(--color-warning)40)';
+                e.target.style.color = 'var(--color-textPrimary)';
+                e.target.style.borderColor = 'var(--color-warning)50';
+                e.target.style.boxShadow = `0 4px 12px var(--color-warning)20`;
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, var(--color-warning)20, var(--color-warning)30)';
+                e.target.style.color = 'var(--color-warning)';
+                e.target.style.borderColor = 'var(--color-warning)30';
+                e.target.style.boxShadow = 'none';
+              }}
               title={`${recommendedBlocks.length} recommended blocks`}
             >
               <FontAwesomeIcon icon={faLightbulb} className="w-3.5 h-3.5" />
@@ -670,18 +814,21 @@ const BlockPalette = ({ blockTypes }) => {
 
       {/* Footer Stats */}
       {!isCollapsed && (
-        <div className="flex-shrink-0 p-4 border-t border-white/10 bg-gradient-to-t from-black/20 to-transparent">
-          <div className="grid grid-cols-3 gap-2 text-xs text-white/40">
+        <div className="flex-shrink-0 p-4 border-t" style={{ 
+          borderColor: 'var(--color-border)', 
+          background: 'linear-gradient(to top, var(--color-tertiary), transparent)' 
+        }}>
+          <div className="grid grid-cols-3 gap-2 text-xs" style={{ color: 'var(--color-textSecondary)' }}>
             <div className="text-center">
-              <div className="text-white/60 font-medium">{blockStats.total}</div>
+              <div className="font-medium" style={{ color: 'var(--color-textPrimary)' }}>{blockStats.total}</div>
               <div>Blocks</div>
             </div>
             <div className="text-center">
-              <div className="text-white/60 font-medium">{Object.keys(blockStats.byType).length}</div>
+              <div className="font-medium" style={{ color: 'var(--color-textPrimary)' }}>{Object.keys(blockStats.byType).length}</div>
               <div>Types</div>
             </div>
             <div className="text-center">
-              <div className="text-white/60 font-medium">{blocks.length}</div>
+              <div className="font-medium" style={{ color: 'var(--color-textPrimary)' }}>{blocks.length}</div>
               <div>In Use</div>
             </div>
           </div>

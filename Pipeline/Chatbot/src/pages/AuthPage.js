@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faLock, faEnvelope, faBuilding, faSpinner, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { BASE_URL } from '../config/appConfig';
 
 const AuthPage = ({ onAuthSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,7 +16,7 @@ const AuthPage = ({ onAuthSuccess }) => {
   });
   const [errors, setErrors] = useState({});
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  const API_BASE = BASE_URL;
 
   const validateForm = () => {
     const newErrors = {};
@@ -113,22 +114,26 @@ const AuthPage = ({ onAuthSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#111c22] flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--color-primary)' }}>
       <div className="max-w-md w-full">
-        <div className="bg-[#1a2d35] rounded-lg shadow-xl p-8">
+        <div className="rounded-lg shadow-xl p-8" style={{ backgroundColor: 'var(--color-secondary)' }}>
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">
+            <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-textPrimary)' }}>
               Protein Pipeline
             </h1>
-            <p className="text-gray-400">
+            <p style={{ color: 'var(--color-textSecondary)' }}>
               {isLogin ? 'Sign in to your account' : 'Create your account'}
             </p>
           </div>
 
           {/* Error Message */}
           {errors.general && (
-            <div className="mb-4 p-3 bg-red-600/20 border border-red-500 rounded text-red-400 text-sm">
+            <div className="mb-4 p-3 border rounded text-sm" style={{
+              backgroundColor: 'var(--color-tertiary)',
+              borderColor: 'var(--color-error)',
+              color: 'var(--color-error)'
+            }}>
               {errors.general}
             </div>
           )}
@@ -137,58 +142,64 @@ const AuthPage = ({ onAuthSuccess }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Username */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-textSecondary)' }}>
                 Username
               </label>
               <div className="relative">
                 <FontAwesomeIcon 
                   icon={faUser} 
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4"
+                  style={{ color: 'var(--color-textMuted)' }}
                 />
                 <input
                   type="text"
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-3 bg-[#233c48] border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
-                    errors.username 
-                      ? 'border-red-500 focus:ring-red-500' 
-                      : 'border-gray-600 focus:ring-blue-500'
-                  }`}
+                  className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: 'var(--color-tertiary)',
+                    color: 'var(--color-textPrimary)',
+                    borderColor: errors.username ? 'var(--color-error)' : 'var(--color-border)',
+                    '--tw-ring-color': errors.username ? 'var(--color-error)' : 'var(--color-accent)'
+                  }}
                   placeholder="Enter your username"
                 />
               </div>
               {errors.username && (
-                <p className="mt-1 text-sm text-red-400">{errors.username}</p>
+                <p className="mt-1 text-sm" style={{ color: 'var(--color-error)' }}>{errors.username}</p>
               )}
             </div>
 
             {/* Email (register only) */}
             {!isLogin && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-textSecondary)' }}>
                   Email
                 </label>
                 <div className="relative">
                   <FontAwesomeIcon 
                     icon={faEnvelope} 
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4"
+                    style={{ color: 'var(--color-textMuted)' }}
                   />
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 bg-[#233c48] border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
-                      errors.email 
-                        ? 'border-red-500 focus:ring-red-500' 
-                        : 'border-gray-600 focus:ring-blue-500'
-                    }`}
+                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
+                    style={{
+                      backgroundColor: 'var(--color-tertiary)',
+                      color: 'var(--color-textPrimary)',
+                      borderColor: errors.email ? 'var(--color-error)' : 'var(--color-border)',
+                      '--tw-ring-color': errors.email ? 'var(--color-error)' : 'var(--color-accent)'
+                    }}
                     placeholder="Enter your email"
                   />
                 </div>
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-400">{errors.email}</p>
+                  <p className="mt-1 text-sm" style={{ color: 'var(--color-error)' }}>{errors.email}</p>
                 )}
               </div>
             )}
@@ -196,29 +207,32 @@ const AuthPage = ({ onAuthSuccess }) => {
             {/* Full Name (register only) */}
             {!isLogin && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-textSecondary)' }}>
                   Full Name
                 </label>
                 <div className="relative">
                   <FontAwesomeIcon 
                     icon={faUser} 
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4"
+                    style={{ color: 'var(--color-textMuted)' }}
                   />
                   <input
                     type="text"
                     name="full_name"
                     value={formData.full_name}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 bg-[#233c48] border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
-                      errors.full_name 
-                        ? 'border-red-500 focus:ring-red-500' 
-                        : 'border-gray-600 focus:ring-blue-500'
-                    }`}
+                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
+                    style={{
+                      backgroundColor: 'var(--color-tertiary)',
+                      color: 'var(--color-textPrimary)',
+                      borderColor: errors.full_name ? 'var(--color-error)' : 'var(--color-border)',
+                      '--tw-ring-color': errors.full_name ? 'var(--color-error)' : 'var(--color-accent)'
+                    }}
                     placeholder="Enter your full name"
                   />
                 </div>
                 {errors.full_name && (
-                  <p className="mt-1 text-sm text-red-400">{errors.full_name}</p>
+                  <p className="mt-1 text-sm" style={{ color: 'var(--color-error)' }}>{errors.full_name}</p>
                 )}
               </div>
             )}
@@ -226,20 +240,26 @@ const AuthPage = ({ onAuthSuccess }) => {
             {/* Institution (register only, optional) */}
             {!isLogin && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Institution <span className="text-gray-500">(Optional)</span>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-textSecondary)' }}>
+                  Institution <span style={{ color: 'var(--color-textMuted)' }}>(Optional)</span>
                 </label>
                 <div className="relative">
                   <FontAwesomeIcon 
                     icon={faBuilding} 
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4"
+                    style={{ color: 'var(--color-textMuted)' }}
                   />
                   <input
                     type="text"
                     name="institution"
                     value={formData.institution}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 bg-[#233c48] border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
+                    style={{
+                      backgroundColor: 'var(--color-tertiary)',
+                      color: 'var(--color-textPrimary)',
+                      borderColor: 'var(--color-border)'
+                    }}
                     placeholder="Enter your institution"
                   />
                 </div>
@@ -248,39 +268,45 @@ const AuthPage = ({ onAuthSuccess }) => {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-textSecondary)' }}>
                 Password
               </label>
               <div className="relative">
                 <FontAwesomeIcon 
                   icon={faLock} 
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4"
+                  style={{ color: 'var(--color-textMuted)' }}
                 />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-12 py-3 bg-[#233c48] border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
-                    errors.password 
-                      ? 'border-red-500 focus:ring-red-500' 
-                      : 'border-gray-600 focus:ring-blue-500'
-                  }`}
+                  className="w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: 'var(--color-tertiary)',
+                    color: 'var(--color-textPrimary)',
+                    borderColor: errors.password ? 'var(--color-error)' : 'var(--color-border)',
+                    '--tw-ring-color': errors.password ? 'var(--color-error)' : 'var(--color-accent)'
+                  }}
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors"
+                  style={{ color: 'var(--color-textMuted)' }}
+                  onMouseEnter={(e) => e.target.style.color = 'var(--color-textSecondary)'}
+                  onMouseLeave={(e) => e.target.style.color = 'var(--color-textMuted)'}
                 >
                   <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-4 h-4" />
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-400">{errors.password}</p>
+                <p className="mt-1 text-sm" style={{ color: 'var(--color-error)' }}>{errors.password}</p>
               )}
               {!isLogin && (
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs" style={{ color: 'var(--color-textMuted)' }}>
                   Must be at least 8 characters with uppercase, lowercase, and number
                 </p>
               )}
@@ -290,7 +316,13 @@ const AuthPage = ({ onAuthSuccess }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#13a4ec] hover:bg-[#0e8bc7] disabled:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+              className="w-full font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center disabled:opacity-50"
+              style={{
+                backgroundColor: loading ? 'var(--color-textMuted)' : 'var(--color-accent)',
+                color: 'white'
+              }}
+              onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = 'var(--color-accentHover)')}
+              onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = 'var(--color-accent)')}
             >
               {loading ? (
                 <>
@@ -305,11 +337,14 @@ const AuthPage = ({ onAuthSuccess }) => {
 
           {/* Switch Mode */}
           <div className="mt-6 text-center">
-            <p className="text-gray-400">
+            <p style={{ color: 'var(--color-textSecondary)' }}>
               {isLogin ? "Don't have an account?" : "Already have an account?"}
               <button
                 onClick={switchMode}
-                className="ml-2 text-[#13a4ec] hover:text-[#0e8bc7] font-medium"
+                className="ml-2 font-medium transition-colors"
+                style={{ color: 'var(--color-accent)' }}
+                onMouseEnter={(e) => e.target.style.color = 'var(--color-accentHover)'}
+                onMouseLeave={(e) => e.target.style.color = 'var(--color-accent)'}
               >
                 {isLogin ? 'Create one' : 'Sign in'}
               </button>

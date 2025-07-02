@@ -147,7 +147,10 @@ function ChatbotPage() {
     ));
   };
   return (
-    <div className="flex flex-col h-full bg-[#111c22]" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+    <div className="flex flex-col h-full" style={{ 
+      backgroundColor: 'var(--color-primary)',
+      fontFamily: 'Inter, "Noto Sans", sans-serif' 
+    }}>
       {/* Main content area */}
       <Split
         className="flex flex-1 overflow-hidden"
@@ -161,15 +164,15 @@ function ChatbotPage() {
         direction="horizontal"
         cursor="col-resize"
         gutterStyle={() => ({
-          backgroundColor: '#233c48',
+          backgroundColor: 'var(--color-border)',
           width: '8px',
           cursor: 'col-resize',
           position: 'relative',
         })}
       >
         {/* Chat section */}
-        <div className="flex flex-col relative border-r border-[#233c48]">
-          <h2 className="text-white tracking-light text-[28px] font-bold leading-tight px-4 text-center pb-3 pt-5 shrink-0">
+        <div className="flex flex-col relative border-r" style={{ borderRightColor: 'var(--color-border)' }}>
+          <h2 className="tracking-light text-[28px] font-bold leading-tight px-4 text-center pb-3 pt-5 shrink-0" style={{ color: 'var(--color-textPrimary)' }}>
             Hello, aabdoo23
           </h2>
 
@@ -180,9 +183,13 @@ function ChatbotPage() {
           >
             {messages.map((message, index) => (
               <div key={index} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[70%] rounded-xl px-4 py-2 ${
-                  message.isUser ? 'bg-[#13a4ec] text-white' : 'bg-[#233c48] text-white'
-                }`}>
+                <div 
+                  className={`max-w-[70%] rounded-xl px-4 py-2`}
+                  style={{
+                    backgroundColor: message.isUser ? 'var(--color-accent)' : 'var(--color-secondary)',
+                    color: 'var(--color-textPrimary)'
+                  }}
+                >
                   {formatMessageText(message.text)}
                 </div>
               </div>
@@ -199,7 +206,10 @@ function ChatbotPage() {
           </div>
 
           {/* Input area */}
-          <div className="border-t border-[#233c48] px-4 py-3 bg-[#111c22] shrink-0">
+          <div className="border-t px-4 py-3 shrink-0" style={{ 
+            borderTopColor: 'var(--color-border)',
+            backgroundColor: 'var(--color-primary)'
+          }}>
             <div className="flex items-center w-full gap-3">
               <div className="flex flex-1 items-stretch rounded-xl h-12">
                 <input
@@ -207,12 +217,20 @@ function ChatbotPage() {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Message with Protein AI..."
-                  className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-xl text-white focus:outline-0 focus:ring-0 border-none bg-[#233c48] focus:border-none h-full placeholder:text-[#92b7c9] px-4 pr-2 text-base font-normal leading-normal"
+                  className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-xl focus:outline-0 focus:ring-0 border-none focus:border-none h-full px-4 pr-2 text-base font-normal leading-normal"
+                  style={{
+                    backgroundColor: 'var(--color-secondary)',
+                    color: 'var(--color-textPrimary)',
+                  }}
                 />
-                <div className="flex items-center justify-center pr-4 bg-[#233c48] rounded-r-xl !pr-2">
+                <div className="flex items-center justify-center pr-4 rounded-r-xl !pr-2" style={{ backgroundColor: 'var(--color-secondary)' }}>
                   <button
                     onClick={handleSendMessage}
-                    className="min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-8 px-4 bg-[#13a4ec] text-white text-sm font-medium leading-normal"
+                    className="min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-8 px-4 text-sm font-medium leading-normal"
+                    style={{
+                      backgroundColor: 'var(--color-accent)',
+                      color: 'white'
+                    }}
                   >
                     <span className="truncate">Send</span>
                   </button>
@@ -223,8 +241,12 @@ function ChatbotPage() {
         </div>
 
         {/* Jobs section */}
-        <div className="flex flex-col flex-grow-0 flex-shrink-0 bg-[#111c22] mb-4">
-          <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] mb-4 px-4 py-4 sticky top-0 bg-[#111c22] z-10 border-b border-[#233c48]">
+        <div className="flex flex-col flex-grow-0 flex-shrink-0 mb-4" style={{ backgroundColor: 'var(--color-primary)' }}>
+          <h3 className="text-lg font-bold leading-tight tracking-[-0.015em] mb-4 px-4 py-4 sticky top-0 z-10 border-b" style={{
+            color: 'var(--color-textPrimary)',
+            backgroundColor: 'var(--color-primary)',
+            borderBottomColor: 'var(--color-border)'
+          }}>
             Running Jobs
           </h3>
 
