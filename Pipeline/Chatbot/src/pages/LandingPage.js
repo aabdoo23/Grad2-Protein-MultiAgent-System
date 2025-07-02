@@ -112,45 +112,6 @@ function LandingPage() {
           </div>
         </div>
       </div>
-
-      {/* Additional Features Section */}
-      <div className="border-t py-16" style={{ borderTopColor: 'var(--color-border)' }}>
-        <div className="max-w-6xl mx-auto px-4">
-          <h3 className="text-2xl font-bold text-center mb-12" style={{ color: 'var(--color-textPrimary)' }}>
-            Comprehensive Protein Analysis Tools
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'var(--color-secondary)' }}>
-                <div className="text-xl" style={{ color: 'var(--color-accent)' }}>🔍</div>
-              </div>
-              <h4 className="font-semibold mb-2" style={{ color: 'var(--color-textPrimary)' }}>Sequence Search</h4>
-              <p className="text-sm" style={{ color: 'var(--color-textSecondary)' }}>BLAST and similarity searches</p>
-            </div>
-            <div className="text-center">
-              <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'var(--color-secondary)' }}>
-                <div className="text-xl" style={{ color: 'var(--color-accent)' }}>⚡</div>
-              </div>
-              <h4 className="font-semibold mb-2" style={{ color: 'var(--color-textPrimary)' }}>Structure Search</h4>
-              <p className="text-sm" style={{ color: 'var(--color-textSecondary)' }}>FoldSeek structural searches</p>
-            </div>
-            <div className="text-center">
-              <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'var(--color-secondary)' }}>
-                <div className="text-xl" style={{ color: 'var(--color-accent)' }}>📊</div>
-              </div>
-              <h4 className="font-semibold mb-2" style={{ color: 'var(--color-textPrimary)' }}>Quality Analysis</h4>
-              <p className="text-sm" style={{ color: 'var(--color-textSecondary)' }}>Ramachandran plots and validation</p>
-            </div>
-            <div className="text-center">
-              <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'var(--color-secondary)' }}>
-                <div className="text-xl" style={{ color: 'var(--color-accent)' }}>🌳</div>
-              </div>
-              <h4 className="font-semibold mb-2" style={{ color: 'var(--color-textPrimary)' }}>Phylogenetics</h4>
-              <p className="text-sm" style={{ color: 'var(--color-textSecondary)' }}>Evolutionary analysis tools</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

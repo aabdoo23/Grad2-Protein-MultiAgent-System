@@ -816,7 +816,7 @@ const BlockPalette = ({ blockTypes }) => {
       {!isCollapsed && (
         <div className="flex-shrink-0 p-4 border-t" style={{ 
           borderColor: 'var(--color-border)', 
-          background: 'linear-gradient(to top, var(--color-tertiary), transparent)' 
+          background: 'var(--color-primary)' 
         }}>
           <div className="grid grid-cols-3 gap-2 text-xs" style={{ color: 'var(--color-textSecondary)' }}>
             <div className="text-center">

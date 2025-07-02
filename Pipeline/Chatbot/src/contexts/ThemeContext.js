@@ -49,9 +49,9 @@ export const themes = {
     name: 'light',
     colors: {
       // Background colors
-      primary: '#f1faee',
-      secondary: '#ffffff',
-      tertiary: '#f8f9fa',
+      primary: '#E6EEF2',
+      secondary: '#DBE5EB',
+      tertiary: '#CFD9DE',
       
       // Text colors
       textPrimary: '#1f2937',

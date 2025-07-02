@@ -104,8 +104,6 @@ const DocumentationPage = () => {
                             <div
                                 className="px-6 py-4 cursor-pointer transition-colors"
                                 style={{ backgroundColor: 'transparent' }}
-                                onMouseEnter={(e) => e.target.closest('div').style.backgroundColor = 'var(--color-tertiary)'}
-                                onMouseLeave={(e) => e.target.closest('div').style.backgroundColor = 'transparent'}
                                 onClick={() => toggleBlock(doc.id)}
                             >
                                 <div className="flex items-center justify-between">

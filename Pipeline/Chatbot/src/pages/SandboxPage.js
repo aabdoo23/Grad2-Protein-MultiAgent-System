@@ -999,7 +999,7 @@ const SandboxPage = () => {
 
           {/* Main Workspace */}
           <div className="flex-1 relative overflow-hidden" style={{
-            background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)'
+            background: 'var(--color-secondary)'
           }}>
             {/* Floating Action Buttons */}
             <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">

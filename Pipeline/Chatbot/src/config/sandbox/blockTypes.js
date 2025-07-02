@@ -217,7 +217,7 @@ export const blockTypes = [
     name: 'Taxonomy Analysis',
     type: 'Analysis',
     description: 'Interactive analysis of taxonomic distribution from BLAST results',
-    color: '#2D6348',
+    color: '#286049',
     inputs: ['blast_results'],
     outputs: [],
     config: {}
@@ -227,7 +227,7 @@ export const blockTypes = [
     name: 'Phylogenetic Tree',
     type: 'Analysis',
     description: 'Build phylogenetic tree from BLAST/MSA results',
-    color: '#376946',
+    color: '#2D6348',
     inputs: ['blast_results'],
     outputs: ['tree'],
     config: {
@@ -242,7 +242,7 @@ export const blockTypes = [
     name: 'Ramachandran Plot',
     type: 'Analysis',
     description: 'Generate Ramachandran plot analysis for protein backbone conformations',
-    color: '#3C6C45',
+    color: '#376946',
     inputs: ['structure'],
     outputs: ['ramachandran_plot']
   },
@@ -251,7 +251,7 @@ export const blockTypes = [
     name: 'Structure Comparison',
     type: 'Analysis',
     description: 'Compare two protein structures using USAlign to calculate TM-score, RMSD, and sequence identity',
-    color: '#325939',
+    color: '#3C6C45',
     inputs: ['structure', 'structure'],
     outputs: ['structure_comparison']
   },
