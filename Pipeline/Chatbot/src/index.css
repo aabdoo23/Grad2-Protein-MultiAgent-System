@@ -61,17 +61,17 @@
 }
 
 .block-palette-scroll::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-scrollbarTrack);
   border-radius: 3px;
 }
 
 .block-palette-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-scrollbarThumb);
   border-radius: 3px;
 }
 
 .block-palette-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--color-scrollbarThumbHover);
 }
 
 body {
@@ -79,6 +79,23 @@ body {
   font-family: 'Inter', 'Noto Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Input placeholder colors - theme aware */
+input::placeholder {
+  color: var(--color-textSecondary) !important;
+}
+
+input::-webkit-input-placeholder {
+  color: var(--color-textSecondary) !important;
+}
+
+input::-moz-placeholder {
+  color: var(--color-textSecondary) !important;
+}
+
+input:-ms-input-placeholder {
+  color: var(--color-textSecondary) !important;
 }
 
 code {

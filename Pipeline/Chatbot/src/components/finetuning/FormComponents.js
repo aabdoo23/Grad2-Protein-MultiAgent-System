@@ -11,6 +11,7 @@ import {
   faDna
 } from '@fortawesome/free-solid-svg-icons';
 import { FormField, Button, Card } from './CommonComponents';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // Storage utility for generation history
 const GENERATION_HISTORY_KEY = 'protein_generation_history';
@@ -54,6 +55,7 @@ export const GeneratedSequencesDisplay = ({
   onClose,
   className = ""
 }) => {
+  const { colors } = useTheme();
   const [expandedSequences, setExpandedSequences] = useState(new Set());
   const [showAllSequences, setShowAllSequences] = useState(false);
 
@@ -125,7 +127,10 @@ export const GeneratedSequencesDisplay = ({
       title={
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faDna} className="text-green-400" />
+            <FontAwesomeIcon 
+              icon={faDna} 
+              style={{ color: colors.success }} 
+            />
             <span>Generated Protein Sequences ({generated_sequences.length})</span>
           </div>
           <div className="flex items-center gap-2">
@@ -169,29 +174,38 @@ export const GeneratedSequencesDisplay = ({
     >
       <div className="space-y-4">
         {/* Generation Info */}
-        <div className="bg-[#1a2d35] rounded-lg p-4">
-          <h4 className="text-white font-medium mb-2">Generation Details</h4>
+        <div 
+          className="rounded-lg p-4"
+          style={{ backgroundColor: colors.tertiary }}
+        >
+          <h4 className="font-medium mb-2" style={{ color: colors.textPrimary }}>Generation Details</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-400">Model:</span>
-              <span className="text-white ml-2">{model_name}</span>
+              <span style={{ color: colors.textSecondary }}>Model:</span>
+              <span className="ml-2" style={{ color: colors.textPrimary }}>{model_name}</span>
             </div>
             <div>
-              <span className="text-gray-400">Sequences:</span>
-              <span className="text-white ml-2">{generated_sequences.length}</span>
+              <span style={{ color: colors.textSecondary }}>Sequences:</span>
+              <span className="ml-2" style={{ color: colors.textPrimary }}>{generated_sequences.length}</span>
             </div>
             <div>
-              <span className="text-gray-400">Max Tokens:</span>
-              <span className="text-white ml-2">{generation_params?.max_new_tokens || 'N/A'}</span>
+              <span style={{ color: colors.textSecondary }}>Max Tokens:</span>
+              <span className="ml-2" style={{ color: colors.textPrimary }}>{generation_params?.max_new_tokens || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-gray-400">Temperature:</span>
-              <span className="text-white ml-2">{generation_params?.temperature || 'N/A'}</span>
+              <span style={{ color: colors.textSecondary }}>Temperature:</span>
+              <span className="ml-2" style={{ color: colors.textPrimary }}>{generation_params?.temperature || 'N/A'}</span>
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-gray-400">Prompt:</span>
-            <div className="text-white ml-2 font-mono text-xs bg-[#233c48] p-2 rounded mt-1">
+            <span style={{ color: colors.textSecondary }}>Prompt:</span>
+            <div 
+              className="ml-2 font-mono text-xs p-2 rounded mt-1"
+              style={{ 
+                color: colors.textPrimary,
+                backgroundColor: colors.quaternary 
+              }}
+            >
               {prompt}
             </div>
           </div>
@@ -205,11 +219,15 @@ export const GeneratedSequencesDisplay = ({
             const displaySequence = isExpanded ? cleanSequence : cleanSequence.slice(0, 100) + (cleanSequence.length > 100 ? '...' : '');
             
             return (
-              <div key={seq.sequence_id || index} className="bg-[#1a2d35] rounded-lg p-4">
+              <div 
+                key={seq.sequence_id || index} 
+                className="rounded-lg p-4"
+                style={{ backgroundColor: colors.tertiary }}
+              >
                 <div className="flex items-center justify-between mb-2">
-                  <h5 className="text-white font-medium">
+                  <h5 className="font-medium" style={{ color: colors.textPrimary }}>
                     Sequence {seq.sequence_id || index + 1}
-                    <span className="text-gray-400 ml-2 text-sm">({cleanSequence.length} amino acids)</span>
+                    <span className="ml-2 text-sm" style={{ color: colors.textSecondary }}>({cleanSequence.length} amino acids)</span>
                   </h5>
                   <div className="flex items-center gap-2">
                     <Button
@@ -233,8 +251,17 @@ export const GeneratedSequencesDisplay = ({
                     )}
                   </div>
                 </div>
-                <div className="font-mono text-xs bg-[#233c48] p-3 rounded border border-gray-600 overflow-x-auto">
-                  <div className="text-green-400 whitespace-pre-wrap break-all">
+                <div 
+                  className="font-mono text-xs p-3 rounded border overflow-x-auto"
+                  style={{ 
+                    backgroundColor: colors.quaternary,
+                    borderColor: colors.border
+                  }}
+                >
+                  <div 
+                    className="whitespace-pre-wrap break-all"
+                    style={{ color: colors.success }}
+                  >
                     {displaySequence}
                   </div>
                 </div>
@@ -273,6 +300,26 @@ export const FinetuneForm = ({
   isLoading = false, 
   isServerOnline = true 
 }) => {
+  const { colors } = useTheme();
+  
+  // Helper function for consistent input styling
+  const getInputStyles = () => ({
+    backgroundColor: colors.tertiary,
+    color: colors.textPrimary,
+    borderColor: colors.border,
+    '--tw-ring-color': colors.accent
+  });
+  
+  const handleFocusIn = (e) => {
+    e.target.style.borderColor = colors.accent;
+    e.target.style.backgroundColor = colors.quaternary || colors.tertiary;
+  };
+  
+  const handleFocusOut = (e) => {
+    e.target.style.borderColor = colors.border;
+    e.target.style.backgroundColor = colors.tertiary;
+  };
+  
   const [formData, setFormData] = useState({
     model: '',
     fastaFile: null,
@@ -336,7 +383,13 @@ export const FinetuneForm = ({
           <select
             value={formData.model}
             onChange={(e) => updateField('model', e.target.value)}
-            className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+            className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+            style={{
+              backgroundColor: colors.tertiary,
+              color: colors.textPrimary,
+              borderColor: colors.border,
+              '--tw-ring-color': colors.accent
+            }}
             required
           >
             <option value="">Select a base model</option>
@@ -357,22 +410,39 @@ export const FinetuneForm = ({
               type="file"
               accept=".fasta,.fa,.fna,.ffn,.faa,.frn"
               onChange={handleFileUpload}
-              className="text-gray-300 text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-[#233c48] file:text-gray-300 hover:file:bg-[#2a4653]"
+              className="text-sm"
+              style={{
+                color: colors.textSecondary,
+                '--file-mr': '1rem',
+                '--file-py': '0.5rem',
+                '--file-px': '1rem',
+                '--file-rounded': '0.375rem',
+                '--file-border': '0',
+                '--file-text-sm': '0.875rem',
+                '--file-bg': colors.tertiary,
+                '--file-color': colors.textSecondary
+              }}
             />
             {formData.fastaFile && (
-              <p className="text-sm text-green-400">
+              <p className="text-sm" style={{ color: colors.success }}>
                 File selected: {formData.fastaFile.name}
               </p>
             )}
             <textarea
               value={formData.fastaContent}
               onChange={(e) => updateField('fastaContent', e.target.value)}
-              className="w-full h-32 bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none font-mono text-sm"
+              className="w-full h-32 px-3 py-2 rounded border font-mono text-sm focus:outline-none focus:ring-2"
+              style={{
+                backgroundColor: colors.tertiary,
+                color: colors.textPrimary,
+                borderColor: colors.border,
+                '--tw-ring-color': colors.accent
+              }}
               placeholder=">protein1&#10;MKVLIVLLQKTSR...&#10;>protein2&#10;MQIFVKTLTGKTI..."
               disabled={!!formData.fastaFile}
             />
             {formData.fastaFile && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs" style={{ color: colors.textMuted }}>
                 Text area disabled - file upload takes priority
               </p>
             )}
@@ -381,7 +451,7 @@ export const FinetuneForm = ({
 
         {/* Advanced Options */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-white">Training Parameters</h3>
+          <h3 className="text-lg font-medium" style={{ color: colors.textPrimary }}>Training Parameters</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField 
@@ -391,7 +461,10 @@ export const FinetuneForm = ({
               <select
                 value={formData.use_lora.toString()}
                 onChange={(e) => updateField('use_lora', e.target.value === 'true')}
-                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+                style={getInputStyles()}
+                onFocus={handleFocusIn}
+                onBlur={handleFocusOut}
               >
                 <option value="true">Yes (Recommended)</option>
                 <option value="false">No (Full Fine-tuning)</option>
@@ -405,7 +478,10 @@ export const FinetuneForm = ({
               <select
                 value={formData.use_optuna.toString()}
                 onChange={(e) => updateField('use_optuna', e.target.value === 'true')}
-                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+                style={getInputStyles()}
+                onFocus={handleFocusIn}
+                onBlur={handleFocusOut}
               >
                 <option value="true">Yes (Recommended)</option>
                 <option value="false">No (Use manual parameters)</option>
@@ -425,7 +501,10 @@ export const FinetuneForm = ({
                   max="20"
                   value={formData.n_trials}
                   onChange={(e) => updateField('n_trials', parseInt(e.target.value))}
-                  className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+                  style={getInputStyles()}
+                  onFocus={handleFocusIn}
+                  onBlur={handleFocusOut}
                 />
               </FormField>
 
@@ -442,7 +521,10 @@ export const FinetuneForm = ({
                     value={formData.optuna_lr_min}
                     onChange={(e) => updateField('optuna_lr_min', parseFloat(e.target.value))}
                     placeholder="Min (e.g., 1e-7)"
-                    className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                    className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2 text-sm"
+                    style={getInputStyles()}
+                    onFocus={handleFocusIn}
+                    onBlur={handleFocusOut}
                   />
                   <input
                     type="number"
@@ -452,7 +534,10 @@ export const FinetuneForm = ({
                     value={formData.optuna_lr_max}
                     onChange={(e) => updateField('optuna_lr_max', parseFloat(e.target.value))}
                     placeholder="Max (e.g., 1e-6)"
-                    className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                    className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2 text-sm"
+                    style={getInputStyles()}
+                    onFocus={handleFocusIn}
+                    onBlur={handleFocusOut}
                   />
                 </div>
               </FormField>
@@ -470,6 +555,8 @@ export const FinetuneForm = ({
                     onChange={(e) => updateField('optuna_epochs_min', parseInt(e.target.value))}
                     placeholder="Min epochs"
                     className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                    style={getInputStyles()}
+
                   />
                   <input
                     type="number"
@@ -479,6 +566,7 @@ export const FinetuneForm = ({
                     onChange={(e) => updateField('optuna_epochs_max', parseInt(e.target.value))}
                     placeholder="Max epochs"
                     className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                    style={getInputStyles()}
                   />
                 </div>
               </FormField>
@@ -496,6 +584,8 @@ export const FinetuneForm = ({
                   value={formData.learning_rate}
                   onChange={(e) => updateField('learning_rate', parseFloat(e.target.value))}
                   className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  style={getInputStyles()}
+                
                 />
               </FormField>
 
@@ -507,6 +597,7 @@ export const FinetuneForm = ({
                   value={formData.per_device_train_batch_size}
                   onChange={(e) => updateField('per_device_train_batch_size', parseInt(e.target.value))}
                   className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  style={getInputStyles()}
                 />
               </FormField>
 
@@ -518,6 +609,7 @@ export const FinetuneForm = ({
                   value={formData.num_train_epochs}
                   onChange={(e) => updateField('num_train_epochs', parseInt(e.target.value))}
                   className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  style={getInputStyles()}
                 />
               </FormField>
 
@@ -530,6 +622,7 @@ export const FinetuneForm = ({
                   value={formData.weight_decay}
                   onChange={(e) => updateField('weight_decay', parseFloat(e.target.value))}
                   className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  style={getInputStyles()}
                 />
               </FormField>
             </div>
@@ -566,6 +659,25 @@ export const GenerateForm = ({
   generationResult = null,
   onClearResults = null
 }) => {
+  const { colors } = useTheme();
+  
+  // Helper function for consistent input styling
+  const getInputStyles = () => ({
+    backgroundColor: colors.tertiary,
+    color: colors.textPrimary,
+    borderColor: colors.border,
+    '--tw-ring-color': colors.accent
+  });
+  
+  const handleFocusIn = (e) => {
+    e.target.style.borderColor = colors.accent;
+    e.target.style.backgroundColor = colors.quaternary || colors.tertiary;
+  };
+  
+  const handleFocusOut = (e) => {
+    e.target.style.borderColor = colors.border;
+    e.target.style.backgroundColor = colors.tertiary;
+  };
   const [modelType, setModelType] = useState('base'); // 'base' or 'finetuned'
   const [formData, setFormData] = useState({
     prompt: '<|startoftext|>',
@@ -629,9 +741,10 @@ export const GenerateForm = ({
                   value="base"
                   checked={modelType === 'base'}
                   onChange={() => handleModelTypeChange('base')}
-                  className="mr-2 text-blue-500 focus:ring-blue-500"
+                  className="mr-2"
+                  style={{ accentColor: colors.accent }}
                 />
-                <span className="text-white">Base Model</span>
+                <span style={{ color: colors.textPrimary }}>Base Model</span>
               </label>
               <label className="flex items-center">
                 <input
@@ -640,9 +753,10 @@ export const GenerateForm = ({
                   value="finetuned"
                   checked={modelType === 'finetuned'}
                   onChange={() => handleModelTypeChange('finetuned')}
-                  className="mr-2 text-blue-500 focus:ring-blue-500"
+                  className="mr-2"
+                  style={{ accentColor: colors.accent }}
                 />
-                <span className="text-white">Fine-tuned Model</span>
+                <span style={{ color: colors.textPrimary }}>Fine-tuned Model</span>
               </label>
             </div>
           </FormField>
@@ -657,7 +771,10 @@ export const GenerateForm = ({
               type="text"
               value={formData.prompt}
               onChange={(e) => updateField('prompt', e.target.value)}
-              className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+              className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+              style={getInputStyles()}
+              onFocus={handleFocusIn}
+              onBlur={handleFocusOut}
               placeholder="<|startoftext|>"
               required
             />
@@ -673,7 +790,10 @@ export const GenerateForm = ({
               <select
                 value={formData.model_name}
                 onChange={(e) => updateField('model_name', e.target.value)}
-                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+                style={getInputStyles()}
+                onFocus={handleFocusIn}
+                onBlur={handleFocusOut}
                 required
               >
                 <option value="">Select base model</option>
@@ -698,7 +818,10 @@ export const GenerateForm = ({
                       updateField('model_name', selectedModel.base_model_name);
                     }
                   }}
-                  className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+                  style={getInputStyles()}
+                  onFocus={handleFocusIn}
+                  onBlur={handleFocusOut}
                   required
                 >
                   <option value="">Select fine-tuned model</option>
@@ -711,8 +834,14 @@ export const GenerateForm = ({
               </FormField>
 
               {finetunedModels.length === 0 && (
-                <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4">
-                  <p className="text-yellow-400 text-sm">
+                <div 
+                  className="border rounded-lg p-4"
+                  style={{
+                    backgroundColor: `${colors.warning}20`,
+                    borderColor: colors.warning
+                  }}
+                >
+                  <p className="text-sm" style={{ color: colors.warning }}>
                     <FontAwesomeIcon icon={faFileText} className="mr-2" />
                     No fine-tuned models found. Complete a fine-tuning job first to use custom models.
                   </p>
@@ -740,7 +869,10 @@ export const GenerateForm = ({
                         }
                       }
                     }}
-                    className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+                    style={getInputStyles()}
+                    onFocus={handleFocusIn}
+                    onBlur={handleFocusOut}
                   >
                     <option value="">Select from completed jobs...</option>
                     {userModels
@@ -768,7 +900,10 @@ export const GenerateForm = ({
                 max="1000"
                 value={formData.max_new_tokens}
                 onChange={(e) => updateField('max_new_tokens', parseInt(e.target.value))}
-                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+                style={getInputStyles()}
+                onFocus={handleFocusIn}
+                onBlur={handleFocusOut}
               />
             </FormField>
 
@@ -782,7 +917,10 @@ export const GenerateForm = ({
                 max="100"
                 value={formData.num_return_sequences}
                 onChange={(e) => updateField('num_return_sequences', parseInt(e.target.value))}
-                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+                style={getInputStyles()}
+                onFocus={handleFocusIn}
+                onBlur={handleFocusOut}
               />
             </FormField>
 
@@ -797,7 +935,10 @@ export const GenerateForm = ({
                 max="2.0"
                 value={formData.temperature}
                 onChange={(e) => updateField('temperature', parseFloat(e.target.value))}
-                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+                style={getInputStyles()}
+                onFocus={handleFocusIn}
+                onBlur={handleFocusOut}
               />
             </FormField>
 
@@ -812,7 +953,10 @@ export const GenerateForm = ({
                 max="1.0"
                 value={formData.top_p}
                 onChange={(e) => updateField('top_p', parseFloat(e.target.value))}
-                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+                style={getInputStyles()}
+                onFocus={handleFocusIn}
+                onBlur={handleFocusOut}
               />
             </FormField>
 
@@ -826,7 +970,10 @@ export const GenerateForm = ({
                 max="100"
                 value={formData.top_k}
                 onChange={(e) => updateField('top_k', parseInt(e.target.value))}
-                className="w-full bg-[#233c48] text-white px-3 py-2 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 rounded border focus:outline-none focus:ring-2"
+                style={getInputStyles()}
+                onFocus={handleFocusIn}
+                onBlur={handleFocusOut}
               />
             </FormField>
           </div>

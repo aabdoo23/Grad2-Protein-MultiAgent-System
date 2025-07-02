@@ -984,22 +984,34 @@ const SandboxPage = () => {
   };
 
    return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-[#0f1419] via-[#111c22] to-[#0d1117]">
+    <div className="flex flex-col h-full" style={{ 
+      background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 50%, var(--color-primary) 100%)'
+    }}>
       <DndProvider backend={HTML5Backend}>
         <div className="flex flex-1 overflow-hidden">
           {/* Dynamic Sidebar Container */}
-          <div className="flex-shrink-0 bg-gradient-to-b from-[#1a2b34] to-[#152028] border-r border-[#233c48]/50 shadow-2xl backdrop-blur-sm">
+          <div className="flex-shrink-0 border-r shadow-2xl" style={{
+            backgroundColor: 'var(--color-primary)',
+            borderRightColor: 'var(--color-border)'
+          }}>
             <BlockPalette blockTypes={blockTypes} />
           </div>
 
           {/* Main Workspace */}
-          <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-[#111c22] to-[#0d1520]">
+          <div className="flex-1 relative overflow-hidden" style={{
+            background: 'var(--color-secondary)'
+          }}>
             {/* Floating Action Buttons */}
             <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
               {/* Settings Toggle */}
               <button
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className="w-12 h-12 bg-[#233c48] hover:bg-[#2a4a5a] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                className="w-12 h-12 text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                style={{
+                  backgroundColor: 'var(--color-accent)'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-accentHover)'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-accent)'}
                 title="Settings"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1011,7 +1023,12 @@ const SandboxPage = () => {
               {/* Clear Outputs */}
               <button
                 onClick={clearOutputs}
-                className="w-12 h-12 bg-[#233c48] hover:bg-[#2a4a5a] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                className="w-12 h-12 text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                style={{
+                  backgroundColor: 'var(--color-warning)'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#d97706'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-warning)'}
                 title="Clear all outputs"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 group-hover:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1022,7 +1039,16 @@ const SandboxPage = () => {
               {/* Clear All Blocks */}
               <button
                 onClick={handleClearAllBlocks}
-                className="w-12 h-12 bg-[#c82333] hover:bg-[#dc3545] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                className="w-12 h-12 text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center group"
+                style={{
+                  backgroundColor: 'var(--color-error)'
+                }}
+                onMouseEnter={(e) => {
+                  const errorColor = getComputedStyle(document.documentElement).getPropertyValue('--color-error').trim();
+                  // Create a slightly darker version of the error color for hover
+                  e.target.style.backgroundColor = errorColor === '#ef4444' ? '#dc2626' : '#c53030';
+                }}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-error)'}
                 title="Clear all blocks"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 group-hover:rotate-12 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1033,7 +1059,20 @@ const SandboxPage = () => {
               {/* Automation Toggle */}
               <button
                 onClick={() => setIsAutomate(!isAutomate)}
-                className={`w-12 h-12 ${isAutomate ? 'bg-[#13a4ec]' : 'bg-[#233c48]'} hover:bg-[#2a4a5a] text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center`}
+                className={`w-12 h-12 text-white rounded-full shadow-lg transition-all duration-200 flex items-center justify-center`}
+                style={{
+                  backgroundColor: isAutomate ? 'var(--color-success)' : 'var(--color-info)'
+                }}
+                onMouseEnter={(e) => {
+                  if (isAutomate) {
+                    e.target.style.backgroundColor = '#059669'; // darker green
+                  } else {
+                    e.target.style.backgroundColor = '#2563eb'; // darker blue
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = isAutomate ? 'var(--color-success)' : 'var(--color-info)';
+                }}
                 title={`Automation: ${isAutomate ? 'ON' : 'OFF'}`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1044,13 +1083,19 @@ const SandboxPage = () => {
 
             {/* Settings Panel */}
             {isSettingsOpen && (
-              <div className="absolute top-4 left-4 right-20 z-40 bg-[#1a2c35] border border-[#233c48] rounded-lg p-4 shadow-xl backdrop-blur-sm">
+              <div className="absolute top-4 left-4 right-20 z-40 border rounded-lg p-4 shadow-xl backdrop-blur-sm" style={{
+                backgroundColor: 'var(--color-secondary)',
+                borderColor: 'var(--color-border)'
+              }}>
                 <div className="flex flex-wrap gap-4">
                   {/* Loop Controls */}
                   <div className="flex-1 min-w-[300px]">
-                    <div className="flex items-center gap-4 bg-[#233c48] px-4 py-3 rounded-lg border border-[#344854]">
+                    <div className="flex items-center gap-4 px-4 py-3 rounded-lg border" style={{
+                      backgroundColor: 'var(--color-secondary)',
+                      borderColor: 'var(--color-border)'
+                    }}>
                       <div className="flex items-center gap-3">
-                        <span className="text-white text-sm font-medium">Loop</span>
+                        <span className="text-sm font-medium" style={{ color: 'var(--color-textPrimary)' }}>Loop</span>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
@@ -1058,13 +1103,24 @@ const SandboxPage = () => {
                             checked={loopConfig.isEnabled}
                             onChange={() => setLoopConfig(prev => ({ ...prev, isEnabled: !prev.isEnabled }))}
                           />
-                          <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#13a4ec]"></div>
+                          <div 
+                            className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"
+                            style={{
+                              backgroundColor: loopConfig.isEnabled ? 'var(--color-accent)' : 'var(--color-textMuted)',
+                              borderColor: 'var(--color-border)'
+                            }}
+                          ></div>
                         </label>
                       </div>
                       {loopConfig.isEnabled && (
                         <div className="flex flex-wrap gap-3">
                           <select
-                            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                            className="text-sm rounded-lg px-3 py-1.5 border focus:outline-none transition-colors duration-200"
+                            style={{
+                              backgroundColor: 'var(--color-tertiary)',
+                              color: 'var(--color-textPrimary)',
+                              borderColor: 'var(--color-border)'
+                            }}
                             value={loopConfig.startBlockId || ''}
                             onChange={(e) => setLoopConfig(prev => ({ ...prev, startBlockId: e.target.value }))}
                           >
@@ -1076,7 +1132,12 @@ const SandboxPage = () => {
                             ))}
                           </select>
                           <select
-                            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                            className="text-sm rounded-lg px-3 py-1.5 border focus:outline-none transition-colors duration-200"
+                            style={{
+                              backgroundColor: 'var(--color-tertiary)',
+                              color: 'var(--color-textPrimary)',
+                              borderColor: 'var(--color-border)'
+                            }}
                             value={loopConfig.endBlockId || ''}
                             onChange={(e) => setLoopConfig(prev => ({ ...prev, endBlockId: e.target.value }))}
                           >
@@ -1088,7 +1149,12 @@ const SandboxPage = () => {
                             ))}
                           </select>
                           <select
-                            className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                            className="text-sm rounded-lg px-3 py-1.5 border focus:outline-none transition-colors duration-200"
+                            style={{
+                              backgroundColor: 'var(--color-tertiary)',
+                              color: 'var(--color-textPrimary)',
+                              borderColor: 'var(--color-border)'
+                            }}
                             value={loopConfig.iterationType}
                             onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationType: e.target.value }))}
                           >
@@ -1101,11 +1167,21 @@ const SandboxPage = () => {
                               min="1"
                               value={loopConfig.iterationCount}
                               onChange={(e) => setLoopConfig(prev => ({ ...prev, iterationCount: parseInt(e.target.value) }))}
-                              className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200 w-20"
+                              className="text-sm rounded-lg px-3 py-1.5 border focus:outline-none transition-colors duration-200 w-20"
+                              style={{
+                                backgroundColor: 'var(--color-tertiary)',
+                                color: 'var(--color-textPrimary)',
+                                borderColor: 'var(--color-border)'
+                              }}
                             />
                           ) : (
                             <select
-                              className="bg-[#1a2c35] text-white text-sm rounded-lg px-3 py-1.5 border border-[#344854] focus:border-[#13a4ec] focus:outline-none transition-colors duration-200"
+                              className="text-sm rounded-lg px-3 py-1.5 border focus:outline-none transition-colors duration-200"
+                              style={{
+                                backgroundColor: 'var(--color-tertiary)',
+                                color: 'var(--color-textPrimary)',
+                                borderColor: 'var(--color-border)'
+                              }}
                               value={loopConfig.sequenceBlockId || ''}
                               onChange={(e) => setLoopConfig(prev => ({ ...prev, sequenceBlockId: e.target.value }))}
                             >
@@ -1121,7 +1197,12 @@ const SandboxPage = () => {
                           )}
                           <button
                             onClick={startLoop}
-                            className="px-4 py-1.5 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1] transition-colors duration-200 flex items-center gap-2"
+                            className="px-4 py-1.5 text-white rounded-lg text-sm transition-colors duration-200 flex items-center gap-2"
+                            style={{
+                              backgroundColor: 'var(--color-accent)'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-accentHover)'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-accent)'}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -1131,7 +1212,14 @@ const SandboxPage = () => {
                           </button>
                           <button
                             onClick={stopLoop}
-                            className="px-4 py-1.5 bg-[#1a2c35] text-white border border-[#344854] rounded-lg text-sm hover:bg-[#233c48] transition-colors duration-200 flex items-center gap-2"
+                            className="px-4 py-1.5 border rounded-lg text-sm transition-colors duration-200 flex items-center gap-2"
+                            style={{
+                              backgroundColor: 'var(--color-tertiary)',
+                              color: 'var(--color-textPrimary)',
+                              borderColor: 'var(--color-border)'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-secondary)'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-tertiary)'}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

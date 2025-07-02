@@ -314,19 +314,28 @@ const JobConfirmation = ({ job, onConfirm, onReject }) => {
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[70%] rounded-xl px-4 py-2 bg-[#233c48] text-white">
+      <div className="max-w-[70%] rounded-xl px-4 py-2" style={{
+        backgroundColor: 'var(--color-secondary)',
+        color: 'var(--color-textPrimary)'
+      }}>
         <div className="font-medium mb-2">{job.title}</div>
-        <div className="text-sm text-gray-300 mb-3">{job.description}</div>
+        <div className="text-sm mb-3" style={{ color: 'var(--color-textSecondary)' }}>{job.description}</div>
         
         {isStructurePrediction && (
           <div className="mb-3">
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-textSecondary)' }}>
               Select structure prediction model:
             </label>
             <select 
               value={selectedModel}
               onChange={handleModelChange}
-              className="w-full p-2 rounded bg-[#1a2a33] text-white border border-[#344854] focus:outline-none focus:ring-1 focus:ring-[#13a4ec]"
+              className="w-full p-2 rounded border focus:outline-none focus:ring-1"
+              style={{
+                backgroundColor: 'var(--color-tertiary)',
+                color: 'var(--color-textPrimary)',
+                borderColor: 'var(--color-border)',
+                '&:focus': { borderColor: 'var(--color-accent)' }
+              }}
             >
               <option value="openfold">OpenFold - Most accurate and fast (~30 sec)</option>
               <option value="alphafold2">AlphaFold2 - Accurate but slow (~6 min)</option>
@@ -338,13 +347,18 @@ const JobConfirmation = ({ job, onConfirm, onReject }) => {
 
         {isBlastSearch && (
           <div className="mb-3">
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-textSecondary)' }}>
               Select sequence similarity search method:
             </label>
             <select
               value={selectedSearchType}
               onChange={handleSearchTypeChange}
-              className="w-full p-2 rounded bg-[#1a2a33] text-white border border-[#344854] focus:outline-none focus:ring-1 focus:ring-[#13a4ec]"
+              className="w-full p-2 rounded border focus:outline-none focus:ring-1"
+              style={{
+                backgroundColor: 'var(--color-tertiary)',
+                color: 'var(--color-textPrimary)',
+                borderColor: 'var(--color-border)'
+              }}
             >
               <option value="colabfold">ColabFold MSA - Fast, modern MSA search(~20 sec)</option>
               <option value="ncbi">NCBI BLAST - Standard, comprehensive search(~6 min)</option>
@@ -357,13 +371,23 @@ const JobConfirmation = ({ job, onConfirm, onReject }) => {
         <div className="flex gap-2">
           <button 
             onClick={handleConfirm}
-            className="px-3 py-1 bg-[#13a4ec] text-white rounded-lg text-sm hover:bg-[#0f8fd1]"
+            className="px-3 py-1 text-white rounded-lg text-sm transition-colors duration-200"
+            style={{ backgroundColor: 'var(--color-accent)' }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-accentHover)'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-accent)'}
           >
             Confirm
           </button>
           <button 
             onClick={() => onReject(job.id)}
-            className="px-3 py-1 bg-[#233c48] text-white border border-[#13a4ec] rounded-lg text-sm hover:bg-[#2a4a5a]"
+            className="px-3 py-1 border rounded-lg text-sm transition-colors duration-200"
+            style={{
+              backgroundColor: 'var(--color-secondary)',
+              color: 'var(--color-textPrimary)',
+              borderColor: 'var(--color-accent)'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-tertiary)'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-secondary)'}
           >
             Reject
           </button>

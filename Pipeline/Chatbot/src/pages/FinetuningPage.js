@@ -6,6 +6,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import useAdvancedFinetuning from '../hooks/useAdvancedFinetuning';
 import { 
   EnhancedServerHealthIndicator, 
@@ -27,6 +28,7 @@ const FinetuningPage = () => {
   const [activeTab, setActiveTab] = useState('finetune');
   const [generationResult, setGenerationResult] = useState(null);
   const { user } = useAuth();
+  const { colors } = useTheme();
 
   // Use the advanced hook for all fine-tuning functionality
   const {
@@ -138,11 +140,11 @@ const FinetuningPage = () => {
   // Show loading screen during initialization
   if (initializing) {
     return (
-      <div className="flex flex-col h-full bg-[#111c22] overflow-y-auto">
+      <div className="flex flex-col h-full overflow-y-auto" style={{ backgroundColor: 'var(--color-primary)' }}>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <LoadingSpinner size="xl" />
-            <p className="text-gray-400 mt-4">Initializing fine-tuning service...</p>
+            <p className="mt-4" style={{ color: 'var(--color-textSecondary)' }}>Initializing fine-tuning service...</p>
           </div>
         </div>
       </div>
@@ -150,17 +152,17 @@ const FinetuningPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#111c22] overflow-y-auto">
+    <div className="flex flex-col h-full overflow-y-auto" style={{ backgroundColor: 'var(--color-primary)' }}>
       <div className="flex-1 p-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Protein Model Fine-tuning</h1>
-          <p className="text-gray-400">Fine-tune protein language models and generate sequences</p>
+          <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-textPrimary)' }}>Protein Model Fine-tuning</h1>
+          <p style={{ color: 'var(--color-textSecondary)' }}>Fine-tune protein language models and generate sequences</p>
           
           {/* User Info and Controls */}
           <div className="mt-4 flex items-center gap-4 flex-wrap">
-            <div className="text-sm text-gray-300">
-              Signed in as: <span className="text-white font-medium">{user?.user_name}</span>
+            <div className="text-sm" style={{ color: 'var(--color-textSecondary)' }}>
+              Signed in as: <span className="font-medium" style={{ color: 'var(--color-textPrimary)' }}>{user?.user_name}</span>
             </div>
             
             {/* Server Status */}
@@ -170,14 +172,20 @@ const FinetuningPage = () => {
             <button
               onClick={() => refreshAll(user?.user_name || user?.username || user?.email)}
               disabled={loading}
-              className="px-3 py-1 bg-[#233c48] hover:bg-[#2a4653] text-white text-sm rounded transition-colors disabled:opacity-50"
+              className="px-3 py-1 text-sm rounded transition-colors disabled:opacity-50"
+              style={{
+                backgroundColor: 'var(--color-secondary)',
+                color: 'var(--color-textPrimary)'
+              }}
+              onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = 'var(--color-tertiary)')}
+              onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = 'var(--color-secondary)')}
             >
               {loading ? 'Refreshing...' : 'Refresh All'}
             </button>
             
             {/* Active Jobs Indicator */}
             {hasActiveJobs && (
-              <div className="flex items-center gap-2 text-sm text-blue-400">
+              <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-info)' }}>
                 <LoadingSpinner size="sm" />
                 <span>{pollingJobs.size} active job{pollingJobs.size !== 1 ? 's' : ''}</span>
               </div>
@@ -207,7 +215,8 @@ const FinetuningPage = () => {
               value={statistics.job_statistics?.total_jobs || 0}
               icon={faFlask}
               color="blue"
-              className="bg-[#1a2d35]"
+              className="rounded-lg"
+              style={{ backgroundColor: 'var(--color-secondary)' }}
             />
             <StatisticsCard
               title="Active Jobs"
@@ -215,7 +224,8 @@ const FinetuningPage = () => {
               subtitle={`${pollingJobs.size} polling`}
               icon={faFlask}
               color="green"
-              className="bg-[#1a2d35]"
+              className="rounded-lg"
+              style={{ backgroundColor: 'var(--color-secondary)' }}
             />
             <StatisticsCard
               title="Completed"
@@ -223,7 +233,8 @@ const FinetuningPage = () => {
               subtitle="Ready for generation"
               icon={faFileText}
               color="purple"
-              className="bg-[#1a2d35]"
+              className="rounded-lg"
+              style={{ backgroundColor: 'var(--color-secondary)' }}
             />
             <StatisticsCard
               title="Failed Jobs"
@@ -231,14 +242,15 @@ const FinetuningPage = () => {
               subtitle={statistics.recent_jobs_24h ? `${statistics.recent_jobs_24h} in 24h` : ''}
               icon={faFileText}
               color="red"
-              className="bg-[#1a2d35]"
+              className="rounded-lg"
+              style={{ backgroundColor: 'var(--color-secondary)' }}
             />
           </div>
         )}
 
         {/* Tab Navigation */}
         <div className="mb-6">
-          <div className="flex space-x-1 bg-[#233c48] p-1 rounded-lg w-fit">
+          <div className="flex space-x-1 p-1 rounded-lg w-fit" style={{ backgroundColor: 'var(--color-secondary)' }}>
             {[
               { id: 'finetune', label: 'Fine-tune Model', icon: faFlask },
               { id: 'generate', label: 'Generate Sequence', icon: faFileText },
@@ -249,15 +261,32 @@ const FinetuningPage = () => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors relative ${
-                  activeTab === tab.id
-                    ? 'bg-[#13a4ec] text-white'
-                    : 'text-gray-300 hover:text-white hover:bg-[#2a4653]'
+                  activeTab === tab.id ? '' : ''
                 }`}
+                style={{
+                  backgroundColor: activeTab === tab.id ? 'var(--color-accent)' : 'transparent',
+                  color: activeTab === tab.id ? 'white' : 'var(--color-textSecondary)'
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== tab.id) {
+                    e.target.style.color = 'var(--color-textPrimary)';
+                    e.target.style.backgroundColor = 'var(--color-tertiary)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== tab.id) {
+                    e.target.style.color = 'var(--color-textSecondary)';
+                    e.target.style.backgroundColor = 'transparent';
+                  }
+                }}
               >
                 <FontAwesomeIcon icon={tab.icon} className="w-4 h-4" />
                 {tab.label}
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span 
+                    className="absolute -top-1 -right-1 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+                    style={{ backgroundColor: 'var(--color-error)' }}
+                  >
                     {tab.badge > 99 ? '99+' : tab.badge}
                   </span>
                 )}
@@ -310,22 +339,22 @@ const FinetuningPage = () => {
             <div className="space-y-4">
               {/* Job Status Summary */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-[#1a2d35] rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-white mb-2">Active Jobs</h3>
-                  <p className="text-2xl font-bold text-blue-400">{activeJobs.length}</p>
-                  <p className="text-sm text-gray-400">
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-secondary)' }}>
+                  <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--color-textPrimary)' }}>Active Jobs</h3>
+                  <p className="text-2xl font-bold" style={{ color: 'var(--color-info)' }}>{activeJobs.length}</p>
+                  <p className="text-sm" style={{ color: 'var(--color-textSecondary)' }}>
                     {activeJobs.length > 0 ? 'Can be cancelled/stopped' : 'Currently running'}
                   </p>
                 </div>
-                <div className="bg-[#1a2d35] rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-white mb-2">Completed</h3>
-                  <p className="text-2xl font-bold text-green-400">{completedJobs.length}</p>
-                  <p className="text-sm text-gray-400">Ready for use</p>
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-secondary)' }}>
+                  <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--color-textPrimary)' }}>Completed</h3>
+                  <p className="text-2xl font-bold" style={{ color: 'var(--color-success)' }}>{completedJobs.length}</p>
+                  <p className="text-sm" style={{ color: 'var(--color-textSecondary)' }}>Ready for use</p>
                 </div>
-                <div className="bg-[#1a2d35] rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-white mb-2">Failed</h3>
-                  <p className="text-2xl font-bold text-red-400">{failedJobs.length}</p>
-                  <p className="text-sm text-gray-400">Need attention</p>
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-secondary)' }}>
+                  <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--color-textPrimary)' }}>Failed</h3>
+                  <p className="text-2xl font-bold" style={{ color: 'var(--color-error)' }}>{failedJobs.length}</p>
+                  <p className="text-sm" style={{ color: 'var(--color-textSecondary)' }}>Need attention</p>
                 </div>
               </div>
 
